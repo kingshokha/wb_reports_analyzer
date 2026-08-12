@@ -1045,6 +1045,19 @@
       return isNaN(d.getTime()) ? null : d;
     }
 
+    function formatDate(val) {
+      if (!val) return '—';
+      if (typeof val === 'string') return val;
+      if (val instanceof Date) {
+        if (isNaN(val.getTime())) return '—';
+        const day = String(val.getDate()).padStart(2, '0');
+        const month = String(val.getMonth() + 1).padStart(2, '0');
+        const year = val.getFullYear();
+        return `${day}.${month}.${year}`;
+      }
+      return String(val);
+    }
+
     function showError(error) {
       const loadingState = document.getElementById('loadingState');
       if (loadingState) loadingState.classList.add('hidden');
