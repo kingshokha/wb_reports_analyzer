@@ -2215,8 +2215,9 @@
           globalStats.logisticsBreakdown[logType].count += 1;
         }
 
-        let isSale = reasonVal.includes('продажа') || reasonVal.includes('реализация');
-        let isReturn = reasonVal.includes('возврат');
+        const isVoluntaryCompensation = reasonVal.includes('добровольная компенсация при возврате');
+        let isSale = reasonVal.includes('продажа') || reasonVal.includes('реализация') || isVoluntaryCompensation;
+        let isReturn = reasonVal.includes('возврат') && !isVoluntaryCompensation;
 
         if (rowT === 0 && rowAH === 0) {
           isSale = false;
