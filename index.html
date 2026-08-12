@@ -186,11 +186,39 @@
                 <i data-lucide="bar-chart-3" class="w-5 h-5" stroke-width="2"></i>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-xs font-semibold text-slate-400">Сумма заказов (T)</p>
+                <p class="text-xs font-semibold text-slate-400">Сумма выкупа (T)</p>
                 <h3 id="statTurnover" class="text-xl font-bold text-slate-800 mt-0.5">0.00 ₽</h3>
                 <div class="text-[10px] text-slate-500 mt-0.5 flex justify-between">
                   <span>Выкупы: <strong id="statSalesCount" class="text-emerald-600 font-semibold">0 шт</strong></span>
                   <span>Возв.: <strong id="statReturnsCount" class="text-rose-600 font-semibold">0 шт</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 h-full min-h-[105px]">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-amber-50 text-amber-600">
+                <i data-lucide="percent" class="w-5 h-5" stroke-width="2"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-semibold text-slate-400">Комиссия и эквайринг</p>
+                <h3 id="statFees" class="text-xl font-bold text-slate-800 mt-0.5">0.00 ₽</h3>
+                <p class="text-[10px] text-slate-500 mt-0.5">Доля от оборота: <strong id="statFeesRatio" class="text-slate-700 font-semibold">0.0%</strong></p>
+              </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 h-full min-h-[105px]">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 text-emerald-600">
+                <i data-lucide="banknote" class="w-5 h-5" stroke-width="2"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex justify-between items-center">
+                  <p class="text-xs font-semibold text-slate-400">К выплате (AH)</p>
+                  <span id="statPayoutRatio" class="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-full">0%</span>
+                </div>
+                <h3 id="statPayout" class="text-xl font-bold text-emerald-600 mt-0.5">0.00 ₽</h3>
+                <div class="text-[10px] text-slate-500 mt-0.5 flex flex-wrap gap-x-1 justify-between">
+                  <span>Выкуп: <strong id="statSalesPayout" class="text-emerald-600 font-semibold">0 ₽</strong></span>
+                  <span>Возвр: <strong id="statReturnsPayout" class="text-rose-600 font-semibold">0 ₽</strong></span>
                 </div>
               </div>
             </div>
@@ -203,28 +231,6 @@
                 <p class="text-xs font-semibold text-slate-400">Средняя СПП (W)</p>
                 <h3 id="statSppAvg" class="text-xl font-bold text-slate-800 mt-0.5">0.00%</h3>
                 <p class="text-[10px] text-slate-500 mt-0.5 truncate">Скидка постоянного покупателя</p>
-              </div>
-            </div>
-
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 h-full min-h-[105px]">
-              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-rose-50 text-rose-600">
-                <i data-lucide="refresh-ccw" class="w-5 h-5" stroke-width="2"></i>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs font-semibold text-slate-400">Сумма возвратов</p>
-                <h3 id="statReturnsSum" class="text-xl font-bold text-rose-600 mt-0.5">0.00 ₽</h3>
-                <p class="text-[10px] text-slate-500 mt-0.5">Доля от продаж: <strong id="statReturnsPercent" class="text-slate-700 font-semibold">0.0%</strong></p>
-              </div>
-            </div>
-
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 h-full min-h-[105px]">
-              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-amber-50 text-amber-600">
-                <i data-lucide="percent" class="w-5 h-5" stroke-width="2"></i>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs font-semibold text-slate-400">Комиссия и эквайринг</p>
-                <h3 id="statFees" class="text-xl font-bold text-slate-800 mt-0.5">0.00 ₽</h3>
-                <p class="text-[10px] text-slate-500 mt-0.5">Доля от оборота: <strong id="statFeesRatio" class="text-slate-700 font-semibold">0.0%</strong></p>
               </div>
             </div>
 
@@ -266,19 +272,13 @@
             </div>
 
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 h-full min-h-[105px]">
-              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 text-emerald-600">
-                <i data-lucide="banknote" class="w-5 h-5" stroke-width="2"></i>
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-rose-50 text-rose-600">
+                <i data-lucide="refresh-ccw" class="w-5 h-5" stroke-width="2"></i>
               </div>
               <div class="flex-1 min-w-0">
-                <div class="flex justify-between items-center">
-                  <p class="text-xs font-semibold text-slate-400">К выплате (AH)</p>
-                  <span id="statPayoutRatio" class="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-full">0%</span>
-                </div>
-                <h3 id="statPayout" class="text-xl font-bold text-emerald-600 mt-0.5">0.00 ₽</h3>
-                <div class="text-[10px] text-slate-500 mt-0.5 flex flex-wrap gap-x-1 justify-between">
-                  <span>Выкуп: <strong id="statSalesPayout" class="text-emerald-600 font-semibold">0 ₽</strong></span>
-                  <span>Возвр: <strong id="statReturnsPayout" class="text-rose-600 font-semibold">0 ₽</strong></span>
-                </div>
+                <p class="text-xs font-semibold text-slate-400">Сумма возвратов</p>
+                <h3 id="statReturnsSum" class="text-xl font-bold text-rose-600 mt-0.5">0.00 ₽</h3>
+                <p class="text-[10px] text-slate-500 mt-0.5">Доля от продаж: <strong id="statReturnsPercent" class="text-slate-700 font-semibold">0.0%</strong></p>
               </div>
             </div>
 
@@ -376,7 +376,7 @@
                   </label>
                   <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
                     <input type="checkbox" checked id="col_chk_turnover" onchange="toggleSkuColumn('turnover')" class="rounded text-purple-600 focus:ring-purple-500">
-                    <span>Сумма заказов (T)</span>
+                    <span>Сумма выкупа (T)</span>
                   </label>
                   <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
                     <input type="checkbox" checked id="col_chk_comm_acq" onchange="toggleSkuColumn('comm_acq')" class="rounded text-purple-600 focus:ring-purple-500">
@@ -2141,7 +2141,7 @@
       }
 
       const breakdownItems = [
-        { label: 'Сумма заказов (T)', val: netTurnover, color: 'bg-blue-500', isIncome: true },
+        { label: 'Сумма выкупа (T)', val: netTurnover, color: 'bg-blue-500', isIncome: true },
         { label: 'Удержано комиссий (T × X)', val: globalStats.commissionSum, color: 'bg-[#cb11ab]' },
         { label: 'Удержано эквайринга (AC)', val: globalStats.acquiringSum, color: 'bg-amber-500' },
         { label: 'Услуги по доставке (AK)', val: globalStats.logisticsSum, color: 'bg-indigo-500' },
@@ -2417,7 +2417,7 @@
         { id: 'name', title: 'Название (G)', field: 'name' },
         { id: 'sold', title: 'Продано (шт)', field: 'sold', alignRight: true },
         { id: 'returned', title: 'Возвраты', field: 'returned', alignRight: true },
-        { id: 'turnover', title: 'Сумма заказов (T)', field: 'turnover', alignRight: true },
+        { id: 'turnover', title: 'Сумма выкупа (T)', field: 'turnover', alignRight: true },
         { id: 'comm_acq', title: 'Комиссия и Эквайринг', field: 'comm_acq', alignRight: true },
         { id: 'cogs', title: 'Себестоимость', field: 'cogs', alignRight: true },
         { id: 'tax', title: 'Налог (₽)', field: 'tax', alignRight: true },
@@ -2777,7 +2777,7 @@
       if (productsList.length === 0) return;
       
       let csvContent = "\uFEFF"; 
-      csvContent += "Артикул WB (D);Артикул поставщика (F);Название (G);Продано (шт);Возвраты (шт);Сумма заказов (T);Комиссия и Эквайринг;Себестоимость;Налог (₽);Чистая к выплате (AH)\r\n";
+      csvContent += "Артикул WB (D);Артикул поставщика (F);Название (G);Продано (шт);Возвраты (шт);Сумма выкупа (T);Комиссия и Эквайринг;Себестоимость;Налог (₽);Чистая к выплате (AH)\r\n";
       
       productsList.forEach(p => {
         const commAcqSum = p.commission + p.acquiring;
