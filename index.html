@@ -626,7 +626,7 @@
             <i data-lucide="scissors" class="w-5 h-5"></i>
           </div>
           <div>
-            <h3 class="font-bold text-base text-white">Детализация удержаний (столбец BI)</h3>
+            <h3 class="font-bold text-base text-white">Детализация удержаний (BI)</h3>
             <p class="text-xs text-rose-200/90">Все финансовые взыскания и удержания из отчета</p>
           </div>
         </div>
@@ -646,9 +646,8 @@
             <thead>
               <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold">
                 <th class="py-2.5 px-3">Дата (M)</th>
-                <th class="py-2.5 px-3">Артикул WB (D)</th>
                 <th class="py-2.5 px-3">Обоснование / Пояснение удержания (AQ)</th>
-                <th class="py-2.5 px-3 text-right">Сумма удержания (BI)</th>
+                <th class="py-2.5 px-3 text-right">Сумма (BI)</th>
               </tr>
             </thead>
             <tbody id="deductionsTableBody" class="divide-y divide-slate-100 text-slate-700">
@@ -1157,18 +1156,33 @@
         if (!globalStats.deductionsList || globalStats.deductionsList.length === 0) {
           tbody.innerHTML = `
             <tr>
-              <td colspan="4" class="py-8 text-center text-slate-400">Удержания за выбранный период отсутствуют</td>
+              <td colspan="3" class="py-8 text-center text-slate-400">Удержания за выбранный период отсутствуют</td>
             </tr>
           `;
         } else {
           globalStats.deductionsList.forEach(item => {
             const tr = document.createElement('tr');
             tr.className = "hover:bg-slate-50 transition-colors text-xs";
+            
+            const lowerReason = (item.reason || '').toLowerCase();
+            const isAdvanceReturn = item.amount < 0 || lowerReason.includes('возврат');
+
+            let amountClass = "text-rose-600 font-bold";
+            let amountFormatted = formatCurrency(item.amount);
+
+            if (isAdvanceReturn) {
+              amountClass = "text-emerald-600 font-bold";
+              if (item.amount < 0) {
+                amountFormatted = `+${formatCurrency(Math.abs(item.amount))}`;
+              } else {
+                amountFormatted = `+${formatCurrency(item.amount)}`;
+              }
+            }
+
             tr.innerHTML = `
               <td class="py-2.5 px-3 text-slate-500 whitespace-nowrap">${item.date}</td>
-              <td class="py-2.5 px-3 font-mono font-medium text-slate-700 whitespace-nowrap">${item.sku}</td>
               <td class="py-2.5 px-3 text-slate-800 font-medium">${item.reason}</td>
-              <td class="py-2.5 px-3 text-right font-bold text-rose-600 whitespace-nowrap">${formatCurrency(item.amount)}</td>
+              <td class="py-2.5 px-3 text-right ${amountClass} whitespace-nowrap">${amountFormatted}</td>
             `;
             tbody.appendChild(tr);
           });
