@@ -691,7 +691,7 @@
           </div>
 
           <div class="flex justify-between items-center py-1 border-t border-slate-200/60 pt-2">
-            <span class="text-slate-600 font-medium flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5 text-amber-600"></i> Возмещение расходов по эквайрингу (столбец AC):</span>
+            <span class="text-slate-600 font-medium">Эквайринг (AC):</span>
             <span id="modalFeesAcquiring" class="font-bold text-amber-700 text-sm">0.00 ₽</span>
           </div>
 
@@ -740,11 +740,6 @@
           </div>
 
           <div class="flex justify-between items-center py-1 text-rose-600 border-t border-slate-200/60 pt-2">
-            <span class="font-medium flex items-center gap-1"><i data-lucide="minus" class="w-3.5 h-3.5"></i> Комиссия и эквайринг:</span>
-            <span id="modalPayableFees" class="font-bold text-rose-600 text-sm">- 0.00 ₽</span>
-          </div>
-
-          <div class="flex justify-between items-center py-1 text-rose-600 border-t border-slate-200/60 pt-1">
             <span class="font-medium flex items-center gap-1"><i data-lucide="minus" class="w-3.5 h-3.5"></i> Услуги по доставке (AK):</span>
             <span id="modalPayableLogistics" class="font-bold text-rose-600 text-sm">- 0.00 ₽</span>
           </div>
@@ -1392,7 +1387,6 @@
 
       const feesSum = (globalStats.commissionSum || 0) + (globalStats.acquiringSum || 0);
       const totalPayable = (globalStats.payoutSum || 0)
-        - feesSum
         - (globalStats.logisticsSum || 0)
         - (globalStats.storageSum || 0)
         - (globalStats.tariffDesignerSum || 0)
@@ -1401,7 +1395,6 @@
         - (globalStats.finesSum || 0);
 
       setText('modalPayableAH', formatCurrency(globalStats.payoutSum));
-      setText('modalPayableFees', `- ${formatCurrency(feesSum)}`);
       setText('modalPayableLogistics', `- ${formatCurrency(globalStats.logisticsSum)}`);
       setText('modalPayableStorage', `- ${formatCurrency(globalStats.storageSum)}`);
       setText('modalPayableTariff', `- ${formatCurrency(globalStats.tariffDesignerSum)}`);
@@ -2417,7 +2410,6 @@
       setText('statPayoutRatio', `${payoutRatio.toFixed(2)}%`);
 
       const totalWbPayable = globalStats.payoutSum 
-        - feesSum
         - globalStats.logisticsSum 
         - globalStats.tariffDesignerSum 
         - globalStats.deductionsSum 
