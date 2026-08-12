@@ -179,19 +179,59 @@
 
         <div id="tab-overview" class="tab-content space-y-6">
           
-          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-[10px] items-stretch">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
             
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 h-full min-h-[105px]">
-              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 text-blue-600">
-                <i data-lucide="bar-chart-3" class="w-5 h-5" stroke-width="2"></i>
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-purple-50 text-purple-600">
+                <i data-lucide="shopping-bag" class="w-5 h-5" stroke-width="2"></i>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-xs font-semibold text-slate-400">Сумма заказов (T)</p>
+                <p class="text-xs font-semibold text-slate-400">Сумма заказов</p>
                 <h3 id="statTurnover" class="text-xl font-bold text-slate-800 mt-0.5">0.00 ₽</h3>
                 <div class="text-[10px] text-slate-500 mt-0.5 flex justify-between">
                   <span>Выкупы: <strong id="statSalesCount" class="text-emerald-600 font-semibold">0 шт</strong></span>
                   <span>Возв.: <strong id="statReturnsCount" class="text-rose-600 font-semibold">0 шт</strong></span>
                 </div>
+              </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 h-full min-h-[105px]">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-amber-50 text-amber-600">
+                <i data-lucide="percent" class="w-5 h-5" stroke-width="2"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-semibold text-slate-400">Комиссия и эквайринг</p>
+                <h3 id="statFees" class="text-xl font-bold text-slate-800 mt-0.5">0.00 ₽</h3>
+                <p class="text-[10px] text-slate-500 mt-0.5">Доля от оборота: <strong id="statFeesRatio" class="text-slate-700 font-semibold">0.0%</strong></p>
+              </div>
+            </div>
+
+            <div onclick="openPayoutModal()" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 cursor-pointer hover:bg-slate-50 transition-colors h-full min-h-[105px]">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 text-emerald-600">
+                <i data-lucide="banknote" class="w-5 h-5" stroke-width="2"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex justify-between items-center">
+                  <p class="text-xs font-semibold text-slate-400">К выплате (AH)</p>
+                  <span id="statPayoutRatio" class="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-full">0%</span>
+                </div>
+                <h3 id="statPayout" class="text-xl font-bold text-emerald-600 mt-0.5">0.00 ₽</h3>
+                <p class="text-[10px] text-purple-600 mt-0.5 font-semibold flex items-center gap-1">
+                  Расчет выплаты <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </p>
+              </div>
+            </div>
+
+            <div onclick="openNetProfitModal()" class="bg-gradient-to-br from-purple-900 to-indigo-950 p-4 rounded-2xl shadow-md text-white flex items-center space-x-3.5 cursor-pointer hover:opacity-95 transition-all h-full min-h-[105px]">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-white/10 text-purple-200 backdrop-blur-sm">
+                <i data-lucide="award" class="w-5 h-5 text-yellow-400" stroke-width="2"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-semibold text-purple-200">Чистая прибыль</p>
+                <h3 id="statNetProfit" class="text-xl font-extrabold text-yellow-400 mt-0.5">0.00 ₽</h3>
+                <p class="text-[10px] text-yellow-300 mt-0.5 font-semibold flex items-center gap-1">
+                  Расчет прибыли <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </p>
               </div>
             </div>
 
@@ -214,28 +254,6 @@
                 <p class="text-xs font-semibold text-slate-400">Сумма возвратов</p>
                 <h3 id="statReturnsSum" class="text-xl font-bold text-rose-600 mt-0.5">0.00 ₽</h3>
                 <p class="text-[10px] text-slate-500 mt-0.5">Доля от продаж: <strong id="statReturnsPercent" class="text-slate-700 font-semibold">0.0%</strong></p>
-              </div>
-            </div>
-
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 h-full min-h-[105px]">
-              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-amber-50 text-amber-600">
-                <i data-lucide="percent" class="w-5 h-5" stroke-width="2"></i>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs font-semibold text-slate-400">Комиссия и эквайринг</p>
-                <h3 id="statFees" class="text-xl font-bold text-slate-800 mt-0.5">0.00 ₽</h3>
-                <p class="text-[10px] text-slate-500 mt-0.5">Доля от оборота: <strong id="statFeesRatio" class="text-slate-700 font-semibold">0.0%</strong></p>
-              </div>
-            </div>
-
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 h-full min-h-[105px]">
-              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-amber-100 text-amber-800">
-                <i data-lucide="percent" class="w-5 h-5" stroke-width="2"></i>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p id="statTaxCardTitle" class="text-xs font-semibold text-slate-400">Налог 6% (O)</p>
-                <h3 id="statTaxCard" class="text-xl font-bold text-slate-800 mt-0.5">0.00 ₽</h3>
-                <p class="text-[10px] text-slate-500 mt-0.5 truncate">С розн. цены без возвратов</p>
               </div>
             </div>
 
@@ -266,24 +284,6 @@
             </div>
 
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 h-full min-h-[105px]">
-              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 text-emerald-600">
-                <i data-lucide="banknote" class="w-5 h-5" stroke-width="2"></i>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex justify-between items-center">
-                  <p class="text-xs font-semibold text-slate-400">К выплате (AH)</p>
-                  <span id="statPayoutRatio" class="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-full">0%</span>
-                </div>
-                <h3 id="statPayout" class="text-xl font-bold text-emerald-600 mt-0.5">0.00 ₽</h3>
-                <div class="text-[10px] text-slate-500 mt-0.5 flex flex-wrap gap-x-1 justify-between">
-                  <span>Выкуп: <strong id="statSalesPayout" class="text-emerald-600 font-semibold">0 ₽</strong></span>
-                  <span>Возвр: <strong id="statReturnsPayout" class="text-rose-600 font-semibold">0 ₽</strong></span>
-                </div>
-              </div>
-            </div>
-
-            <div class="bg-gradient-to-br from-purple-900 to-indigo-950 p-4 rounded-2xl shadow-md text-white flex items-center space-x-3.5 h-full min-h-[105px]">
-              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-white/10 text-purple-200 backdrop-blur-sm">
                 <i data-lucide="award" class="w-5 h-5 text-yellow-400" stroke-width="2"></i>
               </div>
               <div class="flex-1 min-w-0">
@@ -660,16 +660,10 @@
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs border-collapse">
             <thead>
-              <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold select-none text-xs">
-                <th class="py-2.5 px-3 cursor-pointer hover:text-purple-700 transition-colors" onclick="sortDeductions('date')">
-                  Дата (M) <span id="ded_sort_icon_date">▼</span>
-                </th>
-                <th class="py-2.5 px-3 cursor-pointer hover:text-purple-700 transition-colors" onclick="sortDeductions('reason')">
-                  Обоснование / Пояснение удержания (AQ) <span id="ded_sort_icon_reason">⇅</span>
-                </th>
-                <th class="py-2.5 px-3 text-right cursor-pointer hover:text-purple-700 transition-colors" onclick="sortDeductions('amount')">
-                  Сумма (BI) <span id="ded_sort_icon_amount">⇅</span>
-                </th>
+              <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold">
+                <th class="py-2.5 px-3">Дата (M)</th>
+                <th class="py-2.5 px-3">Обоснование / Пояснение удержания (AQ)</th>
+                <th class="py-2.5 px-3 text-right">Сумма (BI)</th>
               </tr>
             </thead>
             <tbody id="deductionsTableBody" class="divide-y divide-slate-100 text-slate-700">
@@ -686,85 +680,126 @@
     </div>
   </div>
 
-  <div id="modalPayoutBreakdown" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-100 flex flex-col">
-      <div class="bg-gradient-to-r from-emerald-800 via-teal-800 to-indigo-900 text-white p-5 flex justify-between items-center shrink-0">
+  <div id="modalPayout" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 flex flex-col">
+      <div class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-5 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-emerald-200 backdrop-blur-sm">
-            <i data-lucide="calculator" class="w-5 h-5"></i>
+            <i data-lucide="banknote" class="w-5 h-5"></i>
           </div>
           <div>
-            <h3 class="font-bold text-base text-white">Расшифровка суммы «К выплате» (AH)</h3>
-            <p id="payoutModalSkuName" class="text-xs text-emerald-200/90 truncate max-w-sm">Товар</p>
+            <h3 class="font-bold text-base text-white">Формула "К выплате (AH)"</h3>
+            <p class="text-xs text-emerald-200/90">Расчет суммы перечисления от Wildberries</p>
           </div>
         </div>
-        <button onclick="closePayoutModal()" class="hover:bg-white/10 p-2 rounded-xl transition-colors text-emerald-100 hover:text-white">
+        <button onclick="closePayoutModal()" class="hover:bg-white/10 p-2 rounded-xl transition-colors">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <div class="p-6 space-y-4 text-xs text-slate-700">
-        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 space-y-1">
-          <div class="flex justify-between text-slate-500 font-medium">
-            <span>Артикул WB (D):</span>
-            <span id="payoutModalWbSku" class="font-mono font-bold text-slate-800">—</span>
-          </div>
-          <div class="flex justify-between text-slate-500 font-medium">
-            <span>Артикул поставщика (F):</span>
-            <span id="payoutModalSupplierSku" class="font-mono font-semibold text-slate-700">—</span>
-          </div>
+      <div class="p-5 space-y-3 text-xs">
+        <div class="flex justify-between py-2 border-b border-slate-100">
+          <span class="text-slate-600 font-medium">Продажи (розничные):</span>
+          <span id="modalPayoutSales" class="font-semibold text-emerald-600">0.00 ₽</span>
         </div>
-
-        <div class="space-y-2.5">
-          <h4 class="font-bold text-slate-800 border-b border-slate-100 pb-1.5 flex items-center gap-1.5">
-            <i data-lucide="receipt" class="w-4 h-4 text-emerald-600"></i>
-            Компоненты начисления из отчета:
-          </h4>
-
-          <div class="flex justify-between items-center py-1.5 border-b border-slate-100">
-            <div>
-              <span class="font-semibold text-slate-800">Выплата с продаж (по операциям продаж)</span>
-              <p class="text-[11px] text-slate-400">Продано: <span id="payoutModalSoldQty">0</span> шт</p>
-            </div>
-            <span id="payoutModalSalesSum" class="font-extrabold text-emerald-600 text-sm">+0.00 ₽</span>
-          </div>
-
-          <div class="flex justify-between items-center py-1.5 border-b border-slate-100">
-            <div>
-              <span class="font-semibold text-slate-800">Удержание по возвратам</span>
-              <p class="text-[11px] text-slate-400">Возвратов: <span id="payoutModalReturnedQty">0</span> шт</p>
-            </div>
-            <span id="payoutModalReturnsSum" class="font-extrabold text-rose-600 text-sm">-0.00 ₽</span>
-          </div>
-
-          <div class="bg-purple-50/70 p-3 rounded-xl space-y-1.5 text-purple-900 border border-purple-100/80">
-            <div class="flex justify-between text-[11px]">
-              <span>Удержанная комиссия WB:</span>
-              <span id="payoutModalCommission" class="font-semibold">0.00 ₽</span>
-            </div>
-            <div class="flex justify-between text-[11px]">
-              <span>Стоимость эквайринга:</span>
-              <span id="payoutModalAcquiring" class="font-semibold">0.00 ₽</span>
-            </div>
-            <div class="flex justify-between text-[11px] pt-1 border-t border-purple-200/60 font-semibold text-purple-950">
-              <span>Итого Комиссия + Эквайринг:</span>
-              <span id="payoutModalCommAcqSum">0.00 ₽</span>
-            </div>
-          </div>
+        <div class="flex justify-between py-2 border-b border-slate-100">
+          <span class="text-slate-600 font-medium">Минус Возвраты:</span>
+          <span id="modalPayoutReturns" class="font-semibold text-rose-600">-0.00 ₽</span>
         </div>
-
-        <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-4 rounded-2xl flex items-center justify-between shadow-md">
-          <div>
-            <p class="text-[11px] text-slate-300 font-semibold uppercase tracking-wider">Чистая сумма к выплате (AH)</p>
-            <p class="text-[10px] text-slate-400 mt-0.5">Формула: Продажи к выплате - Возвраты к выплате</p>
-          </div>
-          <span id="payoutModalFinalPayout" class="text-xl font-black text-emerald-400">0.00 ₽</span>
+        <div class="flex justify-between py-2 border-b border-slate-100">
+          <span class="text-slate-600 font-medium">Минус Комиссия Wildberries:</span>
+          <span id="modalPayoutComm" class="font-semibold text-rose-600">-0.00 ₽</span>
+        </div>
+        <div class="flex justify-between py-2 border-b border-slate-100">
+          <span class="text-slate-600 font-medium">Минус Эквайринг:</span>
+          <span id="modalPayoutAcq" class="font-semibold text-rose-600">-0.00 ₽</span>
+        </div>
+        <div class="flex justify-between py-3 border-t-2 border-slate-200 font-bold text-sm bg-emerald-50/50 p-2.5 rounded-xl">
+          <span class="text-slate-800">Итого к выплате (AH):</span>
+          <span id="modalPayoutTotal" class="text-emerald-700 font-extrabold text-base">0.00 ₽</span>
         </div>
       </div>
 
       <div class="bg-slate-50 p-4 border-t border-slate-100 flex justify-end shrink-0">
-        <button onclick="closePayoutModal()" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 rounded-xl text-xs font-semibold text-slate-700 transition-colors">
-          Понятно
+        <button onclick="closePayoutModal()" class="px-5 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
+          Закрыть
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalNetProfit" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
+      <div class="bg-gradient-to-r from-purple-950 via-purple-900 to-indigo-950 text-white p-5 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-yellow-400 backdrop-blur-sm">
+            <i data-lucide="award" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-white">Расчет чистой прибыли</h3>
+            <p class="text-xs text-purple-200/90">Пошаговая расшифровка от «К выплате» до чистого результата</p>
+          </div>
+        </div>
+        <button onclick="closeNetProfitModal()" class="hover:bg-white/10 p-2 rounded-xl transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-2 text-xs custom-scrollbar">
+        <div class="flex justify-between py-1.5 border-b border-slate-100 font-semibold text-slate-800">
+          <span>К выплате по отчету (AH):</span>
+          <span id="modalNpPayout" class="text-emerald-600 font-bold">0.00 ₽</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-slate-100 text-slate-600">
+          <span>– Себестоимость товаров и ФФ (COGS):</span>
+          <span id="modalNpCogs" class="font-semibold text-rose-600">-0.00 ₽</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-slate-100 text-slate-600">
+          <span>– Расходы на логистику WB (AK):</span>
+          <span id="modalNpLogistics" class="font-semibold text-rose-600">-0.00 ₽</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-slate-100 text-slate-600">
+          <span>– Расходы на хранение (BH):</span>
+          <span id="modalNpStorage" class="font-semibold text-rose-600">-0.00 ₽</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-slate-100 text-slate-600">
+          <span>– Внешняя / Внутренняя реклама:</span>
+          <span id="modalNpAd" class="font-semibold text-rose-600">-0.00 ₽</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-slate-100 text-slate-600">
+          <span>– Налог с продаж:</span>
+          <span id="modalNpTax" class="font-semibold text-rose-600">-0.00 ₽</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-slate-100 text-slate-600">
+          <span>– Все удержания (BI):</span>
+          <span id="modalNpDeductions" class="font-semibold text-rose-600">-0.00 ₽</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-slate-100 text-slate-600">
+          <span>– Штрафы (AO):</span>
+          <span id="modalNpFines" class="font-semibold text-rose-600">-0.00 ₽</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-slate-100 text-slate-600">
+          <span>– Конструктор тарифов (AP):</span>
+          <span id="modalNpTariff" class="font-semibold text-rose-600">-0.00 ₽</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-slate-100 text-slate-600">
+          <span>– Приемка товара (BJ):</span>
+          <span id="modalNpAcceptance" class="font-semibold text-rose-600">-0.00 ₽</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-slate-100 text-slate-600">
+          <span>– Прочие расходы:</span>
+          <span id="modalNpOther" class="font-semibold text-rose-600">-0.00 ₽</span>
+        </div>
+
+        <div class="flex justify-between py-3 border-t-2 border-slate-200 font-extrabold text-sm bg-purple-50 p-3 rounded-xl mt-3">
+          <span class="text-purple-950">Итого Чистая прибыль:</span>
+          <span id="modalNpTotal" class="text-purple-950 text-base">0.00 ₽</span>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 p-4 border-t border-slate-100 flex justify-end shrink-0">
+        <button onclick="closeNetProfitModal()" class="px-5 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
+          Закрыть
         </button>
       </div>
     </div>
@@ -1264,18 +1299,32 @@
       renderDeductionsTable();
     }
 
+    function openDeductionsModal() {
+      const modal = document.getElementById('modalDeductions');
+      if (!modal) return;
+
+      setText('modalDeductionsTotalSum', formatCurrency(globalStats.deductionsSum));
+      renderDeductionsTable();
+
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
     function renderDeductionsTable() {
       const tbody = document.getElementById('deductionsTableBody');
       if (!tbody) return;
-      tbody.innerHTML = '';
 
-      ['date', 'reason', 'amount'].forEach(f => {
-        const el = document.getElementById(`ded_sort_icon_${f}`);
+      const fields = ['date', 'reason', 'amount'];
+      fields.forEach(f => {
+        const el = document.getElementById(`ded_sort_${f}`);
         if (el) el.innerText = '⇅';
       });
-      const activeIcon = document.getElementById(`ded_sort_icon_${deductionsSortField}`);
-      if (activeIcon) activeIcon.innerText = deductionsSortDirection === 'asc' ? '▲' : '▼';
+      const activeEl = document.getElementById(`ded_sort_${deductionsSortField}`);
+      if (activeEl) {
+        activeEl.innerText = deductionsSortDirection === 'asc' ? '▲' : '▼';
+      }
 
+      tbody.innerHTML = '';
       if (!globalStats.deductionsList || globalStats.deductionsList.length === 0) {
         tbody.innerHTML = `
           <tr>
@@ -1285,39 +1334,34 @@
         return;
       }
 
-      const listCopy = [...globalStats.deductionsList];
-      listCopy.sort((a, b) => {
+      globalStats.deductionsList.sort((a, b) => {
         if (deductionsSortField === 'date') {
-          const dateA = a.rawDate ? a.rawDate.getTime() : 0;
-          const dateB = b.rawDate ? b.rawDate.getTime() : 0;
-          return deductionsSortDirection === 'asc' ? dateA - dateB : dateB - dateA;
-        } else if (deductionsSortField === 'reason') {
           return deductionsSortDirection === 'asc' 
-            ? (a.reason || '').localeCompare(b.reason || '') 
+            ? (a.rawDate || 0) - (b.rawDate || 0)
+            : (b.rawDate || 0) - (a.rawDate || 0);
+        } else if (deductionsSortField === 'reason') {
+          return deductionsSortDirection === 'asc'
+            ? (a.reason || '').localeCompare(b.reason || '')
             : (b.reason || '').localeCompare(a.reason || '');
         } else if (deductionsSortField === 'amount') {
-          return deductionsSortDirection === 'asc' ? a.amount - b.amount : b.amount - a.amount;
+          return deductionsSortDirection === 'asc'
+            ? a.amount - b.amount
+            : b.amount - a.amount;
         }
         return 0;
       });
 
-      listCopy.forEach(item => {
+      globalStats.deductionsList.forEach(item => {
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50 transition-colors text-xs";
         
-        const lowerReason = (item.reason || '').toLowerCase();
-        const isCompensation = item.amount < 0 || lowerReason.includes('возврат');
-
         let amountClass = "text-rose-600 font-bold";
         let amountFormatted = formatCurrency(item.amount);
 
-        if (isCompensation) {
+        if (item.amount < 0) {
           amountClass = "text-emerald-600 font-bold";
-          if (item.amount < 0) {
-            amountFormatted = `+${formatCurrency(Math.abs(item.amount))}`;
-          } else {
-            amountFormatted = `+${formatCurrency(item.amount)}`;
-          }
+          const absVal = Math.abs(item.amount);
+          amountFormatted = `-${formatCurrency(absVal)}`;
         }
 
         tr.innerHTML = `
@@ -1329,58 +1373,64 @@
       });
     }
 
-    function openDeductionsModal() {
-      const modal = document.getElementById('modalDeductions');
-      if (!modal) return;
-
-      const sumElem = document.getElementById('modalDeductionsTotalSum');
-      if (sumElem) {
-        if (globalStats.deductionsSum < 0) {
-          sumElem.className = "text-base font-extrabold text-emerald-600";
-          sumElem.innerText = `+${formatCurrency(Math.abs(globalStats.deductionsSum))}`;
-        } else {
-          sumElem.className = "text-base font-extrabold text-rose-600";
-          sumElem.innerText = formatCurrency(globalStats.deductionsSum);
-        }
-      }
-
-      renderDeductionsTable();
-      modal.classList.remove('hidden');
-      lucide.createIcons();
-    }
-
     function closeDeductionsModal() {
       const modal = document.getElementById('modalDeductions');
       if (modal) modal.classList.add('hidden');
     }
 
-    function openPayoutModal(sku) {
-      const modal = document.getElementById('modalPayoutBreakdown');
+    function openPayoutModal() {
+      const modal = document.getElementById('modalPayout');
       if (!modal) return;
 
-      const p = globalStats.products[sku];
-      if (!p) return;
+      const salesSum = globalStats.salesRetailSum || 0;
+      const returnsSum = globalStats.returnsRetailSum || 0;
+      const commSum = globalStats.commissionSum || 0;
+      const acqSum = globalStats.acquiringSum || 0;
+      const payoutSum = globalStats.payoutSum || 0;
 
-      setText('payoutModalSkuName', p.name);
-      setText('payoutModalWbSku', p.sku);
-      setText('payoutModalSupplierSku', p.supplierSku || '—');
-      setText('payoutModalSoldQty', `${p.soldQty}`);
-      setText('payoutModalReturnedQty', `${p.returnedQty}`);
-
-      setText('payoutModalSalesSum', `+${formatCurrency(p.salesPayout)}`);
-      setText('payoutModalReturnsSum', `-${formatCurrency(p.returnsPayout)}`);
-      setText('payoutModalCommission', formatCurrency(p.commission));
-      setText('payoutModalAcquiring', formatCurrency(p.acquiring));
-      setText('payoutModalCommAcqSum', formatCurrency(p.commission + p.acquiring));
-
-      setText('payoutModalFinalPayout', formatCurrency(p.payout));
+      setText('modalPayoutSales', formatCurrency(salesSum));
+      setText('modalPayoutReturns', `-${formatCurrency(returnsSum)}`);
+      setText('modalPayoutComm', `-${formatCurrency(commSum)}`);
+      setText('modalPayoutAcq', `-${formatCurrency(acqSum)}`);
+      setText('modalPayoutTotal', formatCurrency(payoutSum));
 
       modal.classList.remove('hidden');
       lucide.createIcons();
     }
 
     function closePayoutModal() {
-      const modal = document.getElementById('modalPayoutBreakdown');
+      const modal = document.getElementById('modalPayout');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function openNetProfitModal() {
+      const modal = document.getElementById('modalNetProfit');
+      if (!modal) return;
+
+      const adSpend = parseNum(document.getElementById('inputAdSpend')?.value);
+      const otherSpend = parseNum(document.getElementById('inputOtherSpend')?.value);
+      const totalCogs = calculateTotalCogs();
+
+      setText('modalNpPayout', formatCurrency(globalStats.payoutSum));
+      setText('modalNpCogs', `-${formatCurrency(totalCogs)}`);
+      setText('modalNpLogistics', `-${formatCurrency(globalStats.logisticsSum)}`);
+      setText('modalNpStorage', `-${formatCurrency(globalStats.storageSum)}`);
+      setText('modalNpAd', `-${formatCurrency(adSpend)}`);
+      setText('modalNpTax', `-${formatCurrency(globalStats.taxSum)}`);
+      setText('modalNpDeductions', `-${formatCurrency(globalStats.deductionsSum)}`);
+      setText('modalNpFines', `-${formatCurrency(globalStats.finesSum)}`);
+      setText('modalNpTariff', `-${formatCurrency(globalStats.tariffDesignerSum)}`);
+      setText('modalNpAcceptance', `-${formatCurrency(globalStats.acceptanceSum)}`);
+      setText('modalNpOther', `-${formatCurrency(otherSpend)}`);
+
+      setText('modalNpTotal', formatCurrency(globalStats.netProfit));
+
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeNetProfitModal() {
+      const modal = document.getElementById('modalNetProfit');
       if (modal) modal.classList.add('hidden');
     }
 
@@ -1538,6 +1588,12 @@
 
         const modalDed = document.getElementById('modalDeductions');
         if (e.target === modalDed) closeDeductionsModal();
+
+        const modalPay = document.getElementById('modalPayout');
+        if (e.target === modalPay) closePayoutModal();
+
+        const modalNp = document.getElementById('modalNetProfit');
+        if (e.target === modalNp) closeNetProfitModal();
 
         const modalMrg = document.getElementById('modalMerger');
         if (e.target === modalMrg) closeMergerModal();
@@ -2010,6 +2066,7 @@
           globalStats.deductionsSum += rowBI;
           globalStats.deductionsList.push({
             date: dVal ? formatDate(dVal) : '—',
+            rawDate: dVal ? dVal.getTime() : 0,
             sku: skuVal || '—',
             reason: rowAQ || 'Удержание / Взыскание',
             amount: rowBI
@@ -2208,18 +2265,7 @@
       const totalWbExpenses = globalStats.logisticsSum + globalStats.storageSum + otherWbExpenses;
 
       setText('statLogAndStore', formatCurrency(totalWbExpenses));
-      
-      const dedElem = document.getElementById('statDeductionsCard');
-      if (dedElem) {
-        if (globalStats.deductionsSum < 0) {
-          dedElem.className = "text-xl font-bold mt-1 text-emerald-600";
-          dedElem.innerText = `+${formatCurrency(Math.abs(globalStats.deductionsSum))}`;
-        } else {
-          dedElem.className = "text-xl font-bold mt-1 text-slate-800";
-          dedElem.innerText = formatCurrency(globalStats.deductionsSum);
-        }
-      }
-
+      setText('statDeductionsCard', formatCurrency(globalStats.deductionsSum));
       setText('statLogisticsOnly', formatCurrency(globalStats.logisticsSum));
       setText('statStorage', formatCurrency(globalStats.storageSum));
       setText('statOtherWbExpenses', formatCurrency(otherWbExpenses));
@@ -2520,9 +2566,9 @@
         { id: 'returned', title: 'Возвраты', field: 'returned', alignRight: true },
         { id: 'turnover', title: 'Сумма заказов (T)', field: 'turnover', alignRight: true },
         { id: 'comm_acq', title: 'Комиссия и Эквайринг', field: 'comm_acq', alignRight: true },
-        { id: 'payout', title: 'Чистая к выплате (AH) ⓘ', field: 'payout', alignRight: true },
         { id: 'cogs', title: 'Себестоимость', field: 'cogs', alignRight: true },
-        { id: 'tax', title: 'Налог (₽)', field: 'tax', alignRight: true }
+        { id: 'tax', title: 'Налог (₽)', field: 'tax', alignRight: true },
+        { id: 'payout', title: 'Чистая к выплате (AH)', field: 'payout', alignRight: true }
       ];
 
       cols.forEach(col => {
@@ -2651,14 +2697,14 @@
         if (skuTableColumns.comm_acq) {
           summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-purple-950 font-extrabold">${formatCurrency(totalCommAcq)}</td>`;
         }
-        if (skuTableColumns.payout) {
-          summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-slate-900 font-black">${formatCurrency(totalPayout)}</td>`;
-        }
         if (skuTableColumns.cogs) {
           summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-purple-950 font-extrabold">${formatCurrency(totalCogsSum)}</td>`;
         }
         if (skuTableColumns.tax) {
           summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-amber-800 font-extrabold">${formatCurrency(totalTaxSum)}</td>`;
+        }
+        if (skuTableColumns.payout) {
+          summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-slate-900 font-black">${formatCurrency(totalPayout)}</td>`;
         }
 
         summaryTr.innerHTML = summaryCellsHTML;
@@ -2705,21 +2751,14 @@
         if (skuTableColumns.comm_acq) {
           rowCellsHTML += `<td class="py-3 px-5 text-right text-slate-600 font-medium">${formatCurrency(commAcqSum)}</td>`;
         }
-        if (skuTableColumns.payout) {
-          rowCellsHTML += `
-            <td class="py-3 px-5 text-right font-bold text-slate-900 cursor-pointer hover:text-purple-700 transition-colors group" onclick="openPayoutModal('${p.sku}')" title="Нажмите для детализации">
-              <span class="inline-flex items-center gap-1 justify-end">
-                ${formatCurrency(p.payout)}
-                <i data-lucide="info" class="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-600"></i>
-              </span>
-            </td>
-          `;
-        }
         if (skuTableColumns.cogs) {
           rowCellsHTML += `<td class="py-3 px-5 text-right">${cogsLabel}</td>`;
         }
         if (skuTableColumns.tax) {
           rowCellsHTML += `<td class="py-3 px-5 text-right font-medium text-amber-800">${formatCurrency(p.taxSum || 0)}</td>`;
+        }
+        if (skuTableColumns.payout) {
+          rowCellsHTML += `<td class="py-3 px-5 text-right font-bold text-slate-900">${formatCurrency(p.payout)}</td>`;
         }
 
         tr.innerHTML = rowCellsHTML;
