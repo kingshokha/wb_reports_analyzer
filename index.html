@@ -456,11 +456,22 @@
               </table>
             </div>
             
-            <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
               <span id="tablePaginationInfo">Показано 0-0 из 0 товаров</span>
-              <div class="flex gap-2">
-                <button id="btnPrevPage" class="px-3 py-1.5 border border-slate-200 rounded bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors">Назад</button>
-                <button id="btnNextPage" class="px-3 py-1.5 border border-slate-200 rounded bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors">Вперед</button>
+              <div class="flex items-center gap-4">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[11px] text-slate-400">Показывать по:</span>
+                  <select id="selectItemsPerPage" onchange="changeItemsPerPage(this.value)" class="px-2 py-1 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50" selected>50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+                <div class="flex gap-2">
+                  <button id="btnPrevPage" class="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors font-medium">Назад</button>
+                  <button id="btnNextPage" class="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors font-medium">Вперед</button>
+                </div>
               </div>
             </div>
           </div>
@@ -497,6 +508,25 @@
                 <tbody id="cogsTableBody" class="divide-y divide-slate-100 text-slate-700 font-medium">
                 </tbody>
               </table>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+              <span id="cogsTablePaginationInfo">Показано 0-0 из 0 товаров</span>
+              <div class="flex items-center gap-4">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[11px] text-slate-400">Показывать по:</span>
+                  <select id="selectCogsItemsPerPage" onchange="changeItemsPerPage(this.value)" class="px-2 py-1 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50" selected>50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+                <div class="flex gap-2">
+                  <button id="btnPrevCogsPage" onclick="prevCogsPage()" class="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors font-medium">Назад</button>
+                  <button id="btnNextCogsPage" onclick="nextCogsPage()" class="px-3 py-1.5 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors font-medium">Вперед</button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -796,9 +826,24 @@
     let productsList = [];
     let filteredProducts = [];
     let currentPage = 1;
-    const itemsPerPage = 10;
+    let cogsCurrentPage = 1;
+    let itemsPerPage = 50;
     let currentSortField = 'sold';
     let currentSortDirection = 'desc';
+
+    function changeItemsPerPage(val) {
+      itemsPerPage = parseInt(val, 10) || 50;
+      currentPage = 1;
+      cogsCurrentPage = 1;
+
+      const selSKU = document.getElementById('selectItemsPerPage');
+      if (selSKU) selSKU.value = itemsPerPage;
+      const selCogs = document.getElementById('selectCogsItemsPerPage');
+      if (selCogs) selCogs.value = itemsPerPage;
+
+      renderProductTable();
+      renderCogsTable();
+    }
 
     let financeChartInstance = null;
     let logisticsChartInstance = null;
@@ -2197,6 +2242,25 @@
       lucide.createIcons();
     }
 
+    function prevCogsPage() {
+      if (cogsCurrentPage > 1) {
+        cogsCurrentPage--;
+        renderCogsTable();
+      }
+    }
+
+    function nextCogsPage() {
+      const query = (document.getElementById('cogsSearch')?.value || '').toLowerCase().trim();
+      const filteredList = productsList.filter(p => 
+        p.sku.toLowerCase().includes(query) || 
+        p.name.toLowerCase().includes(query)
+      );
+      if (cogsCurrentPage * itemsPerPage < filteredList.length) {
+        cogsCurrentPage++;
+        renderCogsTable();
+      }
+    }
+
     function renderCogsTable() {
       const tbody = document.getElementById('cogsTableBody');
       if (!tbody) return;
@@ -2208,7 +2272,11 @@
         p.name.toLowerCase().includes(query)
       );
 
-      filteredList.forEach(p => {
+      const startIndex = (cogsCurrentPage - 1) * itemsPerPage;
+      const endIndex = Math.min(startIndex + itemsPerPage, filteredList.length);
+      const paginatedList = filteredList.slice(startIndex, endIndex);
+
+      paginatedList.forEach(p => {
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50 transition-colors text-slate-700 text-xs";
         const currentCogsVal = skuCogsMap[p.sku] !== undefined ? skuCogsMap[p.sku] : '';
@@ -2244,8 +2312,19 @@
             <td colspan="6" class="py-12 text-center text-slate-400">Товары не найдены</td>
           </tr>
         `;
+        setText('cogsTablePaginationInfo', "Показано 0-0 из 0 товаров");
+      } else {
+        setText('cogsTablePaginationInfo', `Показано ${startIndex + 1}-${endIndex} из ${filteredList.length} товаров`);
       }
+
+      const prevBtn = document.getElementById('btnPrevCogsPage');
+      if (prevBtn) prevBtn.disabled = cogsCurrentPage === 1;
+
+      const nextBtn = document.getElementById('btnNextCogsPage');
+      if (nextBtn) nextBtn.disabled = endIndex >= filteredList.length;
+
       setText('totalCogsValueLabel', formatCurrency(calculateTotalCogs()));
+      lucide.createIcons();
     }
 
     function exportSKUTableCSV() {
