@@ -186,12 +186,23 @@
                 <i data-lucide="bar-chart-3" class="w-5 h-5" stroke-width="2"></i>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-xs font-semibold text-slate-400">Чистый оборот (T)</p>
+                <p class="text-xs font-semibold text-slate-400">Сумма заказов (T)</p>
                 <h3 id="statTurnover" class="text-xl font-bold text-slate-800 mt-1">0.00 ₽</h3>
                 <div class="text-[11px] text-slate-500 mt-1 flex justify-between">
                   <span>Выкупы: <strong id="statSalesCount" class="text-emerald-600 font-semibold">0 шт</strong></span>
                   <span>Возвраты: <strong id="statReturnsCount" class="text-rose-600 font-semibold">0 шт</strong></span>
                 </div>
+              </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
+              <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-violet-50 text-violet-600">
+                <i data-lucide="badge-percent" class="w-5 h-5" stroke-width="2"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-semibold text-slate-400">Средняя СПП (W)</p>
+                <h3 id="statSppAvg" class="text-xl font-bold text-slate-800 mt-1">0.00%</h3>
+                <p class="text-[11px] text-slate-500 mt-1">Скидка постоянного покупателя</p>
               </div>
             </div>
 
@@ -293,7 +304,7 @@
                   <div class="flex justify-between py-1.5 border-b border-slate-50">
                     <span class="text-slate-500 flex items-center gap-1.5">
                       <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                      Чистый розничный оборот (T):
+                      Сумма заказов (T):
                     </span>
                     <span id="rowTurnover" class="font-semibold text-slate-700">0.00 ₽</span>
                   </div>
@@ -427,7 +438,7 @@
                       Возвраты <span id="sort_icon_returned">⇅</span>
                     </th>
                     <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortProducts('turnover')">
-                      Чистый оборот (T) <span id="sort_icon_turnover">⇅</span>
+                      Сумма заказов (T) <span id="sort_icon_turnover">⇅</span>
                     </th>
                     <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortProducts('commission')">
                       Комиссия <span id="sort_icon_commission">⇅</span>
@@ -709,6 +720,7 @@
       K: 10,
       O: 14,
       T: 19,
+      W: 22,
       X: 23,
       AC: 28,
       AH: 33,
@@ -721,6 +733,30 @@
       BJ: 61,
       M: 12
     };
+
+    const LOCAL_STORAGE_COGS_KEY = 'wb_reports_sku_cogs_map';
+
+    function loadSkuCogsFromStorage() {
+      try {
+        const saved = localStorage.getItem(LOCAL_STORAGE_COGS_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            skuCogsMap = parsed;
+          }
+        }
+      } catch (e) {
+        console.error("Ошибка чтения себестоимости из localStorage:", e);
+      }
+    }
+
+    function saveSkuCogsToStorage() {
+      try {
+        localStorage.setItem(LOCAL_STORAGE_COGS_KEY, JSON.stringify(skuCogsMap));
+      } catch (e) {
+        console.error("Ошибка сохранения себестоимости в localStorage:", e);
+      }
+    }
 
     let lastLoadedRows = null;
     let minFileDate = null;
@@ -745,6 +781,7 @@
       deductionsSum: 0,
       acceptanceSum: 0,
       taxSum: 0,
+      sppAvg: 0,
       logisticsBreakdown: {},
       products: {}
     };
@@ -946,13 +983,18 @@
 
     function updateSkuCogs(sku, val) {
       const numericVal = parseNum(val);
-      skuCogsMap[sku] = numericVal;
+      if (numericVal > 0) {
+        skuCogsMap[sku] = numericVal;
+      } else {
+        delete skuCogsMap[sku];
+      }
+      saveSkuCogsToStorage();
       
       const p = globalStats.products[sku];
       if (p) {
         const rowTotalEl = document.getElementById(`total_cogs_${sku}`);
         if (rowTotalEl) {
-          rowTotalEl.innerText = formatCurrency(p.soldQty * numericVal);
+          rowTotalEl.innerText = formatCurrency(p.soldQty * (skuCogsMap[sku] || 0));
         }
       }
       
@@ -1685,6 +1727,8 @@
       const taxRatePercent = isNaN(taxRateVal) || taxRateVal < 0 ? 6 : taxRateVal;
       globalStats.taxRatePercent = taxRatePercent;
 
+      globalStats.sppAvg = sppValidCount > 0 ? (sppTotalSum / sppValidCount) : 0;
+
       const netRetailSum = salesRetailSum - returnsRetailSum;
       globalStats.taxSum = netRetailSum * (taxRatePercent / 100);
 
@@ -1741,6 +1785,7 @@
       setText('statSalesCount', `${globalStats.salesCount} шт`);
       setText('statReturnsCount', `${globalStats.returnsCount} шт`);
       setText('statReturnsSum', formatCurrency(globalStats.returnsSum));
+      setText('statSppAvg', `${(globalStats.sppAvg || 0).toFixed(2)}%`);
       
       const returnsRatio = globalStats.turnover > 0 ? (globalStats.returnsSum / globalStats.turnover) * 100 : 0;
       setText('statReturnsPercent', `${returnsRatio.toFixed(2)}%`);
@@ -2110,7 +2155,7 @@
       if (productsList.length === 0) return;
       
       let csvContent = "\uFEFF"; 
-      csvContent += "Артикул WB (D);Название (G);Продано (шт);Возвраты (шт);Чистый Оборот (T);Комиссия;Эквайринг (AC);Чистая к выплате (AH)\r\n";
+      csvContent += "Артикул WB (D);Название (G);Продано (шт);Возвраты (шт);Сумма заказов (T);Комиссия;Эквайринг (AC);Чистая к выплате (AH)\r\n";
       
       productsList.forEach(p => {
         const row = [
@@ -2137,6 +2182,7 @@
     }
     
     window.onload = function() {
+      loadSkuCogsFromStorage();
       initEvents();
       lucide.createIcons();
     };
