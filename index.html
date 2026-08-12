@@ -1584,6 +1584,8 @@
       let returnsRetailSum = 0;
       let salesAcquiringSum = 0;
       let returnsAcquiringSum = 0;
+      let sppTotalSum = 0;
+      let sppValidCount = 0;
       let validDataRowCount = 0;
 
       for (let i = dataStartIdx; i < rows.length; i++) {
@@ -1601,6 +1603,7 @@
         const nameVal = String(row[COL_MAP.G] !== undefined && row[COL_MAP.G] !== null ? row[COL_MAP.G] : '').trim();
         const reasonVal = String(row[COL_MAP.K] !== undefined && row[COL_MAP.K] !== null ? row[COL_MAP.K] : '').toLowerCase().trim();
         const rowT = parseNum(row[COL_MAP.T]);
+        const rowW = parseNum(row[COL_MAP.W]);
         const rowX = parseNum(row[COL_MAP.X]);
         const rowAC = parseNum(row[COL_MAP.AC]);
         const rowAH = parseNum(row[COL_MAP.AH]);
@@ -1620,6 +1623,15 @@
         }
 
         validDataRowCount++;
+
+        if (rowW !== 0) {
+          let sppVal = rowW;
+          if (Math.abs(sppVal) > 0 && Math.abs(sppVal) <= 1) {
+            sppVal = sppVal * 100;
+          }
+          sppTotalSum += Math.abs(sppVal);
+          sppValidCount++;
+        }
 
         globalStats.storageSum += rowBH;
         globalStats.finesSum += Math.abs(rowAO);
