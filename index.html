@@ -282,19 +282,14 @@
               </div>
             </div>
 
-            <div onclick="openNetProfitModal()" class="bg-gradient-to-br from-purple-900 to-indigo-950 p-4 rounded-2xl shadow-md text-white flex items-center space-x-3.5 h-full min-h-[105px] cursor-pointer hover:scale-[1.02] hover:shadow-lg transition-all group relative overflow-hidden">
-              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-white/10 text-purple-200 backdrop-blur-sm group-hover:bg-yellow-400/20 transition-colors">
+            <div class="bg-gradient-to-br from-purple-900 to-indigo-950 p-4 rounded-2xl shadow-md text-white flex items-center space-x-3.5 h-full min-h-[105px]">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-white/10 text-purple-200 backdrop-blur-sm">
                 <i data-lucide="award" class="w-5 h-5 text-yellow-400" stroke-width="2"></i>
               </div>
               <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between">
-                  <p class="text-xs font-semibold text-purple-200">Чистая прибыль</p>
-                  <span class="text-[9px] font-bold text-yellow-300 bg-white/10 px-1.5 py-0.5 rounded-md backdrop-blur-sm flex items-center gap-0.5">
-                    <i data-lucide="info" class="w-3 h-3"></i> Расшифровка
-                  </span>
-                </div>
+                <p class="text-xs font-semibold text-purple-200">Чистая прибыль</p>
                 <h3 id="statNetProfit" class="text-xl font-extrabold text-yellow-400 mt-0.5">0.00 ₽</h3>
-                <p class="text-[10px] text-purple-200/80 mt-0.5 truncate">Нажмите для детализации расчета</p>
+                <p class="text-[10px] text-purple-200/80 mt-0.5 truncate" title="За вычетом COGS, Рекламы, Доставки, Налога и всех удержаний">За вычетом расходов и COGS</p>
               </div>
             </div>
 
@@ -665,14 +660,14 @@
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs border-collapse">
             <thead>
-              <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold select-none">
-                <th class="py-2.5 px-3 cursor-pointer hover:text-purple-700 transition-colors" onclick="sortDeductions('date')">
+              <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold select-none text-xs">
+                <th class="py-2.5 px-3 cursor-pointer hover:text-rose-700 transition-colors" onclick="sortDeductions('date')">
                   Дата (M) <span id="deductions_sort_icon_date">▼</span>
                 </th>
-                <th class="py-2.5 px-3 cursor-pointer hover:text-purple-700 transition-colors" onclick="sortDeductions('reason')">
+                <th class="py-2.5 px-3 cursor-pointer hover:text-rose-700 transition-colors" onclick="sortDeductions('reason')">
                   Обоснование / Пояснение удержания (AQ) <span id="deductions_sort_icon_reason">⇅</span>
                 </th>
-                <th class="py-2.5 px-3 text-right cursor-pointer hover:text-purple-700 transition-colors" onclick="sortDeductions('amount')">
+                <th class="py-2.5 px-3 text-right cursor-pointer hover:text-rose-700 transition-colors" onclick="sortDeductions('amount')">
                   Сумма (BI) <span id="deductions_sort_icon_amount">⇅</span>
                 </th>
               </tr>
@@ -685,91 +680,6 @@
 
       <div class="bg-slate-50 p-4 border-t border-slate-100 flex justify-end shrink-0">
         <button onclick="closeDeductionsModal()" class="px-5 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
-          Закрыть
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <div id="modalNetProfit" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
-      <div class="bg-gradient-to-r from-emerald-800 via-teal-800 to-indigo-900 text-white p-5 flex justify-between items-center shrink-0">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-emerald-200 backdrop-blur-sm">
-            <i data-lucide="calculator" class="w-5 h-5"></i>
-          </div>
-          <div>
-            <h3 class="font-bold text-base text-white">Расчет и расшифровка Чистой прибыли</h3>
-            <p class="text-xs text-emerald-200/90">Формула калькуляции доходов и расходов</p>
-          </div>
-        </div>
-        <button onclick="closeNetProfitModal()" class="hover:bg-white/10 p-2 rounded-xl transition-colors">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <div class="p-6 overflow-y-auto custom-scrollbar space-y-3 text-xs">
-        <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex justify-between items-center">
-          <span class="font-bold text-emerald-950 flex items-center gap-1.5"><i data-lucide="plus-circle" class="w-4 h-4 text-emerald-600"></i> Чистая к выплате WB (AH):</span>
-          <span id="npModalPayout" class="font-black text-sm text-emerald-700">0.00 ₽</span>
-        </div>
-
-        <div class="space-y-1.5 pt-2 border-t border-slate-100 text-slate-600">
-          <p class="font-bold text-slate-400 uppercase tracking-wider text-[10px] mb-2">Вычитаемые расходы:</p>
-          
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span>Реклама (введенная):</span>
-            <span id="npModalAd" class="font-semibold text-rose-600">-0.00 ₽</span>
-          </div>
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span>Хранение (BH):</span>
-            <span id="npModalStorage" class="font-semibold text-rose-600">-0.00 ₽</span>
-          </div>
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span>Штрафы (AO):</span>
-            <span id="npModalFines" class="font-semibold text-rose-600">-0.00 ₽</span>
-          </div>
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span>Конструктор тарифов (AP):</span>
-            <span id="npModalTariff" class="font-semibold text-rose-600">-0.00 ₽</span>
-          </div>
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span>Операции при приемке (BJ):</span>
-            <span id="npModalAcceptance" class="font-semibold text-rose-600">-0.00 ₽</span>
-          </div>
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span>Удержания (BI):</span>
-            <span id="npModalDeductions" class="font-semibold text-rose-600">-0.00 ₽</span>
-          </div>
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span>Внутренняя логистика WB (AK):</span>
-            <span id="npModalLogistics" class="font-semibold text-rose-600">-0.00 ₽</span>
-          </div>
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span>Налог (расчетный):</span>
-            <span id="npModalTax" class="font-semibold text-rose-600">-0.00 ₽</span>
-          </div>
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span>Общая себестоимость (COGS + ФФ):</span>
-            <span id="npModalCogs" class="font-semibold text-rose-600">-0.00 ₽</span>
-          </div>
-          <div class="flex justify-between py-1 border-b border-slate-100">
-            <span>Прочие расходы (введенные):</span>
-            <span id="npModalOther" class="font-semibold text-rose-600">-0.00 ₽</span>
-          </div>
-        </div>
-
-        <div class="p-4 bg-purple-50 rounded-2xl border border-purple-100 flex justify-between items-center mt-4">
-          <div>
-            <span class="font-bold text-purple-950 text-sm block">Итого Чистая прибыль:</span>
-            <span class="text-[11px] text-purple-600">Конечный финансовый результат</span>
-          </div>
-          <span id="npModalTotalNetProfit" class="font-black text-xl text-purple-900">0.00 ₽</span>
-        </div>
-      </div>
-
-      <div class="bg-slate-50 p-4 border-t border-slate-100 flex justify-end shrink-0">
-        <button onclick="closeNetProfitModal()" class="px-5 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
           Закрыть
         </button>
       </div>
@@ -1260,31 +1170,52 @@
     let deductionsSortField = 'date';
     let deductionsSortDirection = 'desc';
 
-    function sortDeductions(field) {
-      if (deductionsSortField === field) {
-        deductionsSortDirection = deductionsSortDirection === 'asc' ? 'desc' : 'asc';
-      } else {
-        deductionsSortField = field;
-        deductionsSortDirection = (field === 'reason') ? 'asc' : 'desc';
+    function sortDeductions(field, preventToggle = false) {
+      if (!preventToggle) {
+        if (deductionsSortField === field) {
+          deductionsSortDirection = deductionsSortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+          deductionsSortField = field;
+          deductionsSortDirection = (field === 'reason') ? 'asc' : 'desc';
+        }
       }
+
+      ['date', 'reason', 'amount'].forEach(f => {
+        const icon = document.getElementById(`deductions_sort_icon_${f}`);
+        if (icon) icon.innerText = '⇅';
+      });
+
+      const activeIcon = document.getElementById(`deductions_sort_icon_${deductionsSortField}`);
+      if (activeIcon) {
+        activeIcon.innerText = deductionsSortDirection === 'asc' ? '▲' : '▼';
+      }
+
       renderDeductionsTable();
+    }
+
+    function getDeductionTimestamp(item) {
+      if (item.rawDate instanceof Date && !isNaN(item.rawDate.getTime())) {
+        return item.rawDate.getTime();
+      }
+      if (!item.date || item.date === '—') return 0;
+      
+      const parts = String(item.date).split('.');
+      if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        const d = new Date(year, month, day);
+        if (!isNaN(d.getTime())) return d.getTime();
+      }
+
+      const d = new Date(item.date);
+      return isNaN(d.getTime()) ? 0 : d.getTime();
     }
 
     function renderDeductionsTable() {
       const tbody = document.getElementById('deductionsTableBody');
       if (!tbody) return;
       tbody.innerHTML = '';
-
-      ['date', 'reason', 'amount'].forEach(f => {
-        const icon = document.getElementById(`deductions_sort_icon_${f}`);
-        if (icon) {
-          if (deductionsSortField === f) {
-            icon.innerText = deductionsSortDirection === 'asc' ? '▲' : '▼';
-          } else {
-            icon.innerText = '⇅';
-          }
-        }
-      });
 
       if (!globalStats.deductionsList || globalStats.deductionsList.length === 0) {
         tbody.innerHTML = `
@@ -1295,23 +1226,27 @@
         return;
       }
 
-      const listCopy = [...globalStats.deductionsList];
-      listCopy.sort((a, b) => {
+      const sortedList = [...globalStats.deductionsList];
+      sortedList.sort((a, b) => {
         if (deductionsSortField === 'date') {
-          const dateA = a.rawDate ? a.rawDate.getTime() : 0;
-          const dateB = b.rawDate ? b.rawDate.getTime() : 0;
-          return deductionsSortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+          const tA = getDeductionTimestamp(a);
+          const tB = getDeductionTimestamp(b);
+          return deductionsSortDirection === 'asc' ? tA - tB : tB - tA;
         } else if (deductionsSortField === 'reason') {
+          const rA = (a.reason || '').toLowerCase();
+          const rB = (b.reason || '').toLowerCase();
           return deductionsSortDirection === 'asc' 
-            ? (a.reason || '').localeCompare(b.reason || '') 
-            : (b.reason || '').localeCompare(a.reason || '');
+            ? rA.localeCompare(rB) 
+            : rB.localeCompare(rA);
         } else if (deductionsSortField === 'amount') {
-          return deductionsSortDirection === 'asc' ? a.amount - b.amount : b.amount - a.amount;
+          return deductionsSortDirection === 'asc' 
+            ? a.amount - b.amount 
+            : b.amount - a.amount;
         }
         return 0;
       });
 
-      listCopy.forEach(item => {
+      sortedList.forEach(item => {
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50 transition-colors text-xs";
         
@@ -1324,14 +1259,14 @@
         if (isAdvanceReturn) {
           amountClass = "text-emerald-600 font-bold";
           if (item.amount < 0) {
-            amountFormatted = `-${formatCurrency(Math.abs(item.amount))}`;
+            amountFormatted = `+${formatCurrency(Math.abs(item.amount))}`;
           } else {
             amountFormatted = `+${formatCurrency(item.amount)}`;
           }
         }
 
         tr.innerHTML = `
-          <td class="py-2.5 px-3 text-slate-500 whitespace-nowrap">${item.date}</td>
+          <td class="py-2.5 px-3 text-slate-500 font-medium whitespace-nowrap">${item.date}</td>
           <td class="py-2.5 px-3 text-slate-800 font-medium">${item.reason}</td>
           <td class="py-2.5 px-3 text-right ${amountClass} whitespace-nowrap">${amountFormatted}</td>
         `;
@@ -1343,18 +1278,11 @@
       const modal = document.getElementById('modalDeductions');
       if (!modal) return;
 
-      const sumLabel = document.getElementById('modalDeductionsTotalSum');
-      if (sumLabel) {
-        if (globalStats.deductionsSum < 0) {
-          sumLabel.className = "text-base font-extrabold text-emerald-600";
-          sumLabel.innerText = `-${formatCurrency(Math.abs(globalStats.deductionsSum))}`;
-        } else {
-          sumLabel.className = "text-base font-extrabold text-rose-600";
-          sumLabel.innerText = formatCurrency(globalStats.deductionsSum);
-        }
-      }
+      setText('modalDeductionsTotalSum', formatCurrency(globalStats.deductionsSum));
 
-      renderDeductionsTable();
+      deductionsSortField = 'date';
+      deductionsSortDirection = 'desc';
+      sortDeductions('date', true);
 
       modal.classList.remove('hidden');
       lucide.createIcons();
@@ -1362,42 +1290,6 @@
 
     function closeDeductionsModal() {
       const modal = document.getElementById('modalDeductions');
-      if (modal) modal.classList.add('hidden');
-    }
-
-    function openNetProfitModal() {
-      const modal = document.getElementById('modalNetProfit');
-      if (!modal) return;
-
-      const adSpendInput = parseNum(document.getElementById('inputAdSpend')?.value);
-      const otherSpendInput = parseNum(document.getElementById('inputOtherSpend')?.value);
-      const totalCogsSum = calculateTotalCogs();
-
-      setText('npModalPayout', formatCurrency(globalStats.payoutSum));
-      setText('npModalAd', `- ${formatCurrency(adSpendInput)}`);
-      setText('npModalStorage', `- ${formatCurrency(globalStats.storageSum)}`);
-      setText('npModalFines', `- ${formatCurrency(globalStats.finesSum)}`);
-      setText('npModalTariff', `- ${formatCurrency(globalStats.tariffDesignerSum)}`);
-      setText('npModalAcceptance', `- ${formatCurrency(globalStats.acceptanceSum)}`);
-      
-      const dedText = globalStats.deductionsSum < 0 
-        ? `+ ${formatCurrency(Math.abs(globalStats.deductionsSum))}` 
-        : `- ${formatCurrency(globalStats.deductionsSum)}`;
-      setText('npModalDeductions', dedText);
-
-      setText('npModalLogistics', `- ${formatCurrency(globalStats.logisticsSum)}`);
-      setText('npModalTax', `- ${formatCurrency(globalStats.taxSum)}`);
-      setText('npModalCogs', `- ${formatCurrency(totalCogsSum)}`);
-      setText('npModalOther', `- ${formatCurrency(otherSpendInput)}`);
-
-      setText('npModalTotalNetProfit', formatCurrency(globalStats.netProfit));
-
-      modal.classList.remove('hidden');
-      lucide.createIcons();
-    }
-
-    function closeNetProfitModal() {
-      const modal = document.getElementById('modalNetProfit');
       if (modal) modal.classList.add('hidden');
     }
 
@@ -1555,9 +1447,6 @@
 
         const modalDed = document.getElementById('modalDeductions');
         if (e.target === modalDed) closeDeductionsModal();
-
-        const modalNp = document.getElementById('modalNetProfit');
-        if (e.target === modalNp) closeNetProfitModal();
 
         const modalMrg = document.getElementById('modalMerger');
         if (e.target === modalMrg) closeMergerModal();
@@ -2029,7 +1918,8 @@
         if (rowBI !== 0) {
           globalStats.deductionsSum += rowBI;
           globalStats.deductionsList.push({
-            date: dVal ? formatDate(dVal) : '—',
+            rawDate: dVal,
+            date: dVal ? formatDate(dVal) : (row[COL_MAP.M] ? String(row[COL_MAP.M]).trim() : '—'),
             sku: skuVal || '—',
             reason: rowAQ || 'Удержание / Взыскание',
             amount: rowBI
