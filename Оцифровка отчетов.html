@@ -2588,6 +2588,13 @@
       const sortedLogistics = Object.entries(globalStats.logisticsBreakdown)
         .sort((a, b) => b[1].sum - a[1].sum);
 
+      const LOGISTICS_TOOLTIPS = {
+        'к клиенту при продаже':     'От склада до покупателя при продаже товара',
+        'к клиенту при отмене':      'От склада до покупателя при отмене без выкупа товара',
+        'от клиента при отмене':     'От покупателя до склада при отмене покупателем без выкупа',
+        'от клиента при возврате':   'От покупателя до склада, когда покупатель вернул товар после выдачи',
+      };
+
       sortedLogistics.forEach(([type, data]) => {
         const sum = data.sum;
         const count = data.count;
@@ -2596,10 +2603,22 @@
         labels.push(type);
         values.push(sum);
 
+        const tooltipText = LOGISTICS_TOOLTIPS[type.toLowerCase()] || '';
+        const infoIcon = tooltipText
+          ? `<span class="relative group inline-flex items-center ml-1.5 cursor-default">
+               <span class="w-4 h-4 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[10px] font-bold leading-none select-none hover:bg-purple-100 hover:text-purple-700 transition-colors">i</span>
+               <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-50 hidden group-hover:flex w-56 bg-slate-800 text-white text-[11px] leading-snug rounded-lg px-3 py-2 shadow-xl pointer-events-none whitespace-normal">
+                 ${tooltipText}
+               </span>
+             </span>`
+          : '';
+
         const row = document.createElement('tr');
         row.className = "hover:bg-slate-50 transition-colors text-slate-700 text-xs";
         row.innerHTML = `
-          <td class="py-3 px-4 font-medium">${type}</td>
+          <td class="py-3 px-4 font-medium">
+            <span class="flex items-center gap-0">${type}${infoIcon}</span>
+          </td>
           <td class="py-3 px-4 text-right font-semibold">
             ${formatCurrency(sum)} <span class="text-[11px] font-semibold text-purple-700 ml-1.5 bg-purple-50 px-1.5 py-0.5 rounded-md">(${count} шт.)</span>
           </td>
