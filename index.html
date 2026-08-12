@@ -30,7 +30,7 @@
     }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col p-3 sm:p-4 lg:p-6">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col pt-2 pb-4 px-3 sm:px-4 lg:px-6">
 
   <main class="flex-grow max-w-[1920px] w-full mx-auto flex flex-col lg:flex-row gap-6">
     
@@ -428,7 +428,7 @@
             <div class="overflow-x-auto custom-scrollbar">
               <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                  <tr class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold select-none">
+                  <tr class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold select-none text-xs">
                     <th class="py-4 px-5">Артикул WB (D)</th>
                     <th class="py-4 px-5">Название (G)</th>
                     <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortProducts('sold')">
@@ -440,11 +440,11 @@
                     <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortProducts('turnover')">
                       Сумма заказов (T) <span id="sort_icon_turnover">⇅</span>
                     </th>
-                    <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortProducts('commission')">
-                      Комиссия <span id="sort_icon_commission">⇅</span>
+                    <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortProducts('comm_acq')">
+                      Комиссия и Эквайринг <span id="sort_icon_comm_acq">⇅</span>
                     </th>
-                    <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortProducts('acq')">
-                      Экв (AC) <span id="sort_icon_acq">⇅</span>
+                    <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortProducts('cogs')">
+                      Себестоимость <span id="sort_icon_cogs">⇅</span>
                     </th>
                     <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortProducts('payout')">
                       Чистая к выплате (AH) <span id="sort_icon_payout">⇅</span>
@@ -2052,7 +2052,7 @@
         }
       }
 
-      const fields = ['sold', 'returned', 'turnover', 'commission', 'acq', 'payout'];
+      const fields = ['sold', 'returned', 'turnover', 'comm_acq', 'cogs', 'payout'];
       fields.forEach(f => {
         const el = document.getElementById(`sort_icon_${f}`);
         if (el) el.innerText = '⇅';
@@ -2066,8 +2066,11 @@
         if (field === 'sold') { valA = a.soldQty; valB = b.soldQty; }
         else if (field === 'returned') { valA = a.returnedQty; valB = b.returnedQty; }
         else if (field === 'turnover') { valA = a.turnover; valB = b.turnover; }
-        else if (field === 'commission') { valA = a.commission; valB = b.commission; }
-        else if (field === 'acq') { valA = a.acquiring; valB = b.acquiring; }
+        else if (field === 'comm_acq') { valA = a.commission + a.acquiring; valB = b.commission + b.acquiring; }
+        else if (field === 'cogs') {
+          valA = a.soldQty * (skuCogsMap[a.sku] || 0);
+          valB = b.soldQty * (skuCogsMap[b.sku] || 0);
+        }
         else if (field === 'payout') { valA = a.payout; valB = b.payout; }
 
         return currentSortDirection === 'asc' ? valA - valB : valB - valA;
@@ -2087,6 +2090,13 @@
       const paginatedList = filteredProducts.slice(startIndex, endIndex);
 
       paginatedList.forEach(p => {
+        const commAcqSum = p.commission + p.acquiring;
+        const unitCogs = skuCogsMap[p.sku] || 0;
+        const totalCogs = p.soldQty * unitCogs;
+        const cogsLabel = unitCogs > 0 
+          ? `<div class="font-semibold text-slate-800">${formatCurrency(totalCogs)}</div><div class="text-[10px] text-purple-600">(${formatCurrency(unitCogs)}/шт)</div>`
+          : `<span class="text-slate-400 font-normal">Не указана</span>`;
+
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50 transition-colors text-slate-700 text-xs";
         tr.innerHTML = `
@@ -2095,8 +2105,8 @@
           <td class="py-3 px-5 text-right font-semibold text-emerald-600">${p.soldQty} шт</td>
           <td class="py-3 px-5 text-right font-semibold text-rose-500">${p.returnedQty} шт</td>
           <td class="py-3 px-5 text-right font-semibold">${formatCurrency(p.turnover)}</td>
-          <td class="py-3 px-5 text-right text-slate-500">${formatCurrency(p.commission)}</td>
-          <td class="py-3 px-5 text-right text-slate-500">${formatCurrency(p.acquiring)}</td>
+          <td class="py-3 px-5 text-right text-slate-600 font-medium">${formatCurrency(commAcqSum)}</td>
+          <td class="py-3 px-5 text-right">${cogsLabel}</td>
           <td class="py-3 px-5 text-right font-bold text-slate-900">${formatCurrency(p.payout)}</td>
         `;
         tbody.appendChild(tr);
@@ -2167,17 +2177,21 @@
       if (productsList.length === 0) return;
       
       let csvContent = "\uFEFF"; 
-      csvContent += "Артикул WB (D);Название (G);Продано (шт);Возвраты (шт);Сумма заказов (T);Комиссия;Эквайринг (AC);Чистая к выплате (AH)\r\n";
+      csvContent += "Артикул WB (D);Название (G);Продано (шт);Возвраты (шт);Сумма заказов (T);Комиссия и Эквайринг;Себестоимость;Чистая к выплате (AH)\r\n";
       
       productsList.forEach(p => {
+        const commAcqSum = p.commission + p.acquiring;
+        const unitCogs = skuCogsMap[p.sku] || 0;
+        const totalCogs = p.soldQty * unitCogs;
+
         const row = [
           `"${p.sku.replace(/"/g, '""')}"`,
           `"${p.name.replace(/"/g, '""')}"`,
           p.soldQty,
           p.returnedQty,
           p.turnover.toFixed(2),
-          p.commission.toFixed(2),
-          p.acquiring.toFixed(2),
+          commAcqSum.toFixed(2),
+          totalCogs.toFixed(2),
           p.payout.toFixed(2)
         ];
         csvContent += row.join(";") + "\r\n";
