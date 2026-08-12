@@ -497,12 +497,24 @@
               <table class="w-full text-left border-collapse text-sm">
                 <thead>
                   <tr class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold select-none text-xs">
-                    <th class="py-4 px-5">Артикул WB (D)</th>
-                    <th class="py-4 px-5">Название (G)</th>
-                    <th class="py-4 px-5 text-right">Продано (шт)</th>
-                    <th class="py-4 px-5 text-right w-36">Закупка на ед. (₽)</th>
-                    <th class="py-4 px-5 text-right w-36">Фулфилмент на ед. (₽)</th>
-                    <th class="py-4 px-5 text-right">Итого затраты</th>
+                    <th class="py-4 px-5 cursor-pointer hover:text-purple-600 transition-colors" onclick="sortCogs('sku')">
+                      Артикул WB (D) <span id="cogs_sort_icon_sku">⇅</span>
+                    </th>
+                    <th class="py-4 px-5 cursor-pointer hover:text-purple-600 transition-colors" onclick="sortCogs('name')">
+                      Название (G) <span id="cogs_sort_icon_name">⇅</span>
+                    </th>
+                    <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortCogs('sold')">
+                      Продано (шт) <span id="cogs_sort_icon_sold">⇅</span>
+                    </th>
+                    <th class="py-4 px-5 text-right w-36 cursor-pointer hover:text-purple-600 transition-colors" onclick="sortCogs('cogs')">
+                      Закупка на ед. (₽) <span id="cogs_sort_icon_cogs">⇅</span>
+                    </th>
+                    <th class="py-4 px-5 text-right w-36 cursor-pointer hover:text-purple-600 transition-colors" onclick="sortCogs('ff')">
+                      Фулфилмент на ед. (₽) <span id="cogs_sort_icon_ff">⇅</span>
+                    </th>
+                    <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortCogs('total')">
+                      Итого затраты <span id="cogs_sort_icon_total">⇅</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody id="cogsTableBody" class="divide-y divide-slate-100 text-slate-700 font-medium">
@@ -830,6 +842,32 @@
     let itemsPerPage = 50;
     let currentSortField = 'sold';
     let currentSortDirection = 'desc';
+
+    let cogsSortField = 'name';
+    let cogsSortDirection = 'asc';
+
+    function sortCogs(field, preventToggle = false) {
+      if (!preventToggle) {
+        if (cogsSortField === field) {
+          cogsSortDirection = cogsSortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+          cogsSortField = field;
+          cogsSortDirection = (field === 'name' || field === 'sku') ? 'asc' : 'desc';
+        }
+      }
+
+      const fields = ['sku', 'name', 'sold', 'cogs', 'ff', 'total'];
+      fields.forEach(f => {
+        const el = document.getElementById(`cogs_sort_icon_${f}`);
+        if (el) el.innerText = '⇅';
+      });
+      const currentArrow = cogsSortDirection === 'asc' ? '▲' : '▼';
+      const activeIcon = document.getElementById(`cogs_sort_icon_${cogsSortField}`);
+      if (activeIcon) activeIcon.innerText = currentArrow;
+
+      cogsCurrentPage = 1;
+      renderCogsTable();
+    }
 
     function changeItemsPerPage(val) {
       itemsPerPage = parseInt(val, 10) || 50;
@@ -2271,6 +2309,29 @@
         p.sku.toLowerCase().includes(query) || 
         p.name.toLowerCase().includes(query)
       );
+
+      filteredList.sort((a, b) => {
+        let valA = 0, valB = 0;
+        if (cogsSortField === 'sku') {
+          return cogsSortDirection === 'asc' 
+            ? a.sku.localeCompare(b.sku, undefined, { numeric: true }) 
+            : b.sku.localeCompare(a.sku, undefined, { numeric: true });
+        }
+        else if (cogsSortField === 'name') {
+          return cogsSortDirection === 'asc' 
+            ? a.name.localeCompare(b.name) 
+            : b.name.localeCompare(a.name);
+        }
+        else if (cogsSortField === 'sold') { valA = a.soldQty; valB = b.soldQty; }
+        else if (cogsSortField === 'cogs') { valA = skuCogsMap[a.sku] || 0; valB = skuCogsMap[b.sku] || 0; }
+        else if (cogsSortField === 'ff') { valA = skuFfMap[a.sku] || 0; valB = skuFfMap[b.sku] || 0; }
+        else if (cogsSortField === 'total') {
+          valA = a.soldQty * ((skuCogsMap[a.sku] || 0) + (skuFfMap[a.sku] || 0));
+          valB = b.soldQty * ((skuCogsMap[b.sku] || 0) + (skuFfMap[b.sku] || 0));
+        }
+
+        return cogsSortDirection === 'asc' ? valA - valB : valB - valA;
+      });
 
       const startIndex = (cogsCurrentPage - 1) * itemsPerPage;
       const endIndex = Math.min(startIndex + itemsPerPage, filteredList.length);
