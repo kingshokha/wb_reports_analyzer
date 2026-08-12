@@ -348,6 +348,12 @@
                     <span>Настройка столбцов</span>
                     <button onclick="toggleColumnFilterDropdown(event)" class="text-slate-400 hover:text-slate-600">✕</button>
                   </div>
+                  <div class="flex items-center justify-between py-1 px-1.5 bg-purple-50/70 rounded mb-1.5 border-b border-purple-100 font-semibold text-purple-900">
+                    <label class="flex items-center gap-2 cursor-pointer w-full">
+                      <input type="checkbox" checked id="col_chk_all" onchange="toggleAllSkuColumns(this.checked)" class="rounded text-purple-600 focus:ring-purple-500">
+                      <span>Выбрать все столбцы</span>
+                    </label>
+                  </div>
                   <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
                     <input type="checkbox" checked id="col_chk_sku" onchange="toggleSkuColumn('sku')" class="rounded text-purple-600 focus:ring-purple-500">
                     <span>Артикул WB (D)</span>
@@ -433,15 +439,25 @@
 
         <div id="tab-cogs" class="tab-content space-y-4 hidden">
           
-          <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div class="relative w-full sm:w-80">
-              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-                <i data-lucide="search" class="w-4 h-4"></i>
-              </span>
-              <input type="text" id="cogsSearch" class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500" placeholder="Поиск по названию или SKU..." />
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col lg:flex-row gap-4 items-center justify-between">
+            <div class="flex flex-col sm:flex-row gap-3 items-center w-full lg:w-auto">
+              <div class="relative w-full sm:w-80">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                  <i data-lucide="search" class="w-4 h-4"></i>
+                </span>
+                <input type="text" id="cogsSearch" class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500" placeholder="Поиск по названию, WB SKU или Арт. поставщика..." />
+              </div>
+
+              <label class="flex items-center gap-2 px-3 py-2 bg-amber-50/80 border border-amber-200/80 rounded-xl text-xs font-semibold text-amber-900 cursor-pointer hover:bg-amber-100/70 transition-colors shrink-0 select-none">
+                <input type="checkbox" id="chkOnlyNoCogs" onchange="renderCogsTable()" class="rounded text-amber-600 focus:ring-amber-500 cursor-pointer">
+                <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600"></i>
+                <span>Только без себестоимости</span>
+              </label>
             </div>
-            <div class="text-xs text-slate-500">
-              Общая себестоимость: <span id="totalCogsValueLabel" class="font-bold text-slate-800 text-sm">0.00 ₽</span>
+
+            <div class="text-xs text-slate-500 flex items-center gap-2">
+              <span>Общая себестоимость:</span>
+              <span id="totalCogsValueLabel" class="font-bold text-slate-800 text-sm">0.00 ₽</span>
             </div>
           </div>
 
@@ -2287,9 +2303,24 @@
       if (dd) dd.classList.toggle('hidden');
     }
 
+    function toggleAllSkuColumns(selectAll) {
+      for (const col in skuTableColumns) {
+        skuTableColumns[col] = selectAll;
+        const chk = document.getElementById(`col_chk_${col}`);
+        if (chk) chk.checked = selectAll;
+      }
+      renderProductTableHeaders();
+      renderProductTable();
+    }
+
     function toggleSkuColumn(colName) {
       if (skuTableColumns.hasOwnProperty(colName)) {
         skuTableColumns[colName] = !skuTableColumns[colName];
+        
+        const allChecked = Object.values(skuTableColumns).every(Boolean);
+        const chkAll = document.getElementById('col_chk_all');
+        if (chkAll) chkAll.checked = allChecked;
+
         renderProductTableHeaders();
         renderProductTable();
       }
@@ -2535,10 +2566,22 @@
 
     function nextCogsPage() {
       const query = (document.getElementById('cogsSearch')?.value || '').toLowerCase().trim();
-      const filteredList = productsList.filter(p => 
-        p.sku.toLowerCase().includes(query) || 
-        p.name.toLowerCase().includes(query)
-      );
+      const onlyNoCogs = document.getElementById('chkOnlyNoCogs')?.checked || false;
+
+      const filteredList = productsList.filter(p => {
+        const matchesQuery = p.sku.toLowerCase().includes(query) || 
+          (p.supplierSku && p.supplierSku.toLowerCase().includes(query)) ||
+          p.name.toLowerCase().includes(query);
+        if (!matchesQuery) return false;
+
+        if (onlyNoCogs) {
+          const unitCogs = parseNum(skuCogsMap[p.sku]);
+          const unitFf = parseNum(skuFfMap[p.sku]);
+          return (unitCogs + unitFf) === 0;
+        }
+        return true;
+      });
+
       if (cogsCurrentPage * itemsPerPage < filteredList.length) {
         cogsCurrentPage++;
         renderCogsTable();
@@ -2550,11 +2593,21 @@
       if (!tbody) return;
       tbody.innerHTML = '';
       const query = (document.getElementById('cogsSearch')?.value || '').toLowerCase().trim();
-      
-      const filteredList = productsList.filter(p => 
-        p.sku.toLowerCase().includes(query) || 
-        p.name.toLowerCase().includes(query)
-      );
+      const onlyNoCogs = document.getElementById('chkOnlyNoCogs')?.checked || false;
+
+      const filteredList = productsList.filter(p => {
+        const matchesQuery = p.sku.toLowerCase().includes(query) || 
+          (p.supplierSku && p.supplierSku.toLowerCase().includes(query)) ||
+          p.name.toLowerCase().includes(query);
+        if (!matchesQuery) return false;
+
+        if (onlyNoCogs) {
+          const unitCogs = parseNum(skuCogsMap[p.sku]);
+          const unitFf = parseNum(skuFfMap[p.sku]);
+          return (unitCogs + unitFf) === 0;
+        }
+        return true;
+      });
 
       filteredList.sort((a, b) => {
         let valA = 0, valB = 0;
@@ -2562,6 +2615,11 @@
           return cogsSortDirection === 'asc' 
             ? a.sku.localeCompare(b.sku, undefined, { numeric: true }) 
             : b.sku.localeCompare(a.sku, undefined, { numeric: true });
+        }
+        else if (cogsSortField === 'supplierSku') {
+          return cogsSortDirection === 'asc' 
+            ? (a.supplierSku || '').localeCompare(b.supplierSku || '', undefined, { numeric: true }) 
+            : (b.supplierSku || '').localeCompare(a.supplierSku || '', undefined, { numeric: true });
         }
         else if (cogsSortField === 'name') {
           return cogsSortDirection === 'asc' 
@@ -2594,6 +2652,7 @@
         
         tr.innerHTML = `
           <td class="py-3 px-5 font-mono text-xs font-semibold text-slate-600">${p.sku}</td>
+          <td class="py-3 px-5 font-mono text-xs text-slate-500">${p.supplierSku || '—'}</td>
           <td class="py-3 px-5 max-w-xs truncate font-medium text-slate-800" title="${p.name}">${p.name}</td>
           <td class="py-3 px-5 text-right font-semibold text-slate-800">${p.soldQty} шт</td>
           <td class="py-3 px-5 text-right">
@@ -2616,7 +2675,7 @@
       if (filteredList.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="6" class="py-12 text-center text-slate-400">Товары не найдены</td>
+            <td colspan="7" class="py-12 text-center text-slate-400">Товары не найдены</td>
           </tr>
         `;
         setText('cogsTablePaginationInfo', "Показано 0-0 из 0 товаров");
