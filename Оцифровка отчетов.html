@@ -82,9 +82,20 @@
       <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
         <h3 class="text-base font-semibold text-slate-900 flex items-center gap-2">
           <i data-lucide="wallet" class="text-purple-600 w-5 h-5"></i>
-          Дополнительные расходы
+          Дополнительные расходы и Налог
         </h3>
         
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Ставка налога (%)</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold text-xs">
+              %
+            </div>
+            <input type="number" id="inputTaxRate" value="6" min="0" max="100" step="0.1" class="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-xl text-sm font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-right" placeholder="6" />
+          </div>
+          <p class="text-[10px] text-slate-400 mt-1">6% (УСН Доходы), 0% или ваша ставка</p>
+        </div>
+
         <div>
           <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Расходы на рекламу (руб.)</label>
           <div class="relative">
@@ -211,7 +222,7 @@
                 <i data-lucide="percent" class="w-5 h-5" stroke-width="2"></i>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-xs font-semibold text-slate-400">Налог 6% (O)</p>
+                <p id="statTaxCardTitle" class="text-xs font-semibold text-slate-400">Налог 6% (O)</p>
                 <h3 id="statTaxCard" class="text-xl font-bold text-slate-800 mt-1">0.00 ₽</h3>
                 <p class="text-[11px] text-slate-500 mt-1">С розн. цены без возвратов</p>
               </div>
@@ -347,7 +358,7 @@
                   <div class="flex justify-between py-1.5 border-b border-slate-50">
                     <span class="text-slate-500 flex items-center gap-1.5">
                       <span class="w-2.5 h-2.5 rounded-full bg-amber-900"></span>
-                      Расчетный налог 6% (O):
+                      <span id="rowTaxTitle">Расчетный налог 6% (O):</span>
                     </span>
                     <span id="rowTax" class="text-rose-600 font-semibold">-0.00 ₽</span>
                   </div>
@@ -539,7 +550,7 @@
                 <p id="acceptanceLabel" class="text-lg font-bold text-slate-800 mt-1">0.00 ₽</p>
               </div>
               <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                <p class="text-xs font-semibold text-slate-400">Расчетный налог 6% (O)</p>
+                <p id="taxLabelTitle" class="text-xs font-semibold text-slate-400">Расчетный налог 6% (O)</p>
                 <p id="taxLabel" class="text-lg font-bold text-slate-800 mt-1">0.00 ₽</p>
               </div>
             </div>
@@ -1043,6 +1054,8 @@
 
       if (inputAdSpend) inputAdSpend.addEventListener('input', () => updateFinancials());
       if (inputOtherSpend) inputOtherSpend.addEventListener('input', () => updateFinancials());
+      const inputTaxRate = document.getElementById('inputTaxRate');
+      if (inputTaxRate) inputTaxRate.addEventListener('input', () => updateFinancials());
 
       if (productSearch) {
         productSearch.addEventListener('input', (e) => {
@@ -1665,9 +1678,15 @@
 
       globalStats.payoutSum = globalStats.salesPayoutSum - globalStats.returnsPayoutSum;
       globalStats.acquiringSum = salesAcquiringSum - returnsAcquiringSum;
+      globalStats.salesRetailSum = salesRetailSum;
+      globalStats.returnsRetailSum = returnsRetailSum;
       
+      const taxRateVal = parseNum(document.getElementById('inputTaxRate')?.value);
+      const taxRatePercent = isNaN(taxRateVal) || taxRateVal < 0 ? 6 : taxRateVal;
+      globalStats.taxRatePercent = taxRatePercent;
+
       const netRetailSum = salesRetailSum - returnsRetailSum;
-      globalStats.taxSum = netRetailSum * 0.06;
+      globalStats.taxSum = netRetailSum * (taxRatePercent / 100);
 
       for (const sku in globalStats.products) {
         const prod = globalStats.products[sku];
@@ -1692,8 +1711,16 @@
     }
 
     function updateFinancials() {
-      const adSpendInput = parseNum(document.getElementById('inputAdSpend').value);
-      const otherSpendInput = parseNum(document.getElementById('inputOtherSpend').value);
+      const adSpendInput = parseNum(document.getElementById('inputAdSpend')?.value);
+      const otherSpendInput = parseNum(document.getElementById('inputOtherSpend')?.value);
+      const taxRateInputVal = parseNum(document.getElementById('inputTaxRate')?.value);
+      const taxRatePercent = isNaN(taxRateInputVal) || taxRateInputVal < 0 ? 6 : taxRateInputVal;
+      globalStats.taxRatePercent = taxRatePercent;
+
+      if (globalStats.salesRetailSum !== undefined && globalStats.returnsRetailSum !== undefined) {
+        const netRetailSum = globalStats.salesRetailSum - globalStats.returnsRetailSum;
+        globalStats.taxSum = netRetailSum * (taxRatePercent / 100);
+      }
 
       const netTurnover = globalStats.turnover - globalStats.returnsSum;
       const calculatedCOGS = calculateTotalCogs();
@@ -1726,6 +1753,7 @@
       const feesRatio = netTurnover > 0 ? (feesSum / netTurnover) * 100 : 0;
       setText('statFeesRatio', `${feesRatio.toFixed(2)}%`);
 
+      setText('statTaxCardTitle', `Налог ${taxRatePercent}% (O)`);
       setText('statTaxCard', formatCurrency(globalStats.taxSum));
 
       const otherWbExpenses = globalStats.finesSum 
@@ -1767,6 +1795,8 @@
       setText('rowTariffDesigner', `-${formatCurrency(globalStats.tariffDesignerSum)}`);
       setText('rowDeductions', `-${formatCurrency(globalStats.deductionsSum)}`);
       setText('rowAcceptance', `-${formatCurrency(globalStats.acceptanceSum)}`);
+      
+      setText('rowTaxTitle', `Расчетный налог ${taxRatePercent}% (O):`);
       setText('rowTax', `-${formatCurrency(globalStats.taxSum)}`);
 
       setText('rowAdSpend', `-${formatCurrency(adSpendInput)}`);
@@ -1778,6 +1808,8 @@
       setText('finesLabel', formatCurrency(globalStats.finesSum));
       setText('tariffLabel', formatCurrency(globalStats.tariffDesignerSum));
       setText('acceptanceLabel', formatCurrency(globalStats.acceptanceSum));
+      
+      setText('taxLabelTitle', `Расчетный налог ${taxRatePercent}% (O)`);
       setText('taxLabel', formatCurrency(globalStats.taxSum));
 
       renderFinanceChart(calculatedNetProfit, adSpendInput, calculatedCOGS, otherSpendInput);
@@ -1798,6 +1830,8 @@
 
       const visualProfit = Math.max(0, netProfit);
       
+      const taxLabelText = `Налог ${globalStats.taxRatePercent !== undefined ? globalStats.taxRatePercent : 6}%`;
+
       const chartData = {
         labels: [
           'Чистая прибыль', 
@@ -1809,7 +1843,7 @@
           'Конструктор тарифов', 
           'Удержания', 
           'Приемка', 
-          'Налог 6%',
+          taxLabelText,
           'Реклама', 
           'Себестоимость', 
           'Прочее'
