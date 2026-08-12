@@ -252,6 +252,19 @@
               </div>
             </div>
 
+            <div onclick="openDeductionsModal()" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 cursor-pointer hover:bg-slate-50 transition-colors h-full min-h-[105px]">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-rose-50 text-rose-600">
+                <i data-lucide="scissors" class="w-5 h-5" stroke-width="2"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-semibold text-slate-400">Удержания (BI)</p>
+                <h3 id="statDeductionsCard" class="text-xl font-bold text-rose-600 mt-0.5">0.00 ₽</h3>
+                <p class="text-[10px] text-purple-600 mt-0.5 font-semibold flex items-center gap-1">
+                  Все удержания <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </p>
+              </div>
+            </div>
+
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 h-full min-h-[105px]">
               <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 text-emerald-600">
                 <i data-lucide="banknote" class="w-5 h-5" stroke-width="2"></i>
@@ -284,7 +297,7 @@
 
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
               <h3 class="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2">
                 <i data-lucide="pie-chart" class="text-purple-600 w-5 h-5"></i>
                 Структура финансового отчета
@@ -298,103 +311,10 @@
               <div>
                 <h3 class="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2">
                   <i data-lucide="list-collapse" class="text-purple-600 w-5 h-5"></i>
-                  Расшифровка начислений и удержаний
+                  Расшифровка начислений и удержаний (по убыванию)
                 </h3>
-                <div class="space-y-2 text-xs">
-                  <div class="flex justify-between py-1.5 border-b border-slate-50">
-                    <span class="text-slate-500 flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                      Сумма заказов (T):
-                    </span>
-                    <span id="rowTurnover" class="font-semibold text-slate-700">0.00 ₽</span>
-                  </div>
-                  <div class="flex justify-between py-1.5 border-b border-slate-50">
-                    <span class="text-slate-500 flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-[#cb11ab]"></span>
-                      Удержано комиссий (T × X):
-                    </span>
-                    <span id="rowCommission" class="text-rose-600 font-semibold">-0.00 ₽</span>
-                  </div>
-                  <div class="flex justify-between py-1.5 border-b border-slate-50">
-                    <span class="text-slate-500 flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                      Удержано эквайринга (AC):
-                    </span>
-                    <span id="rowAcquiring" class="text-rose-600 font-semibold">-0.00 ₽</span>
-                  </div>
-                  <div class="flex justify-between py-1.5 border-b border-slate-50">
-                    <span class="text-slate-500 flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-                      Услуги по доставке (AK):
-                    </span>
-                    <span id="rowLogistics" class="text-rose-600 font-semibold">-0.00 ₽</span>
-                  </div>
-                  <div class="flex justify-between py-1.5 border-b border-slate-50">
-                    <span class="text-slate-500 flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-pink-500"></span>
-                      Хранение на складах (BH):
-                    </span>
-                    <span id="rowStorage" class="text-rose-600 font-semibold">-0.00 ₽</span>
-                  </div>
-
-                  <div class="flex justify-between py-1.5 border-b border-slate-50">
-                    <span class="text-slate-500 flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-red-600"></span>
-                      Штрафы (AO):
-                    </span>
-                    <span id="rowFines" class="text-rose-600 font-semibold">-0.00 ₽</span>
-                  </div>
-                  <div class="flex justify-between py-1.5 border-b border-slate-50">
-                    <span class="text-slate-500 flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
-                      Конструктор тарифов (AP):
-                    </span>
-                    <span id="rowTariffDesigner" class="text-rose-600 font-semibold">-0.00 ₽</span>
-                  </div>
-                  <div class="flex justify-between py-1.5 border-b border-slate-50">
-                    <span class="text-slate-500 flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-amber-700"></span>
-                      Удержания (BI):
-                    </span>
-                    <span id="rowDeductions" class="text-rose-600 font-semibold">-0.00 ₽</span>
-                  </div>
-                  <div class="flex justify-between py-1.5 border-b border-slate-50">
-                    <span class="text-slate-500 flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-teal-600"></span>
-                      Операции при приемке (BJ):
-                    </span>
-                    <span id="rowAcceptance" class="text-rose-600 font-semibold">-0.00 ₽</span>
-                  </div>
-                  
-                  <div class="flex justify-between py-1.5 border-b border-slate-50">
-                    <span class="text-slate-500 flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-amber-900"></span>
-                      <span id="rowTaxTitle">Расчетный налог 6% (O):</span>
-                    </span>
-                    <span id="rowTax" class="text-rose-600 font-semibold">-0.00 ₽</span>
-                  </div>
-
-                  <div class="flex justify-between py-1.5 border-b border-slate-50">
-                    <span class="text-slate-500 flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-red-400"></span>
-                      Расход на рекламу (введено вами):
-                    </span>
-                    <span id="rowAdSpend" class="text-rose-600 font-semibold">-0.00 ₽</span>
-                  </div>
-                  <div class="flex justify-between py-1.5 border-b border-slate-50">
-                    <span class="text-slate-500 flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-                      Себестоимость товаров (COGS):
-                    </span>
-                    <span id="rowCOGS" class="text-rose-600 font-semibold">-0.00 ₽</span>
-                  </div>
-                  <div class="flex justify-between py-1.5 border-b border-slate-50">
-                    <span class="text-slate-500 flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-                      Накладные и прочие издержки:
-                    </span>
-                    <span id="rowOtherSpend" class="text-rose-600 font-semibold">-0.00 ₽</span>
-                  </div>
+                <div id="breakdownItemsContainer" class="space-y-2 text-xs">
+                </div>
                 </div>
               </div>
               <div class="mt-4 pt-4 border-t border-slate-100 bg-purple-50/50 p-3 rounded-xl flex items-center justify-between text-[11px] text-slate-600">
@@ -414,11 +334,64 @@
               <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                 <i data-lucide="search" class="w-4 h-4"></i>
               </span>
-              <input type="text" id="productSearch" class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500" placeholder="Поиск по названию или SKU..." />
+              <input type="text" id="productSearch" class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500" placeholder="Поиск по названию, WB SKU или Арт. поставщика..." />
             </div>
             
-            <div class="flex gap-2 w-full sm:w-auto">
-              <button id="btnExportSKU" class="w-full sm:w-auto py-2 px-4 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1">
+            <div class="flex gap-2 w-full sm:w-auto items-center">
+              <div class="relative">
+                <button id="btnColumnFilter" onclick="toggleColumnFilterDropdown(event)" class="py-2 px-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
+                  <i data-lucide="sliders-horizontal" class="w-4 h-4 text-purple-600"></i>
+                  Столбцы ⚙️
+                </button>
+                <div id="columnFilterDropdown" class="hidden absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-3 space-y-1 text-xs select-none">
+                  <div class="font-bold text-slate-800 pb-1.5 border-b border-slate-100 mb-1 flex justify-between items-center">
+                    <span>Настройка столбцов</span>
+                    <button onclick="toggleColumnFilterDropdown(event)" class="text-slate-400 hover:text-slate-600">✕</button>
+                  </div>
+                  <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
+                    <input type="checkbox" checked id="col_chk_sku" onchange="toggleSkuColumn('sku')" class="rounded text-purple-600 focus:ring-purple-500">
+                    <span>Артикул WB (D)</span>
+                  </label>
+                  <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
+                    <input type="checkbox" checked id="col_chk_supplierSku" onchange="toggleSkuColumn('supplierSku')" class="rounded text-purple-600 focus:ring-purple-500">
+                    <span>Артикул поставщика (F)</span>
+                  </label>
+                  <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
+                    <input type="checkbox" checked id="col_chk_name" onchange="toggleSkuColumn('name')" class="rounded text-purple-600 focus:ring-purple-500">
+                    <span>Название (G)</span>
+                  </label>
+                  <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
+                    <input type="checkbox" checked id="col_chk_sold" onchange="toggleSkuColumn('sold')" class="rounded text-purple-600 focus:ring-purple-500">
+                    <span>Продано (шт)</span>
+                  </label>
+                  <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
+                    <input type="checkbox" checked id="col_chk_returned" onchange="toggleSkuColumn('returned')" class="rounded text-purple-600 focus:ring-purple-500">
+                    <span>Возвраты (шт)</span>
+                  </label>
+                  <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
+                    <input type="checkbox" checked id="col_chk_turnover" onchange="toggleSkuColumn('turnover')" class="rounded text-purple-600 focus:ring-purple-500">
+                    <span>Сумма заказов (T)</span>
+                  </label>
+                  <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
+                    <input type="checkbox" checked id="col_chk_comm_acq" onchange="toggleSkuColumn('comm_acq')" class="rounded text-purple-600 focus:ring-purple-500">
+                    <span>Комиссия и Эквайринг</span>
+                  </label>
+                  <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
+                    <input type="checkbox" checked id="col_chk_cogs" onchange="toggleSkuColumn('cogs')" class="rounded text-purple-600 focus:ring-purple-500">
+                    <span>Себестоимость</span>
+                  </label>
+                  <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
+                    <input type="checkbox" checked id="col_chk_tax" onchange="toggleSkuColumn('tax')" class="rounded text-purple-600 focus:ring-purple-500">
+                    <span>Налог (₽)</span>
+                  </label>
+                  <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
+                    <input type="checkbox" checked id="col_chk_payout" onchange="toggleSkuColumn('payout')" class="rounded text-purple-600 focus:ring-purple-500">
+                    <span>Чистая к выплате (AH)</span>
+                  </label>
+                </div>
+              </div>
+
+              <button id="btnExportSKU" class="w-full sm:w-auto py-2 px-4 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5">
                 <i data-lucide="download" class="w-4 h-4"></i> Экспорт в CSV
               </button>
             </div>
@@ -428,27 +401,7 @@
             <div class="overflow-x-auto custom-scrollbar">
               <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                  <tr class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold select-none text-xs">
-                    <th class="py-4 px-5">Артикул WB (D)</th>
-                    <th class="py-4 px-5">Название (G)</th>
-                    <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortProducts('sold')">
-                      Продано (шт) <span id="sort_icon_sold">⇅</span>
-                    </th>
-                    <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortProducts('returned')">
-                      Возвраты <span id="sort_icon_returned">⇅</span>
-                    </th>
-                    <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortProducts('turnover')">
-                      Сумма заказов (T) <span id="sort_icon_turnover">⇅</span>
-                    </th>
-                    <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortProducts('comm_acq')">
-                      Комиссия и Эквайринг <span id="sort_icon_comm_acq">⇅</span>
-                    </th>
-                    <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortProducts('cogs')">
-                      Себестоимость <span id="sort_icon_cogs">⇅</span>
-                    </th>
-                    <th class="py-4 px-5 text-right cursor-pointer hover:text-purple-600 transition-colors" onclick="sortProducts('payout')">
-                      Чистая к выплате (AH) <span id="sort_icon_payout">⇅</span>
-                    </th>
+                  <tr id="productTableHeaderRow" class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold select-none text-xs">
                   </tr>
                 </thead>
                 <tbody id="productTableBody" class="divide-y divide-slate-100 text-slate-700 font-medium">
@@ -656,15 +609,58 @@
             <span class="text-slate-500">Операции при приемке (BJ):</span>
             <span id="modalAcceptance" class="font-semibold text-slate-800">0.00 ₽</span>
           </div>
-          <div class="flex justify-between py-1.5 border-b border-slate-100">
-            <span class="text-slate-500">Удержания (BI):</span>
-            <span id="modalDeductions" class="font-semibold text-slate-800">0.00 ₽</span>
-          </div>
           <div class="flex justify-between py-2 border-t border-dashed border-slate-200 font-bold text-base mt-2">
             <span class="text-slate-800">Итого расходов WB:</span>
             <span id="modalTotalExpenses" class="text-purple-700">0.00 ₽</span>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalDeductions" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-100 flex flex-col max-h-[85vh]">
+      <div class="bg-gradient-to-r from-rose-900 via-rose-800 to-amber-900 text-white p-5 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-rose-200 backdrop-blur-sm">
+            <i data-lucide="scissors" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-white">Детализация удержаний (столбец BI)</h3>
+            <p class="text-xs text-rose-200/90">Все финансовые взыскания и удержания из отчета</p>
+          </div>
+        </div>
+        <button onclick="closeDeductionsModal()" class="hover:bg-white/10 p-2 rounded-xl transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center shrink-0 text-xs">
+        <span class="text-slate-500 font-medium">Общая сумма удержаний:</span>
+        <span id="modalDeductionsTotalSum" class="text-base font-extrabold text-rose-600">0.00 ₽</span>
+      </div>
+
+      <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-4">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold">
+                <th class="py-2.5 px-3">Дата (M)</th>
+                <th class="py-2.5 px-3">Артикул WB (D)</th>
+                <th class="py-2.5 px-3">Обоснование / Пояснение удержания (AQ)</th>
+                <th class="py-2.5 px-3 text-right">Сумма удержания (BI)</th>
+              </tr>
+            </thead>
+            <tbody id="deductionsTableBody" class="divide-y divide-slate-100 text-slate-700">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 p-4 border-t border-slate-100 flex justify-end shrink-0">
+        <button onclick="closeDeductionsModal()" class="px-5 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
+          Закрыть
+        </button>
       </div>
     </div>
   </div>
@@ -759,6 +755,7 @@
   <script>
     let COL_MAP = {
       D: 3,
+      F: 5,
       G: 6,
       K: 10,
       O: 14,
@@ -828,6 +825,7 @@
       finesSum: 0,
       tariffDesignerSum: 0,
       deductionsSum: 0,
+      deductionsList: [],
       acceptanceSum: 0,
       taxSum: 0,
       sppAvg: 0,
@@ -1116,7 +1114,6 @@
       
       const otherWbExpenses = globalStats.finesSum 
         + globalStats.tariffDesignerSum 
-        + globalStats.deductionsSum 
         + globalStats.acceptanceSum;
       const totalWbExpenses = globalStats.logisticsSum + globalStats.storageSum + otherWbExpenses;
 
@@ -1125,7 +1122,6 @@
       setText('modalFines', formatCurrency(globalStats.finesSum));
       setText('modalTariff', formatCurrency(globalStats.tariffDesignerSum));
       setText('modalAcceptance', formatCurrency(globalStats.acceptanceSum));
-      setText('modalDeductions', formatCurrency(globalStats.deductionsSum));
       setText('modalTotalExpenses', formatCurrency(totalWbExpenses));
 
       modal.classList.remove('hidden');
@@ -1134,6 +1130,44 @@
 
     function closeExpensesModal() {
       const modal = document.getElementById('modalExpenses');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function openDeductionsModal() {
+      const modal = document.getElementById('modalDeductions');
+      if (!modal) return;
+
+      setText('modalDeductionsTotalSum', formatCurrency(globalStats.deductionsSum));
+      const tbody = document.getElementById('deductionsTableBody');
+      if (tbody) {
+        tbody.innerHTML = '';
+        if (!globalStats.deductionsList || globalStats.deductionsList.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="4" class="py-8 text-center text-slate-400">Удержания за выбранный период отсутствуют</td>
+            </tr>
+          `;
+        } else {
+          globalStats.deductionsList.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-slate-50 transition-colors text-xs";
+            tr.innerHTML = `
+              <td class="py-2.5 px-3 text-slate-500 whitespace-nowrap">${item.date}</td>
+              <td class="py-2.5 px-3 font-mono font-medium text-slate-700 whitespace-nowrap">${item.sku}</td>
+              <td class="py-2.5 px-3 text-slate-800 font-medium">${item.reason}</td>
+              <td class="py-2.5 px-3 text-right font-bold text-rose-600 whitespace-nowrap">${formatCurrency(item.amount)}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+      }
+
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeDeductionsModal() {
+      const modal = document.getElementById('modalDeductions');
       if (modal) modal.classList.add('hidden');
     }
 
@@ -1289,8 +1323,19 @@
         const modalExp = document.getElementById('modalExpenses');
         if (e.target === modalExp) closeExpensesModal();
 
+        const modalDed = document.getElementById('modalDeductions');
+        if (e.target === modalDed) closeDeductionsModal();
+
         const modalMrg = document.getElementById('modalMerger');
         if (e.target === modalMrg) closeMergerModal();
+
+        const dd = document.getElementById('columnFilterDropdown');
+        const btnCol = document.getElementById('btnColumnFilter');
+        if (dd && !dd.classList.contains('hidden')) {
+          if (!dd.contains(e.target) && (!btnCol || !btnCol.contains(e.target))) {
+            dd.classList.add('hidden');
+          }
+        }
       });
     }
 
@@ -1682,6 +1727,7 @@
         finesSum: 0,
         tariffDesignerSum: 0,
         deductionsSum: 0,
+        deductionsList: [],
         acceptanceSum: 0,
         taxSum: 0,
         logisticsBreakdown: {},
@@ -1708,6 +1754,7 @@
         }
 
         const skuVal = String(row[COL_MAP.D] !== undefined && row[COL_MAP.D] !== null ? row[COL_MAP.D] : '').trim();
+        const supplierSkuVal = String(row[COL_MAP.F] !== undefined && row[COL_MAP.F] !== null ? row[COL_MAP.F] : '').trim();
         const nameVal = String(row[COL_MAP.G] !== undefined && row[COL_MAP.G] !== null ? row[COL_MAP.G] : '').trim();
         const reasonVal = String(row[COL_MAP.K] !== undefined && row[COL_MAP.K] !== null ? row[COL_MAP.K] : '').toLowerCase().trim();
         const rowT = parseNum(row[COL_MAP.T]);
@@ -1745,15 +1792,25 @@
         globalStats.finesSum += Math.abs(rowAO);
         globalStats.tariffDesignerSum += Math.abs(rowAP);
         globalStats.acceptanceSum += Math.abs(rowBJ);
-        globalStats.deductionsSum += rowBI;
+
+        if (rowBI !== 0) {
+          globalStats.deductionsSum += rowBI;
+          globalStats.deductionsList.push({
+            date: dVal ? formatDate(dVal) : '—',
+            sku: skuVal || '—',
+            reason: rowAQ || 'Удержание / Взыскание',
+            amount: rowBI
+          });
+        }
 
         if (rowAK !== 0) {
           globalStats.logisticsSum += rowAK;
           const logType = rowAQ || 'Не указан / Прочее';
           if (!globalStats.logisticsBreakdown[logType]) {
-            globalStats.logisticsBreakdown[logType] = 0;
+            globalStats.logisticsBreakdown[logType] = { sum: 0, count: 0 };
           }
-          globalStats.logisticsBreakdown[logType] += rowAK;
+          globalStats.logisticsBreakdown[logType].sum += rowAK;
+          globalStats.logisticsBreakdown[logType].count += 1;
         }
 
         let isSale = reasonVal.includes('продажа') || reasonVal.includes('реализация');
@@ -1773,11 +1830,14 @@
           if (!globalStats.products[skuVal]) {
             globalStats.products[skuVal] = {
               sku: skuVal,
+              supplierSku: supplierSkuVal || '—',
               name: nameVal || 'Без названия',
               soldQty: 0,
               returnedQty: 0,
               salesTurnover: 0,
               returnsTurnover: 0,
+              salesRetailSum: 0,
+              returnsRetailSum: 0,
               salesPayout: 0,
               returnsPayout: 0,
               commission: 0,
@@ -1785,6 +1845,9 @@
               turnover: 0,
               payout: 0
             };
+          }
+          if (supplierSkuVal && globalStats.products[skuVal].supplierSku === '—') {
+            globalStats.products[skuVal].supplierSku = supplierSkuVal;
           }
           if (nameVal && globalStats.products[skuVal].name === 'Без названия') {
             globalStats.products[skuVal].name = nameVal;
@@ -1811,6 +1874,7 @@
           prod.salesPayout += rowAH;
           prod.commission += rowCommission;
           prod.acquiring += rowAC;
+          prod.salesRetailSum += Math.abs(rowO);
 
         } else if (isReturn) {
           globalStats.returnsCount++;
@@ -1826,6 +1890,7 @@
           prod.returnsPayout += Math.abs(rowAH);
           prod.commission -= rowCommission;
           prod.acquiring += rowAC;
+          prod.returnsRetailSum += Math.abs(rowO);
 
         } else {
           globalStats.salesPayoutSum += rowAH;
@@ -1856,6 +1921,8 @@
         const prod = globalStats.products[sku];
         prod.turnover = prod.salesTurnover - prod.returnsTurnover;
         prod.payout = prod.salesPayout - prod.returnsPayout;
+        const prodNetRetail = (prod.salesRetailSum || 0) - (prod.returnsRetailSum || 0);
+        prod.taxSum = prodNetRetail * (taxRatePercent / 100);
       }
 
       productsList = Object.values(globalStats.products);
@@ -1923,12 +1990,12 @@
 
       const otherWbExpenses = globalStats.finesSum 
         + globalStats.tariffDesignerSum 
-        + globalStats.deductionsSum 
         + globalStats.acceptanceSum;
 
       const totalWbExpenses = globalStats.logisticsSum + globalStats.storageSum + otherWbExpenses;
 
       setText('statLogAndStore', formatCurrency(totalWbExpenses));
+      setText('statDeductionsCard', formatCurrency(globalStats.deductionsSum));
       setText('statLogisticsOnly', formatCurrency(globalStats.logisticsSum));
       setText('statStorage', formatCurrency(globalStats.storageSum));
       setText('statOtherWbExpenses', formatCurrency(otherWbExpenses));
@@ -1950,23 +2017,43 @@
         }
       }
 
-      setText('rowTurnover', formatCurrency(netTurnover));
-      setText('rowCommission', `-${formatCurrency(globalStats.commissionSum)}`);
-      setText('rowAcquiring', `-${formatCurrency(globalStats.acquiringSum)}`);
-      setText('rowLogistics', `-${formatCurrency(globalStats.logisticsSum)}`);
-      setText('rowStorage', `-${formatCurrency(globalStats.storageSum)}`);
-      
-      setText('rowFines', `-${formatCurrency(globalStats.finesSum)}`);
-      setText('rowTariffDesigner', `-${formatCurrency(globalStats.tariffDesignerSum)}`);
-      setText('rowDeductions', `-${formatCurrency(globalStats.deductionsSum)}`);
-      setText('rowAcceptance', `-${formatCurrency(globalStats.acceptanceSum)}`);
-      
-      setText('rowTaxTitle', `Расчетный налог ${taxRatePercent}% (O):`);
-      setText('rowTax', `-${formatCurrency(globalStats.taxSum)}`);
+      const breakdownItems = [
+        { label: 'Сумма заказов (T)', val: netTurnover, color: 'bg-blue-500', isIncome: true },
+        { label: 'Удержано комиссий (T × X)', val: globalStats.commissionSum, color: 'bg-[#cb11ab]' },
+        { label: 'Удержано эквайринга (AC)', val: globalStats.acquiringSum, color: 'bg-amber-500' },
+        { label: 'Услуги по доставке (AK)', val: globalStats.logisticsSum, color: 'bg-indigo-500' },
+        { label: 'Хранение на складах (BH)', val: globalStats.storageSum, color: 'bg-pink-500' },
+        { label: 'Штрафы (AO)', val: globalStats.finesSum, color: 'bg-red-600' },
+        { label: 'Конструктор тарифов (AP)', val: globalStats.tariffDesignerSum, color: 'bg-orange-500' },
+        { label: 'Удержания (BI)', val: globalStats.deductionsSum, color: 'bg-amber-700' },
+        { label: 'Операции при приемке (BJ)', val: globalStats.acceptanceSum, color: 'bg-teal-600' },
+        { label: `Расчетный налог ${taxRatePercent}% (O)`, val: globalStats.taxSum, color: 'bg-amber-900' },
+        { label: 'Расход на рекламу (введено)', val: adSpendInput, color: 'bg-red-400' },
+        { label: 'Себестоимость товаров (COGS)', val: calculatedCOGS, color: 'bg-purple-500' },
+        { label: 'Накладные и прочие издержки', val: otherSpendInput, color: 'bg-slate-500' }
+      ];
 
-      setText('rowAdSpend', `-${formatCurrency(adSpendInput)}`);
-      setText('rowCOGS', `-${formatCurrency(calculatedCOGS)}`);
-      setText('rowOtherSpend', `-${formatCurrency(otherSpendInput)}`);
+      breakdownItems.sort((a, b) => Math.abs(b.val) - Math.abs(a.val));
+
+      const container = document.getElementById('breakdownItemsContainer');
+      if (container) {
+        container.innerHTML = '';
+        breakdownItems.forEach(item => {
+          const div = document.createElement('div');
+          div.className = "flex justify-between py-1.5 border-b border-slate-50";
+          const valStr = item.isIncome ? formatCurrency(item.val) : `-${formatCurrency(item.val)}`;
+          const valClass = item.isIncome ? "font-semibold text-slate-700" : "text-rose-600 font-semibold";
+          
+          div.innerHTML = `
+            <span class="text-slate-500 flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full ${item.color}"></span>
+              ${item.label}:
+            </span>
+            <span class="${valClass}">${valStr}</span>
+          `;
+          container.appendChild(div);
+        });
+      }
       
       setText('storageDetailsSum', formatCurrency(globalStats.storageSum));
       setText('storageLabel', formatCurrency(globalStats.storageSum));
@@ -2087,9 +2174,11 @@
       const values = [];
 
       const sortedLogistics = Object.entries(globalStats.logisticsBreakdown)
-        .sort((a, b) => b[1] - a[1]);
+        .sort((a, b) => b[1].sum - a[1].sum);
 
-      sortedLogistics.forEach(([type, sum]) => {
+      sortedLogistics.forEach(([type, data]) => {
+        const sum = data.sum;
+        const count = data.count;
         const ratio = globalStats.logisticsSum > 0 ? (sum / globalStats.logisticsSum) * 100 : 0;
         
         labels.push(type);
@@ -2099,7 +2188,9 @@
         row.className = "hover:bg-slate-50 transition-colors text-slate-700 text-xs";
         row.innerHTML = `
           <td class="py-3 px-4 font-medium">${type}</td>
-          <td class="py-3 px-4 text-right font-semibold">${formatCurrency(sum)}</td>
+          <td class="py-3 px-4 text-right font-semibold">
+            ${formatCurrency(sum)} <span class="text-[11px] font-semibold text-purple-700 ml-1.5 bg-purple-50 px-1.5 py-0.5 rounded-md">(${count} шт.)</span>
+          </td>
           <td class="py-3 px-4 text-right text-slate-400 font-medium">${ratio.toFixed(2)}%</td>
         `;
         tbody.appendChild(row);
@@ -2150,28 +2241,98 @@
       });
     }
 
+    let skuTableColumns = {
+      sku: true,
+      supplierSku: true,
+      name: true,
+      sold: true,
+      returned: true,
+      turnover: true,
+      comm_acq: true,
+      cogs: true,
+      tax: true,
+      payout: true
+    };
+
+    function toggleColumnFilterDropdown(e) {
+      if (e) e.stopPropagation();
+      const dd = document.getElementById('columnFilterDropdown');
+      if (dd) dd.classList.toggle('hidden');
+    }
+
+    function toggleSkuColumn(colName) {
+      if (skuTableColumns.hasOwnProperty(colName)) {
+        skuTableColumns[colName] = !skuTableColumns[colName];
+        renderProductTableHeaders();
+        renderProductTable();
+      }
+    }
+
+    function renderProductTableHeaders() {
+      const tr = document.getElementById('productTableHeaderRow');
+      if (!tr) return;
+      tr.innerHTML = '';
+
+      const cols = [
+        { id: 'sku', title: 'Артикул WB (D)', field: 'sku' },
+        { id: 'supplierSku', title: 'Арт. поставщика (F)', field: 'supplierSku' },
+        { id: 'name', title: 'Название (G)', field: 'name' },
+        { id: 'sold', title: 'Продано (шт)', field: 'sold', alignRight: true },
+        { id: 'returned', title: 'Возвраты', field: 'returned', alignRight: true },
+        { id: 'turnover', title: 'Сумма заказов (T)', field: 'turnover', alignRight: true },
+        { id: 'comm_acq', title: 'Комиссия и Эквайринг', field: 'comm_acq', alignRight: true },
+        { id: 'cogs', title: 'Себестоимость', field: 'cogs', alignRight: true },
+        { id: 'tax', title: 'Налог (₽)', field: 'tax', alignRight: true },
+        { id: 'payout', title: 'Чистая к выплате (AH)', field: 'payout', alignRight: true }
+      ];
+
+      cols.forEach(col => {
+        if (!skuTableColumns[col.id]) return;
+        const th = document.createElement('th');
+        let alignClass = col.alignRight ? 'text-right' : '';
+        th.className = `py-4 px-5 cursor-pointer hover:text-purple-600 transition-colors ${alignClass}`;
+        th.onclick = () => sortProducts(col.field);
+        
+        let arrow = '⇅';
+        if (currentSortField === col.field) {
+          arrow = currentSortDirection === 'asc' ? '▲' : '▼';
+        }
+        
+        th.innerHTML = `${col.title} <span id="sort_icon_${col.field}">${arrow}</span>`;
+        tr.appendChild(th);
+      });
+    }
+
     function sortProducts(field, preventToggle = false) {
       if (!preventToggle) {
         if (currentSortField === field) {
           currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
         } else {
           currentSortField = field;
-          currentSortDirection = 'desc';
+          currentSortDirection = (field === 'name' || field === 'sku' || field === 'supplierSku') ? 'asc' : 'desc';
         }
       }
 
-      const fields = ['sold', 'returned', 'turnover', 'comm_acq', 'cogs', 'payout'];
-      fields.forEach(f => {
-        const el = document.getElementById(`sort_icon_${f}`);
-        if (el) el.innerText = '⇅';
-      });
-      const currentArrow = currentSortDirection === 'asc' ? '▲' : '▼';
-      const activeIcon = document.getElementById(`sort_icon_${currentSortField}`);
-      if (activeIcon) activeIcon.innerText = currentArrow;
+      renderProductTableHeaders();
 
       filteredProducts.sort((a, b) => {
         let valA = 0, valB = 0;
-        if (field === 'sold') { valA = a.soldQty; valB = b.soldQty; }
+        if (field === 'sku') {
+          return currentSortDirection === 'asc' 
+            ? a.sku.localeCompare(b.sku, undefined, { numeric: true }) 
+            : b.sku.localeCompare(a.sku, undefined, { numeric: true });
+        }
+        else if (field === 'supplierSku') {
+          return currentSortDirection === 'asc' 
+            ? (a.supplierSku || '').localeCompare(b.supplierSku || '', undefined, { numeric: true }) 
+            : (b.supplierSku || '').localeCompare(a.supplierSku || '', undefined, { numeric: true });
+        }
+        else if (field === 'name') {
+          return currentSortDirection === 'asc' 
+            ? a.name.localeCompare(b.name) 
+            : b.name.localeCompare(a.name);
+        }
+        else if (field === 'sold') { valA = a.soldQty; valB = b.soldQty; }
         else if (field === 'returned') { valA = a.returnedQty; valB = b.returnedQty; }
         else if (field === 'turnover') { valA = a.turnover; valB = b.turnover; }
         else if (field === 'comm_acq') { valA = a.commission + a.acquiring; valB = b.commission + b.acquiring; }
@@ -2179,6 +2340,7 @@
           valA = a.soldQty * ((skuCogsMap[a.sku] || 0) + (skuFfMap[a.sku] || 0));
           valB = b.soldQty * ((skuCogsMap[b.sku] || 0) + (skuFfMap[b.sku] || 0));
         }
+        else if (field === 'tax') { valA = a.taxSum || 0; valB = b.taxSum || 0; }
         else if (field === 'payout') { valA = a.payout; valB = b.payout; }
 
         return currentSortDirection === 'asc' ? valA - valB : valB - valA;
@@ -2189,9 +2351,13 @@
     }
 
     function renderProductTable() {
+      renderProductTableHeaders();
+
       const tbody = document.getElementById('productTableBody');
       if (!tbody) return;
       tbody.innerHTML = '';
+
+      const activeColCount = Object.values(skuTableColumns).filter(Boolean).length;
 
       if (filteredProducts.length > 0) {
         let totalSoldQty = 0;
@@ -2199,6 +2365,7 @@
         let totalTurnover = 0;
         let totalCommAcq = 0;
         let totalCogsSum = 0;
+        let totalTaxSum = 0;
         let totalPayout = 0;
 
         filteredProducts.forEach(p => {
@@ -2209,25 +2376,53 @@
           const unitCogs = skuCogsMap[p.sku] || 0;
           const unitFf = skuFfMap[p.sku] || 0;
           totalCogsSum += p.soldQty * (unitCogs + unitFf);
+          totalTaxSum += (p.taxSum || 0);
           totalPayout += p.payout;
         });
 
         const summaryTr = document.createElement('tr');
         summaryTr.className = "bg-purple-50/90 border-b-2 border-purple-200 text-purple-950 font-bold text-xs shadow-sm select-none";
-        summaryTr.innerHTML = `
-          <td class="py-3.5 px-5 uppercase tracking-wider font-extrabold text-[11px] text-purple-900" colspan="2">
+        
+        let summaryCellsHTML = '';
+
+        let labelColSpan = 0;
+        if (skuTableColumns.sku) labelColSpan++;
+        if (skuTableColumns.supplierSku) labelColSpan++;
+        if (skuTableColumns.name) labelColSpan++;
+        if (labelColSpan === 0) labelColSpan = 1;
+
+        summaryCellsHTML += `
+          <td class="py-3.5 px-5 uppercase tracking-wider font-extrabold text-[11px] text-purple-900" colspan="${labelColSpan}">
             <div class="flex items-center gap-1.5">
               <i data-lucide="sigma" class="w-4 h-4 text-purple-700"></i>
               ИТОГО СУММЫ (Товаров: ${filteredProducts.length}):
             </div>
           </td>
-          <td class="py-3.5 px-5 text-right text-emerald-700 font-extrabold">${totalSoldQty} шт</td>
-          <td class="py-3.5 px-5 text-right text-rose-600 font-extrabold">${totalReturnedQty} шт</td>
-          <td class="py-3.5 px-5 text-right text-purple-950 font-extrabold">${formatCurrency(totalTurnover)}</td>
-          <td class="py-3.5 px-5 text-right text-purple-950 font-extrabold">${formatCurrency(totalCommAcq)}</td>
-          <td class="py-3.5 px-5 text-right text-purple-950 font-extrabold">${formatCurrency(totalCogsSum)}</td>
-          <td class="py-3.5 px-5 text-right text-slate-900 font-black">${formatCurrency(totalPayout)}</td>
         `;
+
+        if (skuTableColumns.sold) {
+          summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-emerald-700 font-extrabold">${totalSoldQty} шт</td>`;
+        }
+        if (skuTableColumns.returned) {
+          summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-rose-600 font-extrabold">${totalReturnedQty} шт</td>`;
+        }
+        if (skuTableColumns.turnover) {
+          summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-purple-950 font-extrabold">${formatCurrency(totalTurnover)}</td>`;
+        }
+        if (skuTableColumns.comm_acq) {
+          summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-purple-950 font-extrabold">${formatCurrency(totalCommAcq)}</td>`;
+        }
+        if (skuTableColumns.cogs) {
+          summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-purple-950 font-extrabold">${formatCurrency(totalCogsSum)}</td>`;
+        }
+        if (skuTableColumns.tax) {
+          summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-amber-800 font-extrabold">${formatCurrency(totalTaxSum)}</td>`;
+        }
+        if (skuTableColumns.payout) {
+          summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-slate-900 font-black">${formatCurrency(totalPayout)}</td>`;
+        }
+
+        summaryTr.innerHTML = summaryCellsHTML;
         tbody.appendChild(summaryTr);
       }
 
@@ -2248,23 +2443,47 @@
 
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50 transition-colors text-slate-700 text-xs";
-        tr.innerHTML = `
-          <td class="py-3 px-5 font-mono text-xs font-semibold text-slate-600">${p.sku}</td>
-          <td class="py-3 px-5 max-w-xs truncate font-medium text-slate-800" title="${p.name}">${p.name}</td>
-          <td class="py-3 px-5 text-right font-semibold text-emerald-600">${p.soldQty} шт</td>
-          <td class="py-3 px-5 text-right font-semibold text-rose-500">${p.returnedQty} шт</td>
-          <td class="py-3 px-5 text-right font-semibold">${formatCurrency(p.turnover)}</td>
-          <td class="py-3 px-5 text-right text-slate-600 font-medium">${formatCurrency(commAcqSum)}</td>
-          <td class="py-3 px-5 text-right">${cogsLabel}</td>
-          <td class="py-3 px-5 text-right font-bold text-slate-900">${formatCurrency(p.payout)}</td>
-        `;
+        
+        let rowCellsHTML = '';
+        if (skuTableColumns.sku) {
+          rowCellsHTML += `<td class="py-3 px-5 font-mono text-xs font-semibold text-slate-600">${p.sku}</td>`;
+        }
+        if (skuTableColumns.supplierSku) {
+          rowCellsHTML += `<td class="py-3 px-5 font-mono text-xs text-slate-500">${p.supplierSku || '—'}</td>`;
+        }
+        if (skuTableColumns.name) {
+          rowCellsHTML += `<td class="py-3 px-5 max-w-xs truncate font-medium text-slate-800" title="${p.name}">${p.name}</td>`;
+        }
+        if (skuTableColumns.sold) {
+          rowCellsHTML += `<td class="py-3 px-5 text-right font-semibold text-emerald-600">${p.soldQty} шт</td>`;
+        }
+        if (skuTableColumns.returned) {
+          rowCellsHTML += `<td class="py-3 px-5 text-right font-semibold text-rose-500">${p.returnedQty} шт</td>`;
+        }
+        if (skuTableColumns.turnover) {
+          rowCellsHTML += `<td class="py-3 px-5 text-right font-semibold">${formatCurrency(p.turnover)}</td>`;
+        }
+        if (skuTableColumns.comm_acq) {
+          rowCellsHTML += `<td class="py-3 px-5 text-right text-slate-600 font-medium">${formatCurrency(commAcqSum)}</td>`;
+        }
+        if (skuTableColumns.cogs) {
+          rowCellsHTML += `<td class="py-3 px-5 text-right">${cogsLabel}</td>`;
+        }
+        if (skuTableColumns.tax) {
+          rowCellsHTML += `<td class="py-3 px-5 text-right font-medium text-amber-800">${formatCurrency(p.taxSum || 0)}</td>`;
+        }
+        if (skuTableColumns.payout) {
+          rowCellsHTML += `<td class="py-3 px-5 text-right font-bold text-slate-900">${formatCurrency(p.payout)}</td>`;
+        }
+
+        tr.innerHTML = rowCellsHTML;
         tbody.appendChild(tr);
       });
 
       if (filteredProducts.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="8" class="py-12 text-center text-slate-400">Товары с реальным финансовым оборотом не найдены</td>
+            <td colspan="${activeColCount || 8}" class="py-12 text-center text-slate-400">Товары с реальным финансовым оборотом не найдены</td>
           </tr>
         `;
         setText('tablePaginationInfo', "Показано 0-0 из 0 товаров");
@@ -2392,21 +2611,25 @@
       if (productsList.length === 0) return;
       
       let csvContent = "\uFEFF"; 
-      csvContent += "Артикул WB (D);Название (G);Продано (шт);Возвраты (шт);Сумма заказов (T);Комиссия и Эквайринг;Себестоимость;Чистая к выплате (AH)\r\n";
+      csvContent += "Артикул WB (D);Артикул поставщика (F);Название (G);Продано (шт);Возвраты (шт);Сумма заказов (T);Комиссия и Эквайринг;Себестоимость;Налог (₽);Чистая к выплате (AH)\r\n";
       
       productsList.forEach(p => {
         const commAcqSum = p.commission + p.acquiring;
         const unitCogs = skuCogsMap[p.sku] || 0;
-        const totalCogs = p.soldQty * unitCogs;
+        const unitFf = skuFfMap[p.sku] || 0;
+        const totalCogs = p.soldQty * (unitCogs + unitFf);
+        const taxVal = p.taxSum || 0;
 
         const row = [
           `"${p.sku.replace(/"/g, '""')}"`,
+          `"${(p.supplierSku || '—').replace(/"/g, '""')}"`,
           `"${p.name.replace(/"/g, '""')}"`,
           p.soldQty,
           p.returnedQty,
           p.turnover.toFixed(2),
           commAcqSum.toFixed(2),
           totalCogs.toFixed(2),
+          taxVal.toFixed(2),
           p.payout.toFixed(2)
         ];
         csvContent += row.join(";") + "\r\n";
