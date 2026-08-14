@@ -382,6 +382,10 @@
                     <span>Артикул поставщика (F)</span>
                   </label>
                   <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
+                    <input type="checkbox" checked id="col_chk_category" onchange="toggleSkuColumn('category')" class="rounded text-purple-600 focus:ring-purple-500">
+                    <span>Категория (C)</span>
+                  </label>
+                  <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
                     <input type="checkbox" checked id="col_chk_name" onchange="toggleSkuColumn('name')" class="rounded text-purple-600 focus:ring-purple-500">
                     <span>Название (G)</span>
                   </label>
@@ -487,6 +491,12 @@
                   <tr class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold select-none text-xs">
                     <th class="py-4 px-5 cursor-pointer hover:text-purple-600 transition-colors" onclick="sortCogs('sku')">
                       Артикул WB (D) <span id="cogs_sort_icon_sku">⇅</span>
+                    </th>
+                    <th class="py-4 px-5 cursor-pointer hover:text-purple-600 transition-colors" onclick="sortCogs('supplierSku')">
+                      Арт. поставщика (F) <span id="cogs_sort_icon_supplierSku">⇅</span>
+                    </th>
+                    <th class="py-4 px-5 cursor-pointer hover:text-purple-600 transition-colors" onclick="sortCogs('category')">
+                      Категория (C) <span id="cogs_sort_icon_category">⇅</span>
                     </th>
                     <th class="py-4 px-5 cursor-pointer hover:text-purple-600 transition-colors" onclick="sortCogs('name')">
                       Название (G) <span id="cogs_sort_icon_name">⇅</span>
@@ -796,31 +806,11 @@
         </button>
       </div>
       <div class="p-6 space-y-4">
-        <div class="space-y-3 text-sm">
-          <div class="flex justify-between py-1.5 border-b border-slate-100">
-            <span class="text-slate-500">Логистика (AK):</span>
-            <span id="modalLogistics" class="font-semibold text-slate-800">0.00 ₽</span>
-          </div>
-          <div class="flex justify-between py-1.5 border-b border-slate-100">
-            <span class="text-slate-500">Хранение (BH):</span>
-            <span id="modalStorage" class="font-semibold text-slate-800">0.00 ₽</span>
-          </div>
-          <div class="flex justify-between py-1.5 border-b border-slate-100">
-            <span class="text-slate-500">Штрафы (AO):</span>
-            <span id="modalFines" class="font-semibold text-slate-800">0.00 ₽</span>
-          </div>
-          <div class="flex justify-between py-1.5 border-b border-slate-100">
-            <span class="text-slate-500">Конструктор тарифов (AP):</span>
-            <span id="modalTariff" class="font-semibold text-slate-800">0.00 ₽</span>
-          </div>
-          <div class="flex justify-between py-1.5 border-b border-slate-100">
-            <span class="text-slate-500">Операции при приемке (BJ):</span>
-            <span id="modalAcceptance" class="font-semibold text-slate-800">0.00 ₽</span>
-          </div>
-          <div class="flex justify-between py-2 border-t border-dashed border-slate-200 font-bold text-base mt-2">
-            <span class="text-slate-800">Итого расходов WB:</span>
-            <span id="modalTotalExpenses" class="text-purple-700">0.00 ₽</span>
-          </div>
+        <div id="modalExpensesList" class="space-y-3 text-sm">
+        </div>
+        <div class="flex justify-between py-2 border-t border-dashed border-slate-200 font-bold text-base mt-2">
+          <span class="text-slate-800">Итого расходов WB:</span>
+          <span id="modalTotalExpenses" class="text-purple-700">0.00 ₽</span>
         </div>
       </div>
     </div>
@@ -967,6 +957,7 @@
 
   <script>
     let COL_MAP = {
+      C: 2,
       D: 3,
       F: 5,
       G: 6,
@@ -1063,11 +1054,11 @@
           cogsSortDirection = cogsSortDirection === 'asc' ? 'desc' : 'asc';
         } else {
           cogsSortField = field;
-          cogsSortDirection = (field === 'name' || field === 'sku') ? 'asc' : 'desc';
+          cogsSortDirection = (field === 'name' || field === 'sku' || field === 'supplierSku' || field === 'category') ? 'asc' : 'desc';
         }
       }
 
-      const fields = ['sku', 'name', 'sold', 'cogs', 'ff', 'total'];
+      const fields = ['sku', 'supplierSku', 'category', 'name', 'sold', 'cogs', 'ff', 'total'];
       fields.forEach(f => {
         const el = document.getElementById(`cogs_sort_icon_${f}`);
         if (el) el.innerText = '⇅';
@@ -1235,25 +1226,50 @@
       return isNaN(num) ? 0 : num;
     }
 
+    function toLocalInputDate(date) {
+      if (!date || isNaN(date.getTime())) return '';
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
     function parseDate(val) {
       if (!val) return null;
       if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
       if (typeof val === 'number') {
-        let d = new Date((val - 25569) * 86400 * 1000);
+        let d = new Date(Math.round((val - 25569) * 86400 * 1000));
         return isNaN(d.getTime()) ? null : d;
       }
       let str = String(val).trim();
-      let parts = str.split(/[-. /]/);
-      if (parts.length === 3) {
-        if (parts[0].length === 4) {
-          let d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-          return isNaN(d.getTime()) ? null : d;
-        }
-        if (parts[2].length === 4) {
-          let d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-          return isNaN(d.getTime()) ? null : d;
-        }
+      if (!str || str === '—' || str === '-') return null;
+
+      // Match Russian date DD.MM.YYYY or DD/MM/YYYY or DD-MM-YYYY with optional time
+      const matchRu = str.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+      if (matchRu) {
+        const day = parseInt(matchRu[1], 10);
+        const month = parseInt(matchRu[2], 10) - 1;
+        const year = parseInt(matchRu[3], 10);
+        const hours = matchRu[4] ? parseInt(matchRu[4], 10) : 0;
+        const mins = matchRu[5] ? parseInt(matchRu[5], 10) : 0;
+        const secs = matchRu[6] ? parseInt(matchRu[6], 10) : 0;
+        const d = new Date(year, month, day, hours, mins, secs);
+        return isNaN(d.getTime()) ? null : d;
       }
+
+      // Match ISO date YYYY-MM-DD or YYYY.MM.DD or YYYY/MM/DD with optional time
+      const matchIso = str.match(/^(\d{4})[./-](\d{1,2})[./-](\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+      if (matchIso) {
+        const year = parseInt(matchIso[1], 10);
+        const month = parseInt(matchIso[2], 10) - 1;
+        const day = parseInt(matchIso[3], 10);
+        const hours = matchIso[4] ? parseInt(matchIso[4], 10) : 0;
+        const mins = matchIso[5] ? parseInt(matchIso[5], 10) : 0;
+        const secs = matchIso[6] ? parseInt(matchIso[6], 10) : 0;
+        const d = new Date(year, month, day, hours, mins, secs);
+        return isNaN(d.getTime()) ? null : d;
+      }
+
       let d = new Date(str);
       return isNaN(d.getTime()) ? null : d;
     }
@@ -1421,11 +1437,30 @@
         + globalStats.acceptanceSum;
       const totalWbExpenses = globalStats.logisticsSum + globalStats.storageSum + otherWbExpenses;
 
-      setText('modalLogistics', formatCurrency(globalStats.logisticsSum));
-      setText('modalStorage', formatCurrency(globalStats.storageSum));
-      setText('modalFines', formatCurrency(globalStats.finesSum));
-      setText('modalTariff', formatCurrency(globalStats.tariffDesignerSum));
-      setText('modalAcceptance', formatCurrency(globalStats.acceptanceSum));
+      const listEl = document.getElementById('modalExpensesList');
+      if (listEl) {
+        const expenseCategories = [
+          { label: 'Логистика (AK)', val: globalStats.logisticsSum },
+          { label: 'Хранение (BH)', val: globalStats.storageSum },
+          { label: 'Штрафы (AO)', val: globalStats.finesSum },
+          { label: 'Конструктор тарифов (AP)', val: globalStats.tariffDesignerSum },
+          { label: 'Операции при приемке (BJ)', val: globalStats.acceptanceSum }
+        ];
+
+        const filteredExpenses = expenseCategories.filter(item => Math.abs(item.val) >= 1);
+        
+        if (filteredExpenses.length > 0) {
+          listEl.innerHTML = filteredExpenses.map(item => `
+            <div class="flex justify-between py-1.5 border-b border-slate-100">
+              <span class="text-slate-500">${item.label}:</span>
+              <span class="font-semibold text-slate-800">${formatCurrency(item.val)}</span>
+            </div>
+          `).join('');
+        } else {
+          listEl.innerHTML = `<div class="text-slate-400 py-3 text-center text-xs">Расходы менее 1 ₽ или отсутствуют</div>`;
+        }
+      }
+
       setText('modalTotalExpenses', formatCurrency(totalWbExpenses));
 
       modal.classList.remove('hidden');
@@ -1638,6 +1673,8 @@
           const query = e.target.value.toLowerCase().trim();
           filteredProducts = productsList.filter(p => 
             p.sku.toLowerCase().includes(query) || 
+            (p.supplierSku && p.supplierSku.toLowerCase().includes(query)) ||
+            (p.category && p.category.toLowerCase().includes(query)) ||
             p.name.toLowerCase().includes(query)
           );
           currentPage = 1;
@@ -1647,6 +1684,7 @@
 
       if (cogsSearch) {
         cogsSearch.addEventListener('input', () => {
+          cogsCurrentPage = 1;
           renderCogsTable();
         });
       }
@@ -1699,6 +1737,9 @@
             customInputs.classList.remove('hidden');
           } else {
             customInputs.classList.add('hidden');
+            if (lastLoadedRows) {
+              processRows(lastLoadedRows, true);
+            }
           }
         });
       }
@@ -2052,7 +2093,7 @@
             const cell = row[j];
             if (cell !== null && cell !== undefined) {
               const str = String(cell).toLowerCase();
-              if (str.includes('обоснование') || str.includes('артикул') || str.includes('номенклатур') || str.includes('предмет')) {
+              if (str.includes('обоснование') || str.includes('артикул') || str.includes('номенклатур') || str.includes('предмет') || str.includes('категория')) {
                 hasKeyword = true;
                 break;
               }
@@ -2061,6 +2102,36 @@
           if (hasKeyword) {
             headerRowIdx = i;
             break;
+          }
+        }
+      }
+
+      if (headerRowIdx !== -1) {
+        const headerRow = rows[headerRowIdx];
+        if (Array.isArray(headerRow)) {
+          for (let colIdx = 0; colIdx < headerRow.length; colIdx++) {
+            const h = String(headerRow[colIdx] || '').toLowerCase().trim();
+            if (!h) continue;
+            if (h.includes('предмет') || h.includes('категория')) COL_MAP.C = colIdx;
+            else if (h.includes('код номенклатуры') || h.includes('артикул wb') || h.includes('артикул вайлдберриз')) COL_MAP.D = colIdx;
+            else if (h.includes('артикул поставщика') || h.includes('артикул продавца') || h === 'арт. поставщика') COL_MAP.F = colIdx;
+            else if (h.includes('наименование') || h === 'название' || h === 'название товара') COL_MAP.G = colIdx;
+            else if (h.includes('обоснование для оплаты') || h === 'обоснование') COL_MAP.K = colIdx;
+            else if (h.includes('дата заказа') || h.includes('дата продажи') || h.includes('дата формирования') || h.includes('дата документа')) COL_MAP.M = colIdx;
+            else if (h.includes('цена розничная с учетом') || h.includes('вайлдберриз реализовал')) COL_MAP.T = colIdx;
+            else if (h.includes('цена розничная') && !h.includes('с учетом')) COL_MAP.O = colIdx;
+            else if (h.includes('скидки постоянного покупателя') || h === 'спп') COL_MAP.W = colIdx;
+            else if (h.includes('размер квв с учетом спп') || h.includes('квв с учетом спп')) COL_MAP.X = colIdx;
+            else if (h.includes('размер квв') || h === 'квв %' || h === 'квв, %' || h === 'размер квв, %') COL_MAP.X = colIdx;
+            else if (h.includes('эквайринг')) COL_MAP.AC = colIdx;
+            else if (h.includes('к перечислению') || h.includes('к выплате')) COL_MAP.AH = colIdx;
+            else if (h.includes('доставке товара') || h.includes('логистика')) COL_MAP.AK = colIdx;
+            else if (h.includes('сумма штрафов') || h === 'штрафы') COL_MAP.AO = colIdx;
+            else if (h.includes('конструктор тарифов') || h.includes('конструктор')) COL_MAP.AP = colIdx;
+            else if (h.includes('обоснование штрафов') || h.includes('обоснование удержаний') || h.includes('пояснение удержания')) COL_MAP.AQ = colIdx;
+            else if (h.includes('хранение')) COL_MAP.BH = colIdx;
+            else if (h.includes('прочие удержания') || h.includes('удержания')) COL_MAP.BI = colIdx;
+            else if (h.includes('операции при приемке') || h.includes('приемка')) COL_MAP.BJ = colIdx;
           }
         }
       }
@@ -2087,30 +2158,39 @@
       let filterEnd = null;
 
       if (minFileDate && maxFileDate) {
-        const preset = document.getElementById('selectPeriodPreset').value;
+        const preset = document.getElementById('selectPeriodPreset')?.value || 'all';
         const fromInput = document.getElementById('inputDateFrom');
         const toInput = document.getElementById('inputDateTo');
 
         if (preset === 'all') {
-          filterStart = minFileDate;
-          filterEnd = maxFileDate;
+          filterStart = new Date(minFileDate.getFullYear(), minFileDate.getMonth(), minFileDate.getDate(), 0, 0, 0, 0);
+          filterEnd = new Date(maxFileDate.getFullYear(), maxFileDate.getMonth(), maxFileDate.getDate(), 23, 59, 59, 999);
+          if (fromInput) fromInput.value = toLocalInputDate(minFileDate);
+          if (toInput) toInput.value = toLocalInputDate(maxFileDate);
         } else if (preset === 'last30') {
-          filterEnd = maxFileDate;
-          filterStart = new Date(maxFileDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+          filterEnd = new Date(maxFileDate.getFullYear(), maxFileDate.getMonth(), maxFileDate.getDate(), 23, 59, 59, 999);
+          const startCand = new Date(maxFileDate.getTime() - 29 * 24 * 60 * 60 * 1000);
+          filterStart = new Date(startCand.getFullYear(), startCand.getMonth(), startCand.getDate(), 0, 0, 0, 0);
+          if (fromInput) fromInput.value = toLocalInputDate(filterStart);
+          if (toInput) toInput.value = toLocalInputDate(filterEnd);
         } else if (preset === 'prev30') {
           const pivotEnd = new Date(maxFileDate.getTime() - 30 * 24 * 60 * 60 * 1000);
-          filterEnd = pivotEnd;
-          filterStart = new Date(pivotEnd.getTime() - 30 * 24 * 60 * 60 * 1000);
+          filterEnd = new Date(pivotEnd.getFullYear(), pivotEnd.getMonth(), pivotEnd.getDate(), 23, 59, 59, 999);
+          const startCand = new Date(pivotEnd.getTime() - 29 * 24 * 60 * 60 * 1000);
+          filterStart = new Date(startCand.getFullYear(), startCand.getMonth(), startCand.getDate(), 0, 0, 0, 0);
+          if (fromInput) fromInput.value = toLocalInputDate(filterStart);
+          if (toInput) toInput.value = toLocalInputDate(filterEnd);
         } else if (preset === 'custom' && fromInput && toInput && fromInput.value && toInput.value) {
-          filterStart = new Date(fromInput.value);
-          filterEnd = new Date(toInput.value);
+          const pStart = parseDate(fromInput.value);
+          const pEnd = parseDate(toInput.value);
+          if (pStart) filterStart = new Date(pStart.getFullYear(), pStart.getMonth(), pStart.getDate(), 0, 0, 0, 0);
+          if (pEnd) filterEnd = new Date(pEnd.getFullYear(), pEnd.getMonth(), pEnd.getDate(), 23, 59, 59, 999);
         } else {
-          filterStart = minFileDate;
-          filterEnd = maxFileDate;
+          filterStart = new Date(minFileDate.getFullYear(), minFileDate.getMonth(), minFileDate.getDate(), 0, 0, 0, 0);
+          filterEnd = new Date(maxFileDate.getFullYear(), maxFileDate.getMonth(), maxFileDate.getDate(), 23, 59, 59, 999);
+          if (fromInput && !fromInput.value) fromInput.value = toLocalInputDate(minFileDate);
+          if (toInput && !toInput.value) toInput.value = toLocalInputDate(maxFileDate);
         }
-
-        if (fromInput && !fromInput.value) fromInput.value = minFileDate.toISOString().substring(0, 10);
-        if (toInput && !toInput.value) toInput.value = maxFileDate.toISOString().substring(0, 10);
       }
 
       globalStats = {
@@ -2148,12 +2228,15 @@
         if (!row || !Array.isArray(row) || row.length < 3) continue;
 
         const dVal = parseDate(row[COL_MAP.M]);
-        if (dVal && filterStart && filterEnd) {
-          if (dVal < filterStart || dVal > filterEnd) {
-            continue;
+        if (filterStart && filterEnd) {
+          if (dVal) {
+            if (dVal < filterStart || dVal > filterEnd) {
+              continue;
+            }
           }
         }
 
+        const categoryVal = String(row[COL_MAP.C] !== undefined && row[COL_MAP.C] !== null ? row[COL_MAP.C] : '').trim();
         const skuVal = String(row[COL_MAP.D] !== undefined && row[COL_MAP.D] !== null ? row[COL_MAP.D] : '').trim();
         const supplierSkuVal = String(row[COL_MAP.F] !== undefined && row[COL_MAP.F] !== null ? row[COL_MAP.F] : '').trim();
         const nameVal = String(row[COL_MAP.G] !== undefined && row[COL_MAP.G] !== null ? row[COL_MAP.G] : '').trim();
@@ -2234,6 +2317,7 @@
             globalStats.products[skuVal] = {
               sku: skuVal,
               supplierSku: supplierSkuVal || '—',
+              category: categoryVal || '—',
               name: nameVal || 'Без названия',
               soldQty: 0,
               returnedQty: 0,
@@ -2252,22 +2336,26 @@
           if (supplierSkuVal && globalStats.products[skuVal].supplierSku === '—') {
             globalStats.products[skuVal].supplierSku = supplierSkuVal;
           }
+          if (categoryVal && (!globalStats.products[skuVal].category || globalStats.products[skuVal].category === '—')) {
+            globalStats.products[skuVal].category = categoryVal;
+          }
           if (nameVal && globalStats.products[skuVal].name === 'Без названия') {
             globalStats.products[skuVal].name = nameVal;
           }
         }
 
         let commPercent = rowX;
-        if (commPercent > 1) {
+        if (Math.abs(commPercent) > 1) {
           commPercent = commPercent / 100;
         }
         const rowCommission = Math.abs(rowT) * commPercent;
+        const acquiringVal = Math.abs(rowAC);
 
         if (isSale) {
           globalStats.salesCount++;
           globalStats.turnover += rowT;
           globalStats.commissionSum += rowCommission;
-          salesAcquiringSum += rowAC;
+          salesAcquiringSum += acquiringVal;
           salesRetailSum += Math.abs(rowO);
           globalStats.salesPayoutSum += rowAH;
 
@@ -2276,14 +2364,14 @@
           prod.salesTurnover += rowT;
           prod.salesPayout += rowAH;
           prod.commission += rowCommission;
-          prod.acquiring += rowAC;
+          prod.acquiring += acquiringVal;
           prod.salesRetailSum += Math.abs(rowO);
 
         } else if (isReturn) {
           globalStats.returnsCount++;
           globalStats.returnsSum += Math.abs(rowT);
           globalStats.commissionSum -= rowCommission;
-          returnsAcquiringSum += rowAC;
+          returnsAcquiringSum += acquiringVal;
           returnsRetailSum += Math.abs(rowO);
           globalStats.returnsPayoutSum += Math.abs(rowAH);
 
@@ -2292,12 +2380,11 @@
           prod.returnsTurnover += Math.abs(rowT);
           prod.returnsPayout += Math.abs(rowAH);
           prod.commission -= rowCommission;
-          prod.acquiring += rowAC;
+          prod.acquiring -= acquiringVal;
           prod.returnsRetailSum += Math.abs(rowO);
 
         } else {
           globalStats.salesPayoutSum += rowAH;
-          salesAcquiringSum += rowAC;
         }
       }
 
@@ -2675,6 +2762,7 @@
     let skuTableColumns = {
       sku: true,
       supplierSku: true,
+      category: true,
       name: true,
       sold: true,
       returned: true,
@@ -2722,6 +2810,7 @@
       const cols = [
         { id: 'sku', title: 'Артикул WB (D)', field: 'sku' },
         { id: 'supplierSku', title: 'Арт. поставщика (F)', field: 'supplierSku' },
+        { id: 'category', title: 'Категория (C)', field: 'category' },
         { id: 'name', title: 'Название (G)', field: 'name' },
         { id: 'sold', title: 'Продано (шт)', field: 'sold', alignRight: true },
         { id: 'returned', title: 'Возвраты', field: 'returned', alignRight: true },
@@ -2755,7 +2844,7 @@
           currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
         } else {
           currentSortField = field;
-          currentSortDirection = (field === 'name' || field === 'sku' || field === 'supplierSku') ? 'asc' : 'desc';
+          currentSortDirection = (field === 'name' || field === 'sku' || field === 'supplierSku' || field === 'category') ? 'asc' : 'desc';
         }
       }
 
@@ -2772,6 +2861,11 @@
           return currentSortDirection === 'asc' 
             ? (a.supplierSku || '').localeCompare(b.supplierSku || '', undefined, { numeric: true }) 
             : (b.supplierSku || '').localeCompare(a.supplierSku || '', undefined, { numeric: true });
+        }
+        else if (field === 'category') {
+          return currentSortDirection === 'asc' 
+            ? (a.category || '').localeCompare(b.category || '') 
+            : (b.category || '').localeCompare(a.category || '');
         }
         else if (field === 'name') {
           return currentSortDirection === 'asc' 
@@ -2834,6 +2928,7 @@
         let labelColSpan = 0;
         if (skuTableColumns.sku) labelColSpan++;
         if (skuTableColumns.supplierSku) labelColSpan++;
+        if (skuTableColumns.category) labelColSpan++;
         if (skuTableColumns.name) labelColSpan++;
         if (labelColSpan === 0) labelColSpan = 1;
 
@@ -2897,6 +2992,9 @@
         if (skuTableColumns.supplierSku) {
           rowCellsHTML += `<td class="py-3 px-5 font-mono text-xs text-slate-500">${p.supplierSku || '—'}</td>`;
         }
+        if (skuTableColumns.category) {
+          rowCellsHTML += `<td class="py-3 px-5 font-medium text-slate-600">${p.category || '—'}</td>`;
+        }
         if (skuTableColumns.name) {
           rowCellsHTML += `<td class="py-3 px-5 max-w-xs truncate font-medium text-slate-800" title="${p.name}">${p.name}</td>`;
         }
@@ -2959,6 +3057,7 @@
       const filteredList = productsList.filter(p => {
         const matchesQuery = p.sku.toLowerCase().includes(query) || 
           (p.supplierSku && p.supplierSku.toLowerCase().includes(query)) ||
+          (p.category && p.category.toLowerCase().includes(query)) ||
           p.name.toLowerCase().includes(query);
         if (!matchesQuery) return false;
 
@@ -2986,6 +3085,7 @@
       const filteredList = productsList.filter(p => {
         const matchesQuery = p.sku.toLowerCase().includes(query) || 
           (p.supplierSku && p.supplierSku.toLowerCase().includes(query)) ||
+          (p.category && p.category.toLowerCase().includes(query)) ||
           p.name.toLowerCase().includes(query);
         if (!matchesQuery) return false;
 
@@ -3008,6 +3108,11 @@
           return cogsSortDirection === 'asc' 
             ? (a.supplierSku || '').localeCompare(b.supplierSku || '', undefined, { numeric: true }) 
             : (b.supplierSku || '').localeCompare(a.supplierSku || '', undefined, { numeric: true });
+        }
+        else if (cogsSortField === 'category') {
+          return cogsSortDirection === 'asc' 
+            ? (a.category || '').localeCompare(b.category || '') 
+            : (b.category || '').localeCompare(a.category || '');
         }
         else if (cogsSortField === 'name') {
           return cogsSortDirection === 'asc' 
@@ -3041,6 +3146,7 @@
         tr.innerHTML = `
           <td class="py-3 px-5 font-mono text-xs font-semibold text-slate-600">${p.sku}</td>
           <td class="py-3 px-5 font-mono text-xs text-slate-500">${p.supplierSku || '—'}</td>
+          <td class="py-3 px-5 font-medium text-slate-600">${p.category || '—'}</td>
           <td class="py-3 px-5 max-w-xs truncate font-medium text-slate-800" title="${p.name}">${p.name}</td>
           <td class="py-3 px-5 text-right font-semibold text-slate-800">${p.soldQty} шт</td>
           <td class="py-3 px-5 text-right">
@@ -3063,7 +3169,7 @@
       if (filteredList.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="7" class="py-12 text-center text-slate-400">Товары не найдены</td>
+            <td colspan="8" class="py-12 text-center text-slate-400">Товары не найдены</td>
           </tr>
         `;
         setText('cogsTablePaginationInfo', "Показано 0-0 из 0 товаров");
@@ -3085,7 +3191,7 @@
       if (productsList.length === 0) return;
       
       let csvContent = "\uFEFF"; 
-      csvContent += "Артикул WB (D);Артикул поставщика (F);Название (G);Продано (шт);Возвраты (шт);Сумма выкупа (T);Комиссия и Эквайринг;Себестоимость;Налог (₽);Чистая к перечислению за товар (AH)\r\n";
+      csvContent += "Артикул WB (D);Артикул поставщика (F);Категория (C);Название (G);Продано (шт);Возвраты (шт);Сумма выкупа (T);Комиссия и Эквайринг;Себестоимость;Налог (₽);Чистая к перечислению за товар (AH)\r\n";
       
       productsList.forEach(p => {
         const commAcqSum = p.commission + p.acquiring;
@@ -3097,6 +3203,7 @@
         const row = [
           `"${p.sku.replace(/"/g, '""')}"`,
           `"${(p.supplierSku || '—').replace(/"/g, '""')}"`,
+          `"${(p.category || '—').replace(/"/g, '""')}"`,
           `"${p.name.replace(/"/g, '""')}"`,
           p.soldQty,
           p.returnedQty,
