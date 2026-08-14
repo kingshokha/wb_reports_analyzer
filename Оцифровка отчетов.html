@@ -415,7 +415,7 @@
                   </label>
                   <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
                     <input type="checkbox" checked id="col_chk_payout" onchange="toggleSkuColumn('payout')" class="rounded text-purple-600 focus:ring-purple-500">
-                    <span>Чистая к перечислению за товар (AH)</span>
+                    <span>Чистая прибыль</span>
                   </label>
                 </div>
               </div>
@@ -2796,7 +2796,7 @@
         { id: 'comm_acq', title: 'Комиссия и Эквайринг', field: 'comm_acq', alignRight: true },
         { id: 'cogs', title: 'Себестоимость', field: 'cogs', alignRight: true },
         { id: 'tax', title: 'Налог (₽)', field: 'tax', alignRight: true },
-        { id: 'payout', title: 'Чистая к перечислению за товар (AH)', field: 'payout', alignRight: true }
+        { id: 'payout', title: 'Чистая прибыль', field: 'payout', alignRight: true, tooltip: 'Без учета логистики' }
       ];
 
       cols.forEach(col => {
@@ -2804,14 +2804,23 @@
         const th = document.createElement('th');
         let alignClass = col.alignRight ? 'text-right' : '';
         th.className = `py-4 px-5 cursor-pointer hover:text-purple-600 transition-colors ${alignClass}`;
+        if (col.tooltip) {
+          th.title = col.tooltip;
+        }
         th.onclick = () => sortProducts(col.field);
         
         let arrow = '⇅';
         if (currentSortField === col.field) {
           arrow = currentSortDirection === 'asc' ? '▲' : '▼';
         }
+
+        const tooltipHtml = col.tooltip 
+          ? `<span class="relative group inline-flex items-center ml-1 cursor-default" title="${col.tooltip}">
+               <span class="w-3.5 h-3.5 rounded-full bg-slate-200 text-slate-500 inline-flex items-center justify-center text-[9px] font-bold leading-none select-none hover:bg-purple-100 hover:text-purple-700 transition-colors">i</span>
+             </span>`
+          : '';
         
-        th.innerHTML = `${col.title} <span id="sort_icon_${col.field}">${arrow}</span>`;
+        th.innerHTML = `${col.title}${tooltipHtml} <span id="sort_icon_${col.field}">${arrow}</span>`;
         tr.appendChild(th);
       });
     }
@@ -2859,7 +2868,10 @@
           valB = b.soldQty * ((skuCogsMap[b.sku] || 0) + (skuFfMap[b.sku] || 0));
         }
         else if (field === 'tax') { valA = a.taxSum || 0; valB = b.taxSum || 0; }
-        else if (field === 'payout') { valA = a.payout; valB = b.payout; }
+        else if (field === 'payout') {
+          valA = a.turnover - (a.commission + a.acquiring) - (a.soldQty * ((skuCogsMap[a.sku] || 0) + (skuFfMap[a.sku] || 0))) - (a.taxSum || 0);
+          valB = b.turnover - (b.commission + b.acquiring) - (b.soldQty * ((skuCogsMap[b.sku] || 0) + (skuFfMap[b.sku] || 0))) - (b.taxSum || 0);
+        }
 
         return currentSortDirection === 'asc' ? valA - valB : valB - valA;
       });
@@ -2884,18 +2896,23 @@
         let totalCommAcq = 0;
         let totalCogsSum = 0;
         let totalTaxSum = 0;
-        let totalPayout = 0;
+        let totalProfit = 0;
 
         filteredProducts.forEach(p => {
           totalSoldQty += p.soldQty;
           totalReturnedQty += p.returnedQty;
           totalTurnover += p.turnover;
-          totalCommAcq += (p.commission + p.acquiring);
+          const commAcq = (p.commission + p.acquiring);
+          totalCommAcq += commAcq;
           const unitCogs = skuCogsMap[p.sku] || 0;
           const unitFf = skuFfMap[p.sku] || 0;
-          totalCogsSum += p.soldQty * (unitCogs + unitFf);
-          totalTaxSum += (p.taxSum || 0);
-          totalPayout += p.payout;
+          const itemCogs = p.soldQty * (unitCogs + unitFf);
+          totalCogsSum += itemCogs;
+          const itemTax = (p.taxSum || 0);
+          totalTaxSum += itemTax;
+          const itemProfit = p.turnover - commAcq - itemCogs - itemTax;
+          p.profit = itemProfit;
+          totalProfit += itemProfit;
         });
 
         const summaryTr = document.createElement('tr');
@@ -2938,7 +2955,8 @@
           summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-amber-800 font-extrabold">${formatCurrency(totalTaxSum)}</td>`;
         }
         if (skuTableColumns.payout) {
-          summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-slate-900 font-black">${formatCurrency(totalPayout)}</td>`;
+          const profitColorClass = totalProfit >= 0 ? 'text-emerald-700' : 'text-rose-600';
+          summaryCellsHTML += `<td class="py-3.5 px-5 text-right ${profitColorClass} font-extrabold">${formatCurrency(totalProfit)}</td>`;
         }
 
         summaryTr.innerHTML = summaryCellsHTML;
@@ -2955,6 +2973,8 @@
         const unitFf = skuFfMap[p.sku] || 0;
         const totalUnit = unitCogs + unitFf;
         const totalCogs = p.soldQty * totalUnit;
+        const itemTax = p.taxSum || 0;
+        const itemProfit = p.profit !== undefined ? p.profit : (p.turnover - commAcqSum - totalCogs - itemTax);
         
         const cogsLabel = totalUnit > 0 
           ? `<span class="font-semibold text-slate-800">${formatCurrency(totalCogs)}</span>`
@@ -2992,10 +3012,11 @@
           rowCellsHTML += `<td class="py-3 px-5 text-right">${cogsLabel}</td>`;
         }
         if (skuTableColumns.tax) {
-          rowCellsHTML += `<td class="py-3 px-5 text-right font-medium text-amber-800">${formatCurrency(p.taxSum || 0)}</td>`;
+          rowCellsHTML += `<td class="py-3 px-5 text-right font-medium text-amber-800">${formatCurrency(itemTax)}</td>`;
         }
         if (skuTableColumns.payout) {
-          rowCellsHTML += `<td class="py-3 px-5 text-right font-bold text-slate-900">${formatCurrency(p.payout)}</td>`;
+          const profitCellClass = itemProfit >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold';
+          rowCellsHTML += `<td class="py-3 px-5 text-right ${profitCellClass}">${formatCurrency(itemProfit)}</td>`;
         }
 
         tr.innerHTML = rowCellsHTML;
@@ -3169,7 +3190,7 @@
       if (productsList.length === 0) return;
       
       let csvContent = "\uFEFF"; 
-      csvContent += "Артикул WB (D);Артикул поставщика (F);Категория (C);Название (G);Продано (шт);Возвраты (шт);Сумма выкупа (T);Комиссия и Эквайринг;Себестоимость;Налог (₽);Чистая к перечислению за товар (AH)\r\n";
+      csvContent += "Артикул WB (D);Артикул поставщика (F);Категория (C);Название (G);Продано (шт);Возвраты (шт);Сумма выкупа (T);Комиссия и Эквайринг;Себестоимость;Налог (₽);Чистая прибыль\r\n";
       
       productsList.forEach(p => {
         const commAcqSum = p.commission + p.acquiring;
@@ -3177,6 +3198,7 @@
         const unitFf = skuFfMap[p.sku] || 0;
         const totalCogs = p.soldQty * (unitCogs + unitFf);
         const taxVal = p.taxSum || 0;
+        const itemProfit = p.profit !== undefined ? p.profit : (p.turnover - commAcqSum - totalCogs - taxVal);
 
         const row = [
           `"${p.sku.replace(/"/g, '""')}"`,
@@ -3189,7 +3211,7 @@
           commAcqSum.toFixed(2),
           totalCogs.toFixed(2),
           taxVal.toFixed(2),
-          p.payout.toFixed(2)
+          itemProfit.toFixed(2)
         ];
         csvContent += row.join(";") + "\r\n";
       });
