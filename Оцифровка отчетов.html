@@ -358,6 +358,28 @@
             
             <div class="flex gap-2 w-full sm:w-auto items-center">
               <div class="relative">
+                <button id="btnCategoryFilter" onclick="toggleCategoryFilterDropdown(event)" class="py-2 px-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
+                  <i data-lucide="layers" class="w-4 h-4 text-purple-600"></i>
+                  Категории <span id="categoryFilterBadge" class="hidden px-1.5 py-0.5 text-[10px] bg-purple-100 text-purple-700 rounded-full font-bold"></span>
+                </button>
+                <div id="categoryFilterDropdown" class="hidden absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-3 space-y-1 text-xs select-none">
+                  <div class="font-bold text-slate-800 pb-1.5 border-b border-slate-100 mb-1 flex justify-between items-center">
+                    <span>Фильтр категорий</span>
+                    <button onclick="toggleCategoryFilterDropdown(event)" class="text-slate-400 hover:text-slate-600">✕</button>
+                  </div>
+                  <div class="flex items-center justify-between py-1 px-1.5 bg-purple-50/70 rounded mb-1.5 border-b border-purple-100 font-semibold text-purple-900">
+                    <label class="flex items-center gap-2 cursor-pointer w-full">
+                      <input type="checkbox" checked id="cat_chk_all" onchange="toggleAllCategories(this.checked)" class="rounded text-purple-600 focus:ring-purple-500">
+                      <span>Выбрать все категории</span>
+                    </label>
+                  </div>
+                  <div id="categoryFilterList" class="max-h-56 overflow-y-auto space-y-1 custom-scrollbar pr-1">
+                    <div class="text-slate-400 py-2 text-center text-xs">Категории не загружены</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="relative">
                 <button id="btnColumnFilter" onclick="toggleColumnFilterDropdown(event)" class="py-2 px-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
                   <i data-lucide="sliders-horizontal" class="w-4 h-4 text-purple-600"></i>
                   Столбцы ⚙️
@@ -1677,16 +1699,8 @@
       if (inputTaxRate) inputTaxRate.addEventListener('input', () => updateFinancials());
 
       if (productSearch) {
-        productSearch.addEventListener('input', (e) => {
-          const query = e.target.value.toLowerCase().trim();
-          filteredProducts = productsList.filter(p => 
-            p.sku.toLowerCase().includes(query) || 
-            (p.supplierSku && p.supplierSku.toLowerCase().includes(query)) ||
-            (p.category && p.category.toLowerCase().includes(query)) ||
-            p.name.toLowerCase().includes(query)
-          );
-          currentPage = 1;
-          renderProductTable();
+        productSearch.addEventListener('input', () => {
+          applyProductFilters();
         });
       }
 
@@ -1784,6 +1798,14 @@
         if (dd && !dd.classList.contains('hidden')) {
           if (!dd.contains(e.target) && (!btnCol || !btnCol.contains(e.target))) {
             dd.classList.add('hidden');
+          }
+        }
+
+        const catDd = document.getElementById('categoryFilterDropdown');
+        const btnCat = document.getElementById('btnCategoryFilter');
+        if (catDd && !catDd.classList.contains('hidden')) {
+          if (!catDd.contains(e.target) && (!btnCat || !btnCat.contains(e.target))) {
+            catDd.classList.add('hidden');
           }
         }
       });
@@ -2394,7 +2416,8 @@
       }
 
       productsList = Object.values(globalStats.products);
-      filteredProducts = [...productsList];
+      updateCategoryFilterDropdown();
+      applyProductFilters();
 
       updateFinancials();
       renderLogisticsBreakdown();
@@ -2751,8 +2774,115 @@
       payout: true
     };
 
+    let activeCategories = new Set();
+    let availableCategories = [];
+
+    function toggleCategoryFilterDropdown(e) {
+      if (e) e.stopPropagation();
+      const colDd = document.getElementById('columnFilterDropdown');
+      if (colDd) colDd.classList.add('hidden');
+
+      const dd = document.getElementById('categoryFilterDropdown');
+      if (dd) dd.classList.toggle('hidden');
+    }
+
+    function updateCategoryFilterDropdown() {
+      const listEl = document.getElementById('categoryFilterList');
+      if (!listEl) return;
+
+      const cats = Array.from(new Set(productsList.map(p => p.category || '—'))).sort();
+      availableCategories = cats;
+
+      if (activeCategories.size === 0 && cats.length > 0) {
+        activeCategories = new Set(cats);
+      } else {
+        cats.forEach(c => activeCategories.add(c));
+      }
+
+      if (cats.length === 0) {
+        listEl.innerHTML = `<div class="text-slate-400 py-2 text-center text-xs">Категории не найдены</div>`;
+        return;
+      }
+
+      listEl.innerHTML = cats.map(cat => {
+        const isChecked = activeCategories.has(cat);
+        const safeCat = cat.replace(/'/g, "\\'");
+        return `
+          <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer text-xs">
+            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCategory('${safeCat}')" class="cat-item-chk rounded text-purple-600 focus:ring-purple-500">
+            <span class="truncate" title="${cat}">${cat}</span>
+          </label>
+        `;
+      }).join('');
+
+      updateCategoryFilterBadge();
+    }
+
+    function toggleCategory(catName) {
+      if (activeCategories.has(catName)) {
+        activeCategories.delete(catName);
+      } else {
+        activeCategories.add(catName);
+      }
+      updateCategoryFilterBadge();
+      applyProductFilters();
+    }
+
+    function toggleAllCategories(selectAll) {
+      if (selectAll) {
+        activeCategories = new Set(availableCategories);
+      } else {
+        activeCategories.clear();
+      }
+      const chks = document.querySelectorAll('.cat-item-chk');
+      chks.forEach(chk => chk.checked = selectAll);
+
+      updateCategoryFilterBadge();
+      applyProductFilters();
+    }
+
+    function updateCategoryFilterBadge() {
+      const chkAll = document.getElementById('cat_chk_all');
+      if (chkAll) {
+        chkAll.checked = availableCategories.length > 0 && availableCategories.every(c => activeCategories.has(c));
+      }
+
+      const badge = document.getElementById('categoryFilterBadge');
+      if (!badge) return;
+
+      if (availableCategories.length > 0 && activeCategories.size < availableCategories.length) {
+        badge.innerText = `${activeCategories.size}/${availableCategories.length}`;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function applyProductFilters() {
+      const query = (document.getElementById('productSearch')?.value || '').toLowerCase().trim();
+      filteredProducts = productsList.filter(p => {
+        const cat = p.category || '—';
+        if (activeCategories.size > 0 && !activeCategories.has(cat)) {
+          return false;
+        }
+        if (activeCategories.size === 0) {
+          return false;
+        }
+        if (!query) return true;
+        return p.sku.toLowerCase().includes(query) || 
+          (p.supplierSku && p.supplierSku.toLowerCase().includes(query)) ||
+          (p.category && p.category.toLowerCase().includes(query)) ||
+          p.name.toLowerCase().includes(query);
+      });
+      currentPage = 1;
+      renderProductTable();
+    }
+
     function toggleColumnFilterDropdown(e) {
       if (e) e.stopPropagation();
+      const catDd = document.getElementById('categoryFilterDropdown');
+      if (catDd) catDd.classList.add('hidden');
+
       const dd = document.getElementById('columnFilterDropdown');
       if (dd) dd.classList.toggle('hidden');
     }
