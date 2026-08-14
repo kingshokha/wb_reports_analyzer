@@ -956,26 +956,34 @@
   </footer>
 
   <script>
+    function letterToIdx(letter) {
+      let col = 0;
+      for (let i = 0; i < letter.length; i++) {
+        col = col * 26 + (letter.toUpperCase().charCodeAt(i) - 64);
+      }
+      return col - 1;
+    }
+
     let COL_MAP = {
-      C: 2,
-      D: 3,
-      F: 5,
-      G: 6,
-      K: 10,
-      O: 14,
-      T: 19,
-      W: 22,
-      X: 23,
-      AC: 28,
-      AH: 33,
-      AK: 36,
-      AQ: 42,
-      BH: 59,
-      AO: 40,
-      AP: 41,
-      BI: 60,
-      BJ: 61,
-      M: 12
+      C:  letterToIdx('C'),   // 2 - Категория / Предмет
+      D:  letterToIdx('D'),   // 3 - Артикул WB
+      F:  letterToIdx('F'),   // 5 - Артикул продавца
+      G:  letterToIdx('G'),   // 6 - Название товара
+      K:  letterToIdx('K'),   // 10 - Обоснование для оплаты
+      M:  letterToIdx('M'),   // 12 - Дата операции
+      O:  letterToIdx('O'),   // 14 - Розничная цена (для расчета налога)
+      T:  letterToIdx('T'),   // 19 - Цена розничная с учетом скидки (сумма выкупа)
+      W:  letterToIdx('W'),   // 22 - СПП, %
+      X:  letterToIdx('X'),   // 23 - Комиссия WB, % (кВВ)
+      AC: letterToIdx('AC'),  // 28 - Эквайринг (руб.)
+      AH: letterToIdx('AH'),  // 33 - К перечислению за товар
+      AK: letterToIdx('AK'),  // 36 - Логистика
+      AO: letterToIdx('AO'),  // 40 - Штрафы
+      AP: letterToIdx('AP'),  // 41 - Конструктор тарифов
+      AQ: letterToIdx('AQ'),  // 42 - Виды логистики / пояснения удержаний
+      BH: letterToIdx('BH'),  // 59 - Хранение
+      BI: letterToIdx('BI'),  // 60 - Прочие удержания
+      BJ: letterToIdx('BJ')   // 61 - Приемка
     };
 
     const LOCAL_STORAGE_COGS_KEY = 'wb_reports_sku_cogs_map';
@@ -2084,59 +2092,29 @@
         return;
       }
 
-      let headerRowIdx = -1;
-      for (let i = 0; i < Math.min(rows.length, 15); i++) {
-        const row = rows[i];
-        if (row && Array.isArray(row)) {
-          let hasKeyword = false;
-          for (let j = 0; j < row.length; j++) {
-            const cell = row[j];
-            if (cell !== null && cell !== undefined) {
-              const str = String(cell).toLowerCase();
-              if (str.includes('обоснование') || str.includes('артикул') || str.includes('номенклатур') || str.includes('предмет') || str.includes('категория')) {
-                hasKeyword = true;
-                break;
-              }
-            }
-          }
-          if (hasKeyword) {
-            headerRowIdx = i;
-            break;
-          }
-        }
-      }
+      COL_MAP = {
+        C:  letterToIdx('C'),   // 2 - Категория / Предмет
+        D:  letterToIdx('D'),   // 3 - Артикул WB
+        F:  letterToIdx('F'),   // 5 - Артикул продавца
+        G:  letterToIdx('G'),   // 6 - Название товара
+        K:  letterToIdx('K'),   // 10 - Обоснование для оплаты
+        M:  letterToIdx('M'),   // 12 - Дата операции
+        O:  letterToIdx('O'),   // 14 - Розничная цена (для расчета налога)
+        T:  letterToIdx('T'),   // 19 - Цена розничная с учетом скидки (сумма выкупа)
+        W:  letterToIdx('W'),   // 22 - СПП, %
+        X:  letterToIdx('X'),   // 23 - Комиссия WB, % (кВВ)
+        AC: letterToIdx('AC'),  // 28 - Эквайринг (руб.)
+        AH: letterToIdx('AH'),  // 33 - К перечислению за товар
+        AK: letterToIdx('AK'),  // 36 - Логистика
+        AO: letterToIdx('AO'),  // 40 - Штрафы
+        AP: letterToIdx('AP'),  // 41 - Конструктор тарифов
+        AQ: letterToIdx('AQ'),  // 42 - Виды логистики / пояснения удержаний
+        BH: letterToIdx('BH'),  // 59 - Хранение
+        BI: letterToIdx('BI'),  // 60 - Прочие удержания
+        BJ: letterToIdx('BJ')   // 61 - Приемка
+      };
 
-      if (headerRowIdx !== -1) {
-        const headerRow = rows[headerRowIdx];
-        if (Array.isArray(headerRow)) {
-          for (let colIdx = 0; colIdx < headerRow.length; colIdx++) {
-            const h = String(headerRow[colIdx] || '').toLowerCase().trim();
-            if (!h) continue;
-            if (h.includes('предмет') || h.includes('категория')) COL_MAP.C = colIdx;
-            else if (h.includes('код номенклатуры') || h.includes('артикул wb') || h.includes('артикул вайлдберриз')) COL_MAP.D = colIdx;
-            else if (h.includes('артикул поставщика') || h.includes('артикул продавца') || h === 'арт. поставщика') COL_MAP.F = colIdx;
-            else if (h.includes('наименование') || h === 'название' || h === 'название товара') COL_MAP.G = colIdx;
-            else if (h.includes('обоснование для оплаты') || h === 'обоснование') COL_MAP.K = colIdx;
-            else if (h.includes('дата заказа') || h.includes('дата продажи') || h.includes('дата формирования') || h.includes('дата документа')) COL_MAP.M = colIdx;
-            else if (h.includes('цена розничная с учетом') || h.includes('вайлдберриз реализовал')) COL_MAP.T = colIdx;
-            else if (h.includes('цена розничная') && !h.includes('с учетом')) COL_MAP.O = colIdx;
-            else if (h.includes('скидки постоянного покупателя') || h === 'спп') COL_MAP.W = colIdx;
-            else if (h.includes('размер квв с учетом спп') || h.includes('квв с учетом спп')) COL_MAP.X = colIdx;
-            else if (h.includes('размер квв') || h === 'квв %' || h === 'квв, %' || h === 'размер квв, %') COL_MAP.X = colIdx;
-            else if (h.includes('эквайринг')) COL_MAP.AC = colIdx;
-            else if (h.includes('к перечислению') || h.includes('к выплате')) COL_MAP.AH = colIdx;
-            else if (h.includes('доставке товара') || h.includes('логистика')) COL_MAP.AK = colIdx;
-            else if (h.includes('сумма штрафов') || h === 'штрафы') COL_MAP.AO = colIdx;
-            else if (h.includes('конструктор тарифов') || h.includes('конструктор')) COL_MAP.AP = colIdx;
-            else if (h.includes('обоснование штрафов') || h.includes('обоснование удержаний') || h.includes('пояснение удержания')) COL_MAP.AQ = colIdx;
-            else if (h.includes('хранение')) COL_MAP.BH = colIdx;
-            else if (h.includes('прочие удержания') || h.includes('удержания')) COL_MAP.BI = colIdx;
-            else if (h.includes('операции при приемке') || h.includes('приемка')) COL_MAP.BJ = colIdx;
-          }
-        }
-      }
-
-      const dataStartIdx = headerRowIdx !== -1 ? headerRowIdx + 1 : 0;
+      const dataStartIdx = 0;
       
       let localMinDate = null;
       let localMaxDate = null;
