@@ -32,6 +32,14 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col pt-2 pb-4 px-3 sm:px-4 lg:px-6">
 
+  <!-- Top Right Version Badge -->
+  <div class="fixed top-2.5 right-4 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-xs text-xs select-none">
+    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+    <span class="font-bold text-purple-700">v1.1.0</span>
+    <span class="text-slate-300">|</span>
+    <span class="font-medium text-slate-500">15.08.2026</span>
+  </div>
+
   <!-- Backdrop overlay for drawer sidebar -->
   <div id="sidebarBackdrop" onclick="closeSidebarDrawer()" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 transition-opacity"></div>
 
@@ -244,27 +252,29 @@
               </div>
             </div>
 
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 h-full min-h-[105px]">
+            <div onclick="openSppModal()" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 cursor-pointer hover:bg-slate-50 transition-colors h-full min-h-[105px]">
               <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-violet-50 text-violet-600">
                 <i data-lucide="badge-percent" class="w-5 h-5" stroke-width="2"></i>
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-xs font-semibold text-slate-400">Средняя СПП (W)</p>
                 <h3 id="statSppAvg" class="text-xl font-bold text-slate-800 mt-0.5">0.00%</h3>
-                <p class="text-[10px] text-slate-500 mt-0.5 truncate">Скидка постоянного покупателя</p>
+                <p class="text-[10px] text-purple-600 mt-0.5 font-semibold flex items-center gap-1">
+                  СПП по категориям <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                </p>
               </div>
             </div>
 
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 h-full min-h-[105px]">
+            <div onclick="openReturnsModal()" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-3.5 cursor-pointer hover:bg-slate-50 transition-colors h-full min-h-[105px]">
               <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-rose-50 text-rose-600">
                 <i data-lucide="refresh-ccw" class="w-5 h-5" stroke-width="2"></i>
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-xs font-semibold text-slate-400">Сумма возвратов</p>
                 <h3 id="statReturnsSum" class="text-xl font-bold text-rose-600 mt-0.5">0.00 ₽</h3>
-                <div class="text-[10px] text-slate-500 mt-0.5 flex justify-between">
+                <div class="text-[10px] text-slate-500 mt-0.5 flex justify-between items-center">
                   <span>Возвраты: <strong id="statReturnsCount" class="text-rose-600 font-semibold">0 шт</strong></span>
-                  <span>Доля: <strong id="statReturnsPercent" class="text-slate-700 font-semibold">0.0%</strong></span>
+                  <span class="text-rose-600 font-semibold flex items-center gap-0.5">Все возвраты <i data-lucide="chevron-right" class="w-3 h-3"></i></span>
                 </div>
               </div>
             </div>
@@ -985,6 +995,103 @@
             <i data-lucide="download" class="w-4 h-4"></i> Экспорт соединенного отчета (.xlsx)
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 1: Returns Breakdown -->
+  <div id="modalReturns" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-4xl w-full flex flex-col max-h-[85vh] overflow-hidden border border-slate-100">
+      <div class="bg-gradient-to-r from-rose-900 via-rose-800 to-purple-900 text-white p-5 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-rose-200 backdrop-blur-sm">
+            <i data-lucide="refresh-ccw" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-white">Детализация всех возвратов товара</h3>
+            <p id="returnsModalSubtitle" class="text-xs text-rose-200/90">Всего возвратов в отчете: 0 шт</p>
+          </div>
+        </div>
+        <button onclick="closeReturnsModal()" class="hover:bg-white/10 p-2 rounded-xl text-rose-200 hover:text-white transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-b border-slate-100 flex flex-col sm:flex-row gap-3 items-center justify-between shrink-0">
+        <div class="relative w-full sm:w-80">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+          <input type="text" id="returnsSearchInput" oninput="renderReturnsModalTable()" class="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-rose-500" placeholder="Поиск по артикулу, категории или названию..." />
+        </div>
+        <div class="text-xs text-slate-600 font-medium">
+          Сумма отфильтрованных возвратов: <strong id="returnsModalTotalSum" class="text-rose-600 font-extrabold text-sm">0.00 ₽</strong>
+        </div>
+      </div>
+
+      <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-4">
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold select-none">
+              <tr>
+                <th class="py-3 px-4">Дата (M)</th>
+                <th class="py-3 px-4">Артикул WB (D)</th>
+                <th class="py-3 px-4">Арт. поставщика (F)</th>
+                <th class="py-3 px-4">Категория (C)</th>
+                <th class="py-3 px-4">Название товара (G)</th>
+                <th class="py-3 px-4 text-right">Сумма возврата (T)</th>
+              </tr>
+            </thead>
+            <tbody id="returnsModalTableBody" class="divide-y divide-slate-100 text-slate-700">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 p-4 border-t border-slate-100 flex justify-end shrink-0">
+        <button onclick="closeReturnsModal()" class="px-5 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
+          Закрыть
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Average SPP per Category -->
+  <div id="modalSpp" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full flex flex-col max-h-[85vh] overflow-hidden border border-slate-100">
+      <div class="bg-gradient-to-r from-purple-900 via-indigo-800 to-violet-900 text-white p-5 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-violet-200 backdrop-blur-sm">
+            <i data-lucide="badge-percent" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-white">Средняя СПП по категориям товаров</h3>
+            <p id="sppModalSubtitle" class="text-xs text-violet-200/90">Скидка постоянного покупателя (столбец W) сгруппированная по Категориям (столбец C)</p>
+          </div>
+        </div>
+        <button onclick="closeSppModal()" class="hover:bg-white/10 p-2 rounded-xl text-violet-200 hover:text-white transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-4">
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold select-none">
+              <tr>
+                <th class="py-3 px-4">Категория товара (столбец C)</th>
+                <th class="py-3 px-4 text-center">Количество транзакций c СПП</th>
+                <th class="py-3 px-4 text-right">Средняя СПП (%)</th>
+              </tr>
+            </thead>
+            <tbody id="sppModalTableBody" class="divide-y divide-slate-100 text-slate-700">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 p-4 border-t border-slate-100 flex justify-end shrink-0">
+        <button onclick="closeSppModal()" class="px-5 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
+          Закрыть
+        </button>
       </div>
     </div>
   </div>
@@ -1867,6 +1974,12 @@
         const modalMrg = document.getElementById('modalMerger');
         if (e.target === modalMrg) closeMergerModal();
 
+        const modalRet = document.getElementById('modalReturns');
+        if (e.target === modalRet) closeReturnsModal();
+
+        const modalSppEl = document.getElementById('modalSpp');
+        if (e.target === modalSppEl) closeSppModal();
+
         const dd = document.getElementById('columnFilterDropdown');
         const btnCol = document.getElementById('btnColumnFilter');
         if (dd && !dd.classList.contains('hidden')) {
@@ -1883,6 +1996,107 @@
           }
         }
       });
+    }
+
+    function openReturnsModal() {
+      const modal = document.getElementById('modalReturns');
+      if (modal) {
+        modal.classList.remove('hidden');
+        renderReturnsModalTable();
+        lucide.createIcons();
+      }
+    }
+
+    function closeReturnsModal() {
+      const modal = document.getElementById('modalReturns');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function renderReturnsModalTable() {
+      const tbody = document.getElementById('returnsModalTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const query = (document.getElementById('returnsSearchInput')?.value || '').toLowerCase().trim();
+      const returnsList = globalStats.returnsList || [];
+
+      const filtered = returnsList.filter(item => {
+        if (!query) return true;
+        return item.sku.toLowerCase().includes(query) ||
+          item.supplierSku.toLowerCase().includes(query) ||
+          item.category.toLowerCase().includes(query) ||
+          item.name.toLowerCase().includes(query);
+      });
+
+      let sumTotal = 0;
+      filtered.forEach(item => {
+        sumTotal += item.amount;
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition-colors";
+        tr.innerHTML = `
+          <td class="py-2.5 px-4 font-mono text-slate-500">${item.date}</td>
+          <td class="py-2.5 px-4 font-mono font-semibold text-slate-700">${item.sku}</td>
+          <td class="py-2.5 px-4 font-mono text-slate-500">${item.supplierSku}</td>
+          <td class="py-2.5 px-4 text-slate-600 font-medium">${item.category}</td>
+          <td class="py-2.5 px-4 text-slate-800 font-medium max-w-xs truncate" title="${item.name}">${item.name}</td>
+          <td class="py-2.5 px-4 text-right font-bold text-rose-600">${formatCurrency(item.amount)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400">Возвраты не найдены</td></tr>`;
+      }
+
+      setText('returnsModalSubtitle', `Всего возвратов в отчете: ${returnsList.length} шт на сумму ${formatCurrency(globalStats.returnsSum || 0)}`);
+      setText('returnsModalTotalSum', formatCurrency(sumTotal));
+    }
+
+    function openSppModal() {
+      const modal = document.getElementById('modalSpp');
+      if (modal) {
+        modal.classList.remove('hidden');
+        renderSppModalTable();
+        lucide.createIcons();
+      }
+    }
+
+    function closeSppModal() {
+      const modal = document.getElementById('modalSpp');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function renderSppModalTable() {
+      const tbody = document.getElementById('sppModalTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const categorySpp = globalStats.categorySpp || {};
+      const list = [];
+      for (const cat in categorySpp) {
+        const item = categorySpp[cat];
+        const avg = item.count > 0 ? (item.totalSpp / item.count) : 0;
+        list.push({ category: cat, count: item.count, avgSpp: avg });
+      }
+
+      list.sort((a, b) => b.avgSpp - a.avgSpp);
+
+      list.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition-colors";
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-semibold text-slate-800">${item.category}</td>
+          <td class="py-3 px-4 text-center font-mono text-slate-500">${item.count} шт</td>
+          <td class="py-3 px-4 text-right font-bold text-violet-700">${item.avgSpp.toFixed(2)}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="py-8 text-center text-slate-400">Данные по СПП в категориях отсутствуют</td></tr>`;
+      }
+
+      setText('sppModalSubtitle', `Средняя СПП по всему отчету: ${globalStats.sppAvg ? globalStats.sppAvg.toFixed(2) : '0.00'}%`);
     }
 
     function openMergerModal() {
@@ -2272,6 +2486,8 @@
         salesCount: 0,
         returnsCount: 0,
         returnsSum: 0,
+        returnsList: [],
+        categorySpp: {},
         commissionSum: 0,
         acquiringSum: 0,
         logisticsSum: 0,
@@ -2344,6 +2560,13 @@
           }
           sppTotalSum += Math.abs(sppVal);
           sppValidCount++;
+
+          const catName = categoryVal || 'Без категории';
+          if (!globalStats.categorySpp[catName]) {
+            globalStats.categorySpp[catName] = { totalSpp: 0, count: 0 };
+          }
+          globalStats.categorySpp[catName].totalSpp += Math.abs(sppVal);
+          globalStats.categorySpp[catName].count += 1;
         }
 
         globalStats.storageSum += rowBH;
@@ -2474,6 +2697,15 @@
           returnsAcquiringSum += acquiringVal;
           returnsRetailSum += Math.abs(rowO);
           globalStats.returnsPayoutSum += Math.abs(rowAH);
+
+          globalStats.returnsList.push({
+            date: dVal ? formatDate(dVal) : (row[COL_MAP.M] ? String(row[COL_MAP.M]).trim() : '—'),
+            sku: skuVal || '—',
+            supplierSku: supplierSkuVal || '—',
+            category: categoryVal || '—',
+            name: nameVal || 'Без названия',
+            amount: Math.abs(rowT)
+          });
 
           const prod = globalStats.products[skuVal];
           prod.returnedQty++;
