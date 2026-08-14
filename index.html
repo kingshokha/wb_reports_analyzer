@@ -3112,8 +3112,8 @@
         }
         else if (field === 'tax') { valA = a.taxSum || 0; valB = b.taxSum || 0; }
         else if (field === 'payout') {
-          valA = a.turnover - (a.commission + a.acquiring) - (a.soldQty * ((skuCogsMap[a.sku] || 0) + (skuFfMap[a.sku] || 0))) - (a.taxSum || 0);
-          valB = b.turnover - (b.commission + b.acquiring) - (b.soldQty * ((skuCogsMap[b.sku] || 0) + (skuFfMap[b.sku] || 0))) - (b.taxSum || 0);
+          valA = a.turnover - (a.commission + a.acquiring) - (a.logistics || 0) - (a.soldQty * ((skuCogsMap[a.sku] || 0) + (skuFfMap[a.sku] || 0))) - (a.taxSum || 0);
+          valB = b.turnover - (b.commission + b.acquiring) - (b.logistics || 0) - (b.soldQty * ((skuCogsMap[b.sku] || 0) + (skuFfMap[b.sku] || 0))) - (b.taxSum || 0);
         }
 
         return currentSortDirection === 'asc' ? valA - valB : valB - valA;
@@ -3148,14 +3148,15 @@
           totalTurnover += p.turnover;
           const commAcq = (p.commission + p.acquiring);
           totalCommAcq += commAcq;
-          totalLogisticsSum += (p.logistics || 0);
+          const itemLogistics = (p.logistics || 0);
+          totalLogisticsSum += itemLogistics;
           const unitCogs = skuCogsMap[p.sku] || 0;
           const unitFf = skuFfMap[p.sku] || 0;
           const itemCogs = p.soldQty * (unitCogs + unitFf);
           totalCogsSum += itemCogs;
           const itemTax = (p.taxSum || 0);
           totalTaxSum += itemTax;
-          const itemProfit = p.turnover - commAcq - itemCogs - itemTax;
+          const itemProfit = p.turnover - commAcq - itemLogistics - itemCogs - itemTax;
           p.profit = itemProfit;
           totalProfit += itemProfit;
         });
@@ -3217,12 +3218,13 @@
 
       paginatedList.forEach(p => {
         const commAcqSum = p.commission + p.acquiring;
+        const itemLogistics = p.logistics || 0;
         const unitCogs = skuCogsMap[p.sku] || 0;
         const unitFf = skuFfMap[p.sku] || 0;
         const totalUnit = unitCogs + unitFf;
         const totalCogs = p.soldQty * totalUnit;
         const itemTax = p.taxSum || 0;
-        const itemProfit = p.profit !== undefined ? p.profit : (p.turnover - commAcqSum - totalCogs - itemTax);
+        const itemProfit = p.profit !== undefined ? p.profit : (p.turnover - commAcqSum - itemLogistics - totalCogs - itemTax);
         
         const cogsLabel = totalUnit > 0 
           ? `<span class="font-semibold text-slate-800">${formatCurrency(totalCogs)}</span>`
@@ -3445,11 +3447,12 @@
       
       productsList.forEach(p => {
         const commAcqSum = p.commission + p.acquiring;
+        const itemLogistics = p.logistics || 0;
         const unitCogs = skuCogsMap[p.sku] || 0;
         const unitFf = skuFfMap[p.sku] || 0;
         const totalCogs = p.soldQty * (unitCogs + unitFf);
         const taxVal = p.taxSum || 0;
-        const itemProfit = p.profit !== undefined ? p.profit : (p.turnover - commAcqSum - totalCogs - taxVal);
+        const itemProfit = p.profit !== undefined ? p.profit : (p.turnover - commAcqSum - itemLogistics - totalCogs - taxVal);
 
         const row = [
           `"${p.sku.replace(/"/g, '""')}"`,
