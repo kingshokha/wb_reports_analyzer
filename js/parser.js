@@ -562,6 +562,7 @@ function processRows(rows, skipAutoDetect) {
     prod.payout = prod.salesPayout - prod.returnsPayout;
     const prodNetRetail = (prod.salesRetailSum || 0) - (prod.returnsRetailSum || 0);
     prod.taxSum = prodNetRetail * (taxRatePercent / 100);
+    prod.adSpend = skuAdSpendMap[String(sku).trim()] || skuAdSpendMap[sku] || 0;
   }
 
   productsList = Object.values(globalStats.products);

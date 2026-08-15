@@ -255,6 +255,69 @@ function splitDateRangeIntoChunks(startDate, endDate, maxDays = 30) {
 }
 
 /**
+ * Fetch campaign info and map advertId -> [nmId1, nmId2, ...]
+ */
+async function fetchCampaignArticlesMap(token) {
+  const campNmsMap = {};
+
+  const makeReq = async (url) => {
+    const directUrl = url;
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(directUrl)}`;
+    try {
+      return await fetch(directUrl, {
+        method: 'GET',
+        headers: { 'Authorization': token, 'Content-Type': 'application/json' }
+      });
+    } catch (e) {
+      return await fetch(proxyUrl, {
+        method: 'GET',
+        headers: { 'Authorization': token, 'Content-Type': 'application/json' }
+      });
+    }
+  };
+
+  try {
+    // 1. Query /adv/v1/promotion/adverts (all campaigns of seller)
+    const res = await makeReq('https://advert-api.wildberries.ru/adv/v1/promotion/adverts');
+    if (res && res.ok) {
+      const adverts = await res.json();
+      if (Array.isArray(adverts)) {
+        adverts.forEach(adv => {
+          const advId = adv.advertId || adv.id;
+          if (!advId) return;
+
+          const nms = [];
+          if (Array.isArray(adv.params)) {
+            adv.params.forEach(p => {
+              if (Array.isArray(p.nms)) nms.push(...p.nms);
+            });
+          }
+          if (adv.autoParams && Array.isArray(adv.autoParams.nms)) {
+            nms.push(...adv.autoParams.nms);
+          }
+          if (Array.isArray(adv.unitedParams)) {
+            adv.unitedParams.forEach(p => {
+              if (Array.isArray(p.nms)) nms.push(...p.nms);
+            });
+          }
+          if (Array.isArray(adv.nms)) {
+            nms.push(...adv.nms);
+          }
+
+          if (nms.length > 0) {
+            campNmsMap[String(advId)] = Array.from(new Set(nms.map(n => String(n).trim())));
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("Could not fetch promotion adverts list:", err);
+  }
+
+  return campNmsMap;
+}
+
+/**
  * Fetch WB Advertising / Promotion Spend by SKU for the report period with chunking & rate limit handling
  */
 async function fetchWbAdSpendForReport() {
@@ -280,7 +343,6 @@ async function fetchWbAdSpendForReport() {
     startDate = new Date(minFileDate.getTime());
     endDate = new Date(maxFileDate.getTime());
   } else {
-    // Default to last 30 days
     endDate = new Date();
     startDate = new Date(endDate.getTime() - 29 * 24 * 60 * 60 * 1000);
   }
@@ -296,30 +358,34 @@ async function fetchWbAdSpendForReport() {
     endDate = tmp;
   }
 
-  // Split into <= 30-day chunks
   const chunks = splitDateRangeIntoChunks(startDate, endDate, 30);
 
   const btnSync = document.getElementById('btnSyncWbAdSpend');
   if (btnSync) {
     btnSync.disabled = true;
-    btnSync.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Выгрузка расходов...`;
+    btnSync.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Подготовка...`;
   }
+
+  showApiTokensStatus("Считываем список рекламных кампаний и привязку к артикулам...", "info");
+
+  // Step 1: Pre-fetch campaign -> articles mapping
+  const campNmsMap = await fetchCampaignArticlesMap(token);
+  console.log("WB Campaign articles mapped:", Object.keys(campNmsMap).length);
 
   const allRecords = [];
   let totalAdSum = 0;
 
   try {
+    // Step 2: Fetch /adv/v1/upd for each 30-day chunk
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       const progressPercent = Math.round(((i) / chunks.length) * 100);
 
-      // Inform user about current chunk progress
       showApiTokensProgress(i + 1, chunks.length, chunk, totalAdSum, progressPercent);
       if (btnSync) {
         btnSync.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Интервал ${i + 1}/${chunks.length} (${progressPercent}%)...`;
       }
 
-      // Respect WB API rate limit: polite delay of 450ms between chunk calls
       if (i > 0) {
         await new Promise(resolve => setTimeout(resolve, 450));
       }
@@ -347,7 +413,6 @@ async function fetchWbAdSpendForReport() {
         response = await makeRequest(proxyUrl);
       }
 
-      // Handle 429 Too Many Requests with automatic retry after 2.5s
       if (response && response.status === 429) {
         showApiTokensStatus(`Лимит запросов WB API: ожидание 2.5 сек перед повтором интервала ${chunk.fromFormatted} — ${chunk.toFormatted}...`, "warning");
         await new Promise(resolve => setTimeout(resolve, 2500));
@@ -378,7 +443,6 @@ async function fetchWbAdSpendForReport() {
       }
     }
 
-    // Process and aggregate all records across all chunks
     if (allRecords.length === 0) {
       showApiTokensStatus(
         `Запрос выполнен успешно (${chunks.length} ${chunks.length === 1 ? 'интервал' : 'интервала'}, ${formatDate(startDate)} — ${formatDate(endDate)}), но рекламных списаний в кабинете WB за этот период не найдено.`,
@@ -387,46 +451,82 @@ async function fetchWbAdSpendForReport() {
       return;
     }
 
+    // Step 3: Distribute spend to SKUs
     const newSkuAdMap = {};
-    let matchedSkusCount = 0;
 
     allRecords.forEach(item => {
       const sumVal = parseNum(item.updSum !== undefined ? item.updSum : (item.sum !== undefined ? item.sum : item.cost));
       if (sumVal <= 0) return;
 
-      const nmIds = Array.isArray(item.nmIds) && item.nmIds.length > 0 
-        ? item.nmIds 
-        : (item.nmId ? [item.nmId] : (item.nms ? item.nms : []));
+      let nms = [];
 
-      if (nmIds.length === 1) {
-        const skuStr = String(nmIds[0]).trim();
-        newSkuAdMap[skuStr] = (newSkuAdMap[skuStr] || 0) + sumVal;
-      } else if (nmIds.length > 1) {
-        const perSkuSum = sumVal / nmIds.length;
-        nmIds.forEach(id => {
-          const skuStr = String(id).trim();
-          newSkuAdMap[skuStr] = (newSkuAdMap[skuStr] || 0) + perSkuSum;
+      // A) Direct nmIds on record
+      if (Array.isArray(item.nmIds) && item.nmIds.length > 0) {
+        nms = item.nmIds.map(String);
+      } else if (item.nmId) {
+        nms = [String(item.nmId)];
+      } else if (Array.isArray(item.nms) && item.nms.length > 0) {
+        nms = item.nms.map(String);
+      }
+
+      // B) Lookup from pre-fetched campaigns map
+      if (nms.length === 0 && item.advertId && campNmsMap[String(item.advertId)]) {
+        nms = campNmsMap[String(item.advertId)];
+      }
+
+      // C) Fallback: Regex for 7-10 digit article numbers in campaign name
+      if (nms.length === 0 && item.campName) {
+        const m = item.campName.match(/\b\d{7,10}\b/g);
+        if (m && m.length > 0) {
+          nms = Array.from(new Set(m.map(String)));
+        }
+      }
+
+      if (nms.length > 0) {
+        const perSkuSum = sumVal / nms.length;
+        nms.forEach(skuId => {
+          const cleanSku = String(skuId).trim();
+          newSkuAdMap[cleanSku] = (newSkuAdMap[cleanSku] || 0) + perSkuSum;
         });
-      } else if (item.advertId) {
-        const advKey = `adv_${item.advertId}`;
-        newSkuAdMap[advKey] = (newSkuAdMap[advKey] || 0) + sumVal;
+      } else {
+        const fallbackKey = item.advertId ? `adv_${item.advertId}` : `unassigned`;
+        newSkuAdMap[fallbackKey] = (newSkuAdMap[fallbackKey] || 0) + sumVal;
       }
     });
 
-    // Merge into global map and storage
+    // Step 4: Persist and bind to state
     skuAdSpendMap = newSkuAdMap;
     saveSkuAdSpendToStorage();
 
-    // Assign to report products
+    let matchedSkusCount = 0;
     let totalAssignedToReportSkus = 0;
+
+    // Apply to globalStats.products
     for (const sku in globalStats.products) {
       const prod = globalStats.products[sku];
-      const ad = skuAdSpendMap[sku] || 0;
+      const cleanSku = String(sku).trim();
+      const ad = skuAdSpendMap[cleanSku] || skuAdSpendMap[sku] || 0;
       prod.adSpend = ad;
       if (ad > 0) {
         matchedSkusCount++;
         totalAssignedToReportSkus += ad;
       }
+    }
+
+    // Apply to productsList
+    if (Array.isArray(productsList)) {
+      productsList.forEach(p => {
+        const cleanSku = String(p.sku).trim();
+        p.adSpend = skuAdSpendMap[cleanSku] || skuAdSpendMap[p.sku] || 0;
+      });
+    }
+
+    // Apply to filteredProducts
+    if (Array.isArray(filteredProducts)) {
+      filteredProducts.forEach(p => {
+        const cleanSku = String(p.sku).trim();
+        p.adSpend = skuAdSpendMap[cleanSku] || skuAdSpendMap[p.sku] || 0;
+      });
     }
 
     // Set overall ad spend input field on overview tab
@@ -435,16 +535,19 @@ async function fetchWbAdSpendForReport() {
       adInput.value = totalAdSum.toFixed(2);
     }
 
-    // Update financials and re-render tables
+    // Update financials and re-render product table
     if (typeof updateFinancials === 'function') updateFinancials();
+    if (typeof renderProductTable === 'function') renderProductTable();
     if (typeof applyProductFilters === 'function') applyProductFilters();
 
     const reportMatchText = matchedSkusCount > 0 
       ? ` Сопоставлено с товарами в текущем отчете: ${matchedSkusCount} SKU на сумму ${formatCurrency(totalAssignedToReportSkus)}.`
-      : '';
+      : (Object.keys(newSkuAdMap).length > 0 
+          ? ` Загружены расходы по ${Object.keys(newSkuAdMap).length} рекламным кампаниям/артикулам.`
+          : '');
 
     showApiTokensStatus(
-      `✅ Успешно выгружено ${chunks.length} ${chunks.length === 1 ? 'интервал' : 'интервалов'} за период <strong>${formatDate(startDate)} — ${formatDate(endDate)}</strong>! Всего рекламных затрат: <strong>${formatCurrency(totalAdSum)}</strong>.${reportMatchText} Данные внесены в столбец «Реклама» таблицы товаров и учтены в расчете чистой прибыли.`,
+      `✅ Успешно выгружено ${chunks.length} ${chunks.length === 1 ? 'интервал' : 'интервалов'} за период <strong>${formatDate(startDate)} — ${formatDate(endDate)}</strong>! Всего расходов на рекламу: <strong>${formatCurrency(totalAdSum)}</strong>.${reportMatchText} Данные отображаются в столбце «Реклама» таблицы товаров и учтены в расчете чистой прибыли.`,
       "success"
     );
 
