@@ -178,6 +178,9 @@ function initEvents() {
     const modalSppEl = document.getElementById('modalSpp');
     if (e.target === modalSppEl) closeSppModal();
 
+    const modalCogs = document.getElementById('modalCogsImport');
+    if (e.target === modalCogs && typeof closeCogsImportModal === 'function') closeCogsImportModal();
+
     const dd = document.getElementById('columnFilterDropdown');
     const btnCol = document.getElementById('btnColumnFilter');
     if (dd && !dd.classList.contains('hidden')) {

@@ -35,7 +35,7 @@
   <!-- Top Right Version Badge -->
   <div class="fixed top-2.5 right-4 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-xs text-xs select-none">
     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-    <span class="font-bold text-purple-700">v1.2.0</span>
+    <span class="font-bold text-purple-700">v1.3.0</span>
     <span class="text-slate-300">|</span>
     <span class="font-medium text-slate-500">15.08.2026</span>
   </div>
@@ -532,9 +532,20 @@
               </label>
             </div>
 
-            <div class="text-xs text-slate-500 flex items-center gap-2">
-              <span>Общая себестоимость:</span>
-              <span id="totalCogsValueLabel" class="font-bold text-slate-800 text-sm">0.00 ₽</span>
+            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
+              <div class="flex items-center gap-2">
+                <button onclick="exportCogsToClipboard()" class="py-2 px-3.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 border border-purple-200 shadow-2xs" title="Скопировать себестоимость и фулфилмент в буфер обмена в формате: Артикул - закупка - фулфилмент">
+                  <i data-lucide="copy" class="w-4 h-4 text-purple-600"></i> Экспорт
+                </button>
+                <button onclick="openCogsImportModal()" class="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 border border-slate-200 shadow-2xs" title="Импортировать себестоимость и фулфилмент из буфера или текста">
+                  <i data-lucide="clipboard-paste" class="w-4 h-4 text-slate-600"></i> Импорт
+                </button>
+              </div>
+
+              <div class="text-xs text-slate-500 flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                <span>Общая себестоимость:</span>
+                <span id="totalCogsValueLabel" class="font-bold text-slate-800 text-sm">0.00 ₽</span>
+              </div>
             </div>
           </div>
 
@@ -1096,6 +1107,61 @@
     </div>
   </div>
 
+  <!-- Modal 3: Import COGS & Fulfillment -->
+  <div id="modalCogsImport" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden border border-slate-100">
+      <div class="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white p-5 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-purple-200 backdrop-blur-sm">
+            <i data-lucide="clipboard-paste" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-white">Импорт себестоимости и фулфилмента</h3>
+            <p class="text-xs text-purple-200/80">Массовая вставка значений себестоимости для товаров</p>
+          </div>
+        </div>
+        <button onclick="closeCogsImportModal()" class="hover:bg-white/10 p-2 rounded-xl text-purple-200 hover:text-white transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-4">
+        <div class="bg-purple-50/70 border border-purple-200/80 rounded-2xl p-4 text-xs space-y-2 text-purple-950">
+          <div class="font-bold flex items-center gap-1.5">
+            <i data-lucide="info" class="w-4 h-4 text-purple-700"></i>
+            Формат строк для вставки:
+          </div>
+          <p class="font-mono bg-white/80 p-2.5 rounded-xl border border-purple-100 text-[11px] text-purple-900">
+            Артикул - закупка на 1 ед. - фулфилмент
+          </p>
+          <p class="text-slate-600 text-[11px]">
+            Также поддерживаются данные, скопированные из Excel (через табуляцию), с точкой с запятой или запятой. Если фулфилмент не указан, он примет значение 0.
+          </p>
+        </div>
+
+        <div class="flex justify-between items-center pt-1">
+          <label for="cogsImportTextarea" class="text-xs font-bold text-slate-700">Данные для импорта (каждый товар с новой строки):</label>
+          <button type="button" onclick="pasteFromClipboardToCogsImport()" class="py-1.5 px-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-purple-200 transition-colors shadow-2xs">
+            <i data-lucide="clipboard" class="w-3.5 h-3.5"></i> Вставить из буфера обмена
+          </button>
+        </div>
+
+        <textarea id="cogsImportTextarea" rows="8" class="w-full p-3 font-mono text-xs border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 custom-scrollbar resize-y bg-slate-50/50" placeholder="Пример:&#10;201234567 - 350.00 - 45.00&#10;201234568 - 420.50 - 50.00&#10;201234569 - 180.00 - 0.00"></textarea>
+
+        <div id="cogsImportStatus" class="hidden"></div>
+      </div>
+
+      <div class="bg-slate-50 p-4 border-t border-slate-100 flex justify-end items-center gap-3 shrink-0">
+        <button onclick="closeCogsImportModal()" class="px-5 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
+          Отмена
+        </button>
+        <button onclick="applyCogsImport()" class="px-5 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-purple-500/20 flex items-center gap-1.5">
+          <i data-lucide="check" class="w-4 h-4"></i> Применить импорт
+        </button>
+      </div>
+    </div>
+  </div>
+
   <footer class="bg-white border-t border-slate-200 py-6 mt-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-400 flex flex-col sm:flex-row justify-between items-center gap-4">
       <p>© 2026 WB Finance Analytics. Вся обработка выполняется локально на вашем компьютере. Данные не передаются на сервер.</p>
@@ -1111,6 +1177,7 @@
   <script src="js/tab_overview.js"></script>
   <script src="js/tab_products.js"></script>
   <script src="js/tab_cogs.js"></script>
+  <script src="js/cogs_io.js"></script>
   <script src="js/merger.js"></script>
   <script src="js/app.js"></script>
 </body>
