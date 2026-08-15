@@ -534,10 +534,8 @@ function renderDeductionsTable() {
     return 0;
   });
 
+  const rowsHtml = [];
   sortedList.forEach(item => {
-    const tr = document.createElement('tr');
-    tr.className = "hover:bg-slate-50 transition-colors text-xs";
-    
     const lowerReason = (item.reason || '').toLowerCase();
     const isAdvanceReturn = item.amount < 0 || lowerReason.includes('возврат');
 
@@ -553,13 +551,20 @@ function renderDeductionsTable() {
       }
     }
 
-    tr.innerHTML = `
-      <td class="py-2.5 px-3 text-slate-500 font-medium whitespace-nowrap">${item.date}</td>
-      <td class="py-2.5 px-3 text-slate-800 font-medium">${item.reason}</td>
-      <td class="py-2.5 px-3 text-right ${amountClass} whitespace-nowrap">${amountFormatted}</td>
-    `;
-    tbody.appendChild(tr);
+    rowsHtml.push(`
+      <tr class="hover:bg-slate-50 text-xs">
+        <td class="py-2.5 px-3 text-slate-500 font-medium whitespace-nowrap">${item.date}</td>
+        <td class="py-2.5 px-3 text-slate-800 font-medium">${item.reason}</td>
+        <td class="py-2.5 px-3 text-right ${amountClass} whitespace-nowrap">${amountFormatted}</td>
+      </tr>
+    `);
   });
+
+  if (rowsHtml.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" class="py-8 text-center text-slate-400">Удержания не найдены</td></tr>`;
+  } else {
+    tbody.innerHTML = rowsHtml.join('');
+  }
 }
 
 function openDeductionsModal() {
@@ -598,7 +603,6 @@ function closeReturnsModal() {
 function renderReturnsModalTable() {
   const tbody = document.getElementById('returnsModalTableBody');
   if (!tbody) return;
-  tbody.innerHTML = '';
 
   const query = (document.getElementById('returnsSearchInput')?.value || '').toLowerCase().trim();
   const returnsList = globalStats.returnsList || [];
@@ -607,27 +611,29 @@ function renderReturnsModalTable() {
     if (!query) return true;
     return item.sku.toLowerCase().includes(query) ||
       item.supplierSku.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query) ||
+      (item.category && item.category.toLowerCase().includes(query)) ||
       item.name.toLowerCase().includes(query);
   });
 
   let sumTotal = 0;
+  const rowsHtml = [];
   filtered.forEach(item => {
     sumTotal += item.amount;
-    const tr = document.createElement('tr');
-    tr.className = "hover:bg-slate-50 transition-colors";
-    tr.innerHTML = `
-      <td class="py-2.5 px-4 font-mono text-slate-500">${item.date}</td>
-      <td class="py-2.5 px-4 font-mono font-semibold text-slate-700">${item.sku}</td>
-      <td class="py-2.5 px-4 font-mono text-slate-500">${item.supplierSku}</td>
-      <td class="py-2.5 px-4 text-slate-800 font-medium max-w-xs truncate" title="${item.name}">${item.name}</td>
-      <td class="py-2.5 px-4 text-right font-bold text-rose-600">${formatCurrency(item.amount)}</td>
-    `;
-    tbody.appendChild(tr);
+    rowsHtml.push(`
+      <tr class="hover:bg-slate-50">
+        <td class="py-2.5 px-4 font-mono text-slate-500">${item.date}</td>
+        <td class="py-2.5 px-4 font-mono font-semibold text-slate-700">${item.sku}</td>
+        <td class="py-2.5 px-4 font-mono text-slate-500">${item.supplierSku}</td>
+        <td class="py-2.5 px-4 text-slate-800 font-medium max-w-xs truncate" title="${item.name}">${item.name}</td>
+        <td class="py-2.5 px-4 text-right font-bold text-rose-600">${formatCurrency(item.amount)}</td>
+      </tr>
+    `);
   });
 
-  if (filtered.length === 0) {
+  if (rowsHtml.length === 0) {
     tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400">Возвраты не найдены</td></tr>`;
+  } else {
+    tbody.innerHTML = rowsHtml.join('');
   }
 
   setText('returnsModalSubtitle', `Всего возвратов в отчете: ${returnsList.length} шт на сумму ${formatCurrency(globalStats.returnsSum || 0)}`);
@@ -651,7 +657,6 @@ function closeSppModal() {
 function renderSppModalTable() {
   const tbody = document.getElementById('sppModalTableBody');
   if (!tbody) return;
-  tbody.innerHTML = '';
 
   const categorySpp = globalStats.categorySpp || {};
   const list = [];
@@ -663,19 +668,21 @@ function renderSppModalTable() {
 
   list.sort((a, b) => b.avgSpp - a.avgSpp);
 
+  const rowsHtml = [];
   list.forEach(item => {
-    const tr = document.createElement('tr');
-    tr.className = "hover:bg-slate-50 transition-colors";
-    tr.innerHTML = `
-      <td class="py-3 px-4 font-semibold text-slate-800">${item.category}</td>
-      <td class="py-3 px-4 text-center font-mono text-slate-500">${item.count} шт</td>
-      <td class="py-3 px-4 text-right font-bold text-violet-700">${item.avgSpp.toFixed(2)}%</td>
-    `;
-    tbody.appendChild(tr);
+    rowsHtml.push(`
+      <tr class="hover:bg-slate-50">
+        <td class="py-3 px-4 font-semibold text-slate-800">${item.category}</td>
+        <td class="py-3 px-4 text-center font-mono text-slate-500">${item.count} шт</td>
+        <td class="py-3 px-4 text-right font-bold text-violet-700">${item.avgSpp.toFixed(2)}%</td>
+      </tr>
+    `);
   });
 
-  if (list.length === 0) {
+  if (rowsHtml.length === 0) {
     tbody.innerHTML = `<tr><td colspan="3" class="py-8 text-center text-slate-400">Данные по СПП в категориях отсутствуют</td></tr>`;
+  } else {
+    tbody.innerHTML = rowsHtml.join('');
   }
 
   setText('sppModalSubtitle', `Средняя СПП по всему отчету: ${globalStats.sppAvg ? globalStats.sppAvg.toFixed(2) : '0.00'}%`);

@@ -35,13 +35,13 @@
   <!-- Top Right Version Badge -->
   <div class="fixed top-2.5 right-4 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-xs text-xs select-none">
     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-    <span class="font-bold text-purple-700">v1.5.0</span>
+    <span class="font-bold text-purple-700">v1.5.1</span>
     <span class="text-slate-300">|</span>
     <span class="font-medium text-slate-500">15.08.2026</span>
   </div>
 
   <!-- Backdrop overlay for drawer sidebar -->
-  <div id="sidebarBackdrop" onclick="closeSidebarDrawer()" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 transition-opacity"></div>
+  <div id="sidebarBackdrop" onclick="closeSidebarDrawer()" class="hidden fixed inset-0 bg-slate-900/50 z-40 transition-opacity"></div>
 
   <main class="flex-grow max-w-[1920px] w-full mx-auto flex flex-col lg:flex-row gap-6">
     
@@ -601,6 +601,7 @@
 
         </div>
 
+        <!-- Tab 3: COGS -->
         <div id="tab-cogs" class="tab-content space-y-4 hidden">
           
           <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col lg:flex-row gap-4 items-center justify-between">
@@ -694,6 +695,7 @@
 
         </div>
 
+        <!-- Tab 4: Logistics -->
         <div id="tab-logistics" class="tab-content space-y-6 hidden">
           
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -773,11 +775,12 @@
 
   </main>
 
-  <div id="modalTurnover" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+  <!-- Modal: Turnover Breakdown -->
+  <div id="modalTurnover" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 flex flex-col">
       <div class="bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-800 text-white p-5 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-blue-200 backdrop-blur-sm">
+          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-blue-200">
             <i data-lucide="calculator" class="w-5 h-5"></i>
           </div>
           <div>
@@ -828,11 +831,12 @@
     </div>
   </div>
 
-  <div id="modalFees" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+  <!-- Modal: Fees Breakdown -->
+  <div id="modalFees" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 flex flex-col">
       <div class="bg-gradient-to-r from-amber-800 via-amber-700 to-orange-800 text-white p-5 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-amber-200 backdrop-blur-sm">
+          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-amber-200">
             <i data-lucide="percent" class="w-5 h-5"></i>
           </div>
           <div>
@@ -877,11 +881,12 @@
     </div>
   </div>
 
-  <div id="modalTotalWbPayable" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+  <!-- Modal: Total WB Payable -->
+  <div id="modalTotalWbPayable" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 flex flex-col">
       <div class="bg-gradient-to-r from-emerald-900 via-teal-900 to-emerald-800 text-white p-5 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-emerald-200 backdrop-blur-sm">
+          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-emerald-200">
             <i data-lucide="wallet" class="w-5 h-5"></i>
           </div>
           <div>
@@ -946,7 +951,8 @@
     </div>
   </div>
 
-  <div id="modalExpenses" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center hidden p-4">
+  <!-- Modal: WB Expenses Breakdown -->
+  <div id="modalExpenses" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center hidden p-4">
     <div id="modalExpensesContent" class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden border border-slate-100">
       <div class="bg-gradient-to-r from-purple-800 to-indigo-800 text-white p-5 flex justify-between items-center">
         <h3 class="font-bold flex items-center gap-2">
@@ -968,11 +974,12 @@
     </div>
   </div>
 
-  <div id="modalDeductions" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+  <!-- Modal: Deductions (BI) -->
+  <div id="modalDeductions" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-100 flex flex-col max-h-[85vh]">
       <div class="bg-gradient-to-r from-rose-900 via-rose-800 to-amber-900 text-white p-5 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-rose-200 backdrop-blur-sm">
+          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-rose-200">
             <i data-lucide="scissors" class="w-5 h-5"></i>
           </div>
           <div>
@@ -990,7 +997,7 @@
         <span id="modalDeductionsTotalSum" class="text-base font-extrabold text-rose-600">0.00 ₽</span>
       </div>
 
-      <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-4">
+      <div class="p-6 overflow-y-auto overscroll-contain custom-scrollbar flex-grow space-y-4">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs border-collapse">
             <thead>
@@ -1020,11 +1027,12 @@
     </div>
   </div>
 
-  <div id="modalMerger" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+  <!-- Modal: Merger -->
+  <div id="modalMerger" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
       <div class="bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-800 text-white p-6 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-purple-200 backdrop-blur-sm">
+          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-purple-200">
             <i data-lucide="layers" class="w-5 h-5"></i>
           </div>
           <div>
@@ -1037,7 +1045,7 @@
         </button>
       </div>
 
-      <div class="p-6 overflow-y-auto space-y-5 custom-scrollbar flex-1">
+      <div class="p-6 overflow-y-auto space-y-5 custom-scrollbar flex-1 overscroll-contain">
         
         <div id="mergerDropzone" class="border-2 border-dashed border-purple-200 hover:border-purple-500 bg-purple-50/30 hover:bg-purple-50/60 rounded-2xl p-6 text-center cursor-pointer transition-all group">
           <input type="file" id="mergerFileInput" accept=".xlsx, .xls, .csv, .zip" multiple class="hidden" />
@@ -1065,7 +1073,7 @@
             </button>
           </div>
 
-          <div id="mergerFilesList" class="space-y-2 max-h-56 overflow-y-auto custom-scrollbar">
+          <div id="mergerFilesList" class="space-y-2 max-h-56 overflow-y-auto custom-scrollbar overscroll-contain">
             <div id="mergerEmptyState" class="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs">
               Файлы пока не добавлены. Выберите или перетащите их выше.
             </div>
@@ -1098,11 +1106,11 @@
   </div>
 
   <!-- Modal 1: Returns Breakdown -->
-  <div id="modalReturns" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+  <div id="modalReturns" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-4xl w-full flex flex-col max-h-[85vh] overflow-hidden border border-slate-100">
       <div class="bg-gradient-to-r from-rose-900 via-rose-800 to-purple-900 text-white p-5 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-rose-200 backdrop-blur-sm">
+          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-rose-200">
             <i data-lucide="refresh-ccw" class="w-5 h-5"></i>
           </div>
           <div>
@@ -1125,7 +1133,7 @@
         </div>
       </div>
 
-      <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-4">
+      <div class="p-6 overflow-y-auto overscroll-contain custom-scrollbar flex-grow space-y-4">
         <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <table class="w-full text-left border-collapse text-xs">
             <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold select-none">
@@ -1152,11 +1160,11 @@
   </div>
 
   <!-- Modal 2: Average SPP per Category -->
-  <div id="modalSpp" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+  <div id="modalSpp" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full flex flex-col max-h-[85vh] overflow-hidden border border-slate-100">
       <div class="bg-gradient-to-r from-purple-900 via-indigo-800 to-violet-900 text-white p-5 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-violet-200 backdrop-blur-sm">
+          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-violet-200">
             <i data-lucide="badge-percent" class="w-5 h-5"></i>
           </div>
           <div>
@@ -1169,7 +1177,7 @@
         </button>
       </div>
 
-      <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-4">
+      <div class="p-6 overflow-y-auto overscroll-contain custom-scrollbar flex-grow space-y-4">
         <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <table class="w-full text-left border-collapse text-xs">
             <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold select-none">
@@ -1194,11 +1202,11 @@
   </div>
 
   <!-- Modal 3: Import COGS & Fulfillment -->
-  <div id="modalCogsImport" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+  <div id="modalCogsImport" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden border border-slate-100">
       <div class="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white p-5 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-purple-200 backdrop-blur-sm">
+          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-purple-200">
             <i data-lucide="clipboard-paste" class="w-5 h-5"></i>
           </div>
           <div>
@@ -1211,7 +1219,7 @@
         </button>
       </div>
 
-      <div class="p-6 overflow-y-auto custom-scrollbar flex-grow space-y-4">
+      <div class="p-6 overflow-y-auto overscroll-contain custom-scrollbar flex-grow space-y-4">
         <div class="bg-purple-50/70 border border-purple-200/80 rounded-2xl p-4 text-xs space-y-2 text-purple-950">
           <div class="font-bold flex items-center gap-1.5">
             <i data-lucide="info" class="w-4 h-4 text-purple-700"></i>
