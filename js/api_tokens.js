@@ -2,6 +2,8 @@
  * WB Finance Analytics - Wildberries API Tokens & Promotion Ad Spend Sync
  */
 
+let lastRawApiData = null;
+
 function getActiveApiTokenObj() {
   if (!activeApiTokenId && apiTokensList.length > 0) {
     activeApiTokenId = apiTokensList[0].id;
@@ -227,6 +229,53 @@ function showApiTokensProgress(currentChunkIndex, totalChunks, currentChunk, cur
 }
 
 /**
+ * Updates the raw JSON debug textarea and meta info
+ */
+function setRawApiData(dataObj) {
+  lastRawApiData = dataObj;
+  const textarea = document.getElementById('rawApiDataTextarea');
+  const meta = document.getElementById('rawApiDataMeta');
+
+  if (!textarea) return;
+
+  try {
+    const formatted = JSON.stringify(dataObj, null, 2);
+    textarea.value = formatted;
+    
+    if (meta) {
+      const lineCount = formatted.split('\n').length;
+      const byteSize = new Blob([formatted]).size;
+      const sizeStr = byteSize > 1024 ? (byteSize / 1024).toFixed(1) + ' КБ' : byteSize + ' Б';
+      meta.innerText = `${lineCount} строк (${sizeStr})`;
+    }
+  } catch (e) {
+    textarea.value = String(dataObj);
+  }
+}
+
+function copyRawApiDataToClipboard() {
+  const textarea = document.getElementById('rawApiDataTextarea');
+  if (!textarea || !textarea.value) {
+    showApiTokensStatus("Поле с сырыми данными пусто", "warning");
+    return;
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(textarea.value).then(() => {
+      showApiTokensStatus("Сырой JSON скопирован в буфер обмена", "success");
+    });
+  }
+}
+
+function clearRawApiDataDisplay() {
+  const textarea = document.getElementById('rawApiDataTextarea');
+  const meta = document.getElementById('rawApiDataMeta');
+  if (textarea) textarea.value = '';
+  if (meta) meta.innerText = '0 строк';
+  lastRawApiData = null;
+}
+
+/**
  * Splits a date range (startDate, endDate) into non-overlapping intervals of max maxDays (default 30 days)
  */
 function splitDateRangeIntoChunks(startDate, endDate, maxDays = 30) {
@@ -277,13 +326,15 @@ async function fetchWbApi(url, token, options = {}) {
 /**
  * Fetch campaign info and map advertId -> [nmId1, nmId2, ...]
  */
-async function fetchCampaignArticlesMap(token) {
+async function fetchCampaignArticlesMap(token, rawCollector) {
   const campNmsMap = {};
 
   try {
     const res = await fetchWbApi('https://advert-api.wildberries.ru/adv/v1/promotion/adverts', token);
     if (res && res.ok) {
       const adverts = await res.json();
+      if (rawCollector) rawCollector['adv/v1/promotion/adverts'] = adverts;
+
       if (Array.isArray(adverts)) {
         adverts.forEach(adv => {
           const advId = adv.advertId || adv.id;
@@ -471,8 +522,18 @@ async function fetchWbAdSpendForReport() {
 
   showApiTokensStatus("1/3. Считываем кампании продавца из Wildberries API...", "info");
 
+  // Raw collector for user inspectability
+  const rawPayload = {
+    fetchTimestamp: new Date().toISOString(),
+    period: { from: formatDate(startDate), to: formatDate(endDate) },
+    totalChunks: chunks.length,
+    chunks: chunks,
+    rawResponses: {}
+  };
+
   // Step 1: Pre-fetch campaign articles map
-  const campNmsMap = await fetchCampaignArticlesMap(token);
+  const campNmsMap = await fetchCampaignArticlesMap(token, rawPayload.rawResponses);
+  rawPayload['mappedCampaigns'] = campNmsMap;
   console.log("WB Campaign articles mapped:", Object.keys(campNmsMap).length);
 
   const newSkuAdMap = {};
@@ -498,7 +559,6 @@ async function fetchWbAdSpendForReport() {
       const allCampIds = Object.keys(campNmsMap);
 
       if (allCampIds.length > 0) {
-        // Query fullstats in batches of up to 50 campaigns
         for (let b = 0; b < allCampIds.length; b += 50) {
           const batchIds = allCampIds.slice(b, b + 50);
           const v3Url = `https://advert-api.wildberries.ru/adv/v3/fullstats?ids=${batchIds.join(',')}&from=${chunk.from}&to=${chunk.to}`;
@@ -512,12 +572,18 @@ async function fetchWbAdSpendForReport() {
 
             if (resV3 && resV3.ok) {
               const dataV3 = await resV3.json();
+              rawPayload.rawResponses[`v3/fullstats_${chunk.from}_${chunk.to}_batch${b}`] = dataV3;
               if (Array.isArray(dataV3) && dataV3.length > 0) {
                 console.log(`v3/fullstats response for interval ${chunk.fromFormatted}-${chunk.toFormatted}:`, dataV3);
                 const sumExtracted = extractNmSpendsFromFullstats(dataV3, newSkuAdMap, campNmsMap);
                 totalAdSum += sumExtracted;
                 chunkLoaded = true;
               }
+            } else if (resV3) {
+              rawPayload.rawResponses[`v3/fullstats_${chunk.from}_${chunk.to}_error`] = {
+                status: resV3.status,
+                text: await resV3.text()
+              };
             }
           } catch (v3Err) {
             console.warn("v3/fullstats batch fetch failed:", v3Err);
@@ -525,7 +591,7 @@ async function fetchWbAdSpendForReport() {
         }
       }
 
-      // 2B. Fallback or addition: GET /adv/v1/upd
+      // 2B. Fallback / supplementary: GET /adv/v1/upd
       const updUrl = `https://advert-api.wildberries.ru/adv/v1/upd?from=${chunk.from}&to=${chunk.to}`;
       try {
         let resUpd = await fetchWbApi(updUrl, token);
@@ -536,25 +602,33 @@ async function fetchWbAdSpendForReport() {
 
         if (resUpd && resUpd.ok) {
           const dataUpd = await resUpd.json();
+          rawPayload.rawResponses[`v1/upd_${chunk.from}_${chunk.to}`] = dataUpd;
           if (Array.isArray(dataUpd) && dataUpd.length > 0) {
             console.log(`v1/upd response for interval ${chunk.fromFormatted}-${chunk.toFormatted}:`, dataUpd);
-            // If v3/fullstats didn't already populate this chunk, extract from upd
             if (!chunkLoaded) {
               const sumExtracted = extractNmSpendsFromFullstats(dataUpd, newSkuAdMap, campNmsMap);
               totalAdSum += sumExtracted;
             }
           }
+        } else if (resUpd) {
+          rawPayload.rawResponses[`v1/upd_${chunk.from}_${chunk.to}_error`] = {
+            status: resUpd.status,
+            text: await resUpd.text()
+          };
         }
       } catch (updErr) {
         console.warn("v1/upd fetch failed:", updErr);
       }
     }
 
+    rawPayload['aggregatedSkuSpend'] = newSkuAdMap;
+    setRawApiData(rawPayload);
+
     console.log("Final newSkuAdMap:", newSkuAdMap);
 
     if (Object.keys(newSkuAdMap).length === 0) {
       showApiTokensStatus(
-        `Запрос выполнен успешно (${chunks.length} ${chunks.length === 1 ? 'интервал' : 'интервала'}, ${formatDate(startDate)} — ${formatDate(endDate)}), но рекламных расходов в кабинете WB за этот период не найдено.`,
+        `Запрос выполнен успешно (${chunks.length} ${chunks.length === 1 ? 'интервал' : 'интервала'}, ${formatDate(startDate)} — ${formatDate(endDate)}), но рекламных расходов в кабинете WB за этот период не найдено. Проверьте сырые данные в поле ниже.`,
         "warning"
       );
       return;
@@ -610,12 +684,13 @@ async function fetchWbAdSpendForReport() {
       : ` Найдено расходов по ${Object.keys(newSkuAdMap).length} артикулам/кампаниям.`;
 
     showApiTokensStatus(
-      `✅ Успешно выгружено по методу <strong>adv/v3/fullstats</strong> за период <strong>${formatDate(startDate)} — ${formatDate(endDate)}</strong>! Всего рекламных затрат: <strong>${formatCurrency(totalAdSum)}</strong>.${reportMatchText} Данные отображаются в столбце «Реклама» таблицы товаров и учтены в расчете чистой прибыли.`,
+      `✅ Успешно выгружено по методу <strong>adv/v3/fullstats</strong> за период <strong>${formatDate(startDate)} — ${formatDate(endDate)}</strong>! Всего рекламных затрат: <strong>${formatCurrency(totalAdSum)}</strong>.${reportMatchText} Полный сырой ответ выведен в поле ниже.`,
       "success"
     );
 
   } catch (err) {
     console.error("Ошибка при получении расходов из WB API:", err);
+    if (rawPayload) setRawApiData(rawPayload);
     showApiTokensStatus(`Ошибка при обращении к WB API: ${err.message || 'Сетевой сбой'}. Попробуйте повторить запрос позже.`, "error");
   } finally {
     if (btnSync) {
