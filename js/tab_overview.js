@@ -14,6 +14,14 @@ function updateFinancials() {
     globalStats.taxSum = netRetailSum * (taxRatePercent / 100);
   }
 
+  if (globalStats.dailyTimeline) {
+    for (const dayKey in globalStats.dailyTimeline) {
+      const day = globalStats.dailyTimeline[dayKey];
+      const dayNetRetail = (day.salesRetailSum || 0) - (day.returnsRetailSum || 0);
+      day.tax = Math.max(0, dayNetRetail) * (taxRatePercent / 100);
+    }
+  }
+
   const netTurnover = globalStats.turnover - globalStats.returnsSum;
   const calculatedCOGS = typeof calculateTotalCogs === 'function' ? calculateTotalCogs() : 0;
 
@@ -714,11 +722,11 @@ function setTimelineChartMode(mode) {
     }
   });
 
-  renderDailyTimelineChart(true);
+  renderDailyTimelineChart();
   if (window.lucide) lucide.createIcons();
 }
 
-function renderDailyTimelineChart(forceRecreate = false) {
+function renderDailyTimelineChart() {
   const canvas = document.getElementById('dailyTimelineChart');
   if (!canvas) return;
 
@@ -732,6 +740,8 @@ function renderDailyTimelineChart(forceRecreate = false) {
     }
     return;
   }
+
+  const taxRate = globalStats.taxRatePercent !== undefined ? globalStats.taxRatePercent : 6;
 
   const labels = [];
   const rawTurnover = [];
@@ -772,11 +782,15 @@ function renderDailyTimelineChart(forceRecreate = false) {
     }
     day.cogs = dayCogs;
 
-    const dayNetProfit = day.payout 
-      - day.logistics 
-      - day.wbExpenses 
-      - day.deductions 
-      - day.tax 
+    const dayNetRetail = (day.salesRetailSum || 0) - (day.returnsRetailSum || 0);
+    const dayTax = Math.max(0, dayNetRetail) * (taxRate / 100);
+    day.tax = dayTax;
+
+    const dayNetProfit = (day.payout || 0) 
+      - (day.logistics || 0) 
+      - (day.wbExpenses || 0) 
+      - (day.deductions || 0) 
+      - dayTax 
       - dayCogs;
     day.netProfit = dayNetProfit;
 
@@ -792,7 +806,7 @@ function renderDailyTimelineChart(forceRecreate = false) {
     rawWbExpenses.push(day.wbExpenses || 0);
     rawDeductions.push(day.deductions || 0);
     rawCogs.push(dayCogs);
-    rawTax.push(day.tax || 0);
+    rawTax.push(dayTax);
 
     pctTurnover.push(t > 0 ? 100 : 0);
     pctNetProfit.push(calcPct(dayNetProfit));
@@ -803,7 +817,7 @@ function renderDailyTimelineChart(forceRecreate = false) {
     pctWbExpenses.push(calcPct(day.wbExpenses || 0));
     pctDeductions.push(calcPct(day.deductions || 0));
     pctCogs.push(calcPct(dayCogs));
-    pctTax.push(calcPct(day.tax || 0));
+    pctTax.push(calcPct(dayTax));
   });
 
   const isPercent = currentTimelineMode === 'percent';
@@ -967,12 +981,12 @@ function renderDailyTimelineChart(forceRecreate = false) {
       data: isPercent ? pctTax : rawTax,
       rubleData: rawTax,
       yAxisID: isDual ? 'y1' : 'y',
-      borderColor: '#ca8a04',
+      borderColor: '#d97706',
       backgroundColor: 'transparent',
-      borderWidth: 2,
-      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
-      pointHoverRadius: 6,
-      pointBackgroundColor: '#ca8a04',
+      borderWidth: 2.5,
+      pointRadius: sortedDateKeys.length > 30 ? 2 : 4,
+      pointHoverRadius: 7,
+      pointBackgroundColor: '#d97706',
       pointStyle: 'circle',
       tension: 0.25,
       hidden: !getVisibility('chkLineTax')
@@ -1019,6 +1033,8 @@ function renderDailyTimelineChart(forceRecreate = false) {
   if (isDual) {
     let minY = 0, maxY = 0;
     let minY1 = 0, maxY1 = 0;
+    let hasVisibleY = false;
+    let hasVisibleY1 = false;
 
     datasets.forEach(ds => {
       if (ds.hidden) return;
@@ -1028,9 +1044,11 @@ function renderDailyTimelineChart(forceRecreate = false) {
       const maxVal = Math.max(...dataArr);
 
       if (ds.yAxisID === 'y1') {
+        hasVisibleY1 = true;
         if (minVal < minY1) minY1 = minVal;
         if (maxVal > maxY1) maxY1 = maxVal;
       } else {
+        hasVisibleY = true;
         if (minVal < minY) minY = minVal;
         if (maxVal > maxY) maxY = maxVal;
       }
@@ -1051,6 +1069,8 @@ function renderDailyTimelineChart(forceRecreate = false) {
       scalesConfig.y.min = -Math.ceil(maxNegRatio * maxY);
       scalesConfig.y.max = Math.ceil(maxY);
       scalesConfig.y1 = {
+        display: true,
+        position: 'right',
         min: -Math.ceil(maxNegRatio * maxY1),
         max: Math.ceil(maxY1)
       };
@@ -1059,16 +1079,16 @@ function renderDailyTimelineChart(forceRecreate = false) {
       scalesConfig.y.beginAtZero = true;
       scalesConfig.y.max = Math.ceil(maxY);
       scalesConfig.y1 = {
+        display: true,
+        position: 'right',
         min: 0,
         beginAtZero: true,
         max: Math.ceil(maxY1)
       };
     }
 
-    scalesConfig.y1.display = true;
-    scalesConfig.y1.position = 'right';
     scalesConfig.y1.grid = {
-      drawOnChartArea: false // Prevents overlapping grid lines
+      drawOnChartArea: false
     };
     scalesConfig.y1.title = {
       display: true,
@@ -1086,14 +1106,6 @@ function renderDailyTimelineChart(forceRecreate = false) {
     };
   } else {
     scalesConfig.y.beginAtZero = true;
-  }
-
-  if (dailyTimelineChartInstance && !forceRecreate) {
-    dailyTimelineChartInstance.data.labels = labels;
-    dailyTimelineChartInstance.data.datasets = datasets;
-    dailyTimelineChartInstance.options.scales = scalesConfig;
-    dailyTimelineChartInstance.update('none'); // Update without animation
-    return;
   }
 
   if (dailyTimelineChartInstance) {
@@ -1179,5 +1191,5 @@ function updateDailyTimelineChartVisibility() {
     chkAll.checked = lineIds.every(id => document.getElementById(id)?.checked);
   }
 
-  renderDailyTimelineChart(false);
+  renderDailyTimelineChart();
 }
