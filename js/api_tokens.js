@@ -1,4 +1,333 @@
 /**
+ * WB Finance Analytics - Wildberries API Tokens & Promotion Ad Spend Sync
+ */
+
+let lastRawApiData = null;
+
+function getActiveApiTokenObj() {
+  if (!activeApiTokenId && apiTokensList.length > 0) {
+    activeApiTokenId = apiTokensList[0].id;
+  }
+  return apiTokensList.find(t => t.id === activeApiTokenId) || null;
+}
+
+function handleAddApiToken(e) {
+  if (e) {
+    if (e.preventDefault) e.preventDefault();
+    if (e.stopPropagation) e.stopPropagation();
+  }
+
+  const nameInput = document.getElementById('inputTokenName');
+  const tokenInput = document.getElementById('inputTokenValue');
+
+  if (!tokenInput || !tokenInput.value.trim()) {
+    showApiTokensStatus("Пожалуйста, введите токен API Wildberries", "error");
+    return false;
+  }
+
+  const nameVal = (nameInput?.value || '').trim() || `Токен #${apiTokensList.length + 1}`;
+  const tokenVal = tokenInput.value.trim();
+
+  const newToken = {
+    id: 'tok_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    name: nameVal,
+    token: tokenVal,
+    createdAt: new Date().toLocaleDateString('ru-RU')
+  };
+
+  apiTokensList.unshift(newToken);
+  activeApiTokenId = newToken.id;
+  saveApiTokensToStorage();
+
+  if (nameInput) nameInput.value = '';
+  if (tokenInput) tokenInput.value = '';
+
+  showApiTokensStatus(`Токен «${nameVal}» успешно сохранен и выбран активным!`, "success");
+  renderApiTokensTab();
+  return false;
+}
+
+function setActiveApiToken(id) {
+  activeApiTokenId = id;
+  saveApiTokensToStorage();
+  renderApiTokensTab();
+}
+
+function deleteApiToken(id) {
+  const tok = apiTokensList.find(t => t.id === id);
+  const name = tok ? tok.name : 'токен';
+
+  if (!confirm(`Вы уверены, что хотите удалить ${name}?`)) {
+    return;
+  }
+
+  apiTokensList = apiTokensList.filter(t => t.id !== id);
+  if (activeApiTokenId === id) {
+    activeApiTokenId = apiTokensList.length > 0 ? apiTokensList[0].id : null;
+  }
+  saveApiTokensToStorage();
+  renderApiTokensTab();
+  showApiTokensStatus(`Токен «${name}» удален`, "info");
+}
+
+function clearAllApiTokens() {
+  if (apiTokensList.length === 0) return;
+  if (!confirm("Вы действительно хотите удалить все сохраненные токены API?")) return;
+
+  apiTokensList = [];
+  activeApiTokenId = null;
+  saveApiTokensToStorage();
+  renderApiTokensTab();
+  showApiTokensStatus("Все токены удалены", "info");
+}
+
+function renderApiTokensTab() {
+  const listContainer = document.getElementById('apiTokensListContainer');
+  const emptyState = document.getElementById('apiTokensEmptyState');
+  const countBadge = document.getElementById('apiTokensCountBadge');
+  const activeTokenInfo = document.getElementById('apiActiveTokenDisplay');
+
+  if (countBadge) countBadge.innerText = apiTokensList.length;
+
+  const activeToken = getActiveApiTokenObj();
+  if (activeTokenInfo) {
+    if (activeToken) {
+      const masked = maskToken(activeToken.token);
+      activeTokenInfo.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span class="font-bold text-slate-800">${activeToken.name}</span>
+          <span class="font-mono text-slate-400 text-xs">(${masked})</span>
+        </div>
+      `;
+    } else {
+      activeTokenInfo.innerHTML = `<span class="text-slate-400 font-medium">Токен не выбран</span>`;
+    }
+  }
+
+  if (!listContainer) return;
+
+  if (apiTokensList.length === 0) {
+    listContainer.innerHTML = '';
+    if (emptyState) emptyState.classList.remove('hidden');
+    return;
+  }
+
+  if (emptyState) emptyState.classList.add('hidden');
+
+  listContainer.innerHTML = apiTokensList.map(tok => {
+    const isActive = tok.id === activeApiTokenId;
+    const masked = maskToken(tok.token);
+
+    const activeBadge = isActive
+      ? `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1 border border-emerald-200">
+           <i data-lucide="check" class="w-3 h-3"></i> Активен
+         </span>`
+      : `<button type="button" onclick="setActiveApiToken('${tok.id}')" class="px-2.5 py-1 text-xs rounded-lg font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-colors cursor-pointer">
+           Выбрать
+         </button>`;
+
+    const cardBorder = isActive ? 'border-purple-300 bg-purple-50/30' : 'border-slate-200/80 bg-white hover:border-slate-300';
+
+    return `
+      <div class="p-4 rounded-2xl border ${cardBorder} transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <h4 class="font-bold text-sm text-slate-800">${tok.name}</h4>
+            ${activeBadge}
+          </div>
+          <p class="text-xs font-mono text-slate-500 flex items-center gap-2">
+            <span>Ключ: ${masked}</span>
+            <span class="text-slate-300">•</span>
+            <span class="text-slate-400">Добавлен: ${tok.createdAt}</span>
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
+          <button type="button" onclick="copyTokenToClipboard('${tok.id}')" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer" title="Скопировать токен">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+          </button>
+          <button type="button" onclick="deleteApiToken('${tok.id}')" class="p-2 text-rose-400 hover:text-rose-600 rounded-xl hover:bg-rose-50 transition-colors cursor-pointer" title="Удалить токен">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function maskToken(token) {
+  if (!token) return '';
+  if (token.length <= 12) return '••••••••';
+  return token.substring(0, 6) + '••••••••' + token.substring(token.length - 4);
+}
+
+function copyTokenToClipboard(id) {
+  const tok = apiTokensList.find(t => t.id === id);
+  if (!tok) return;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(tok.token).then(() => {
+      showApiTokensStatus(`Токен «${tok.name}» скопирован в буфер обмена`, "success");
+    });
+  }
+}
+
+function showApiTokensStatus(msg, type = "info") {
+  const el = document.getElementById('apiTokensStatusAlert');
+  if (!el) return;
+
+  const bgClasses = {
+    success: 'bg-emerald-50 text-emerald-900 border-emerald-200',
+    error: 'bg-rose-50 text-rose-900 border-rose-200',
+    warning: 'bg-amber-50 text-amber-900 border-amber-200',
+    info: 'bg-purple-50 text-purple-900 border-purple-200'
+  };
+
+  const iconName = {
+    success: 'check-circle-2',
+    error: 'alert-triangle',
+    warning: 'alert-circle',
+    info: 'info'
+  };
+
+  el.className = `p-4 rounded-2xl border ${bgClasses[type] || bgClasses.info} flex items-center gap-3 text-xs leading-relaxed transition-all shadow-xs`;
+  el.innerHTML = `
+    <i data-lucide="${iconName[type] || 'info'}" class="w-5 h-5 shrink-0"></i>
+    <div class="flex-grow">${msg}</div>
+  `;
+  el.classList.remove('hidden');
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function showApiTokensProgress(currentChunkIndex, totalChunks, currentChunk, currentSum, percent) {
+  const el = document.getElementById('apiTokensStatusAlert');
+  if (!el) return;
+
+  el.className = `p-5 rounded-2xl border bg-purple-50/80 text-purple-950 border-purple-200 flex flex-col gap-3 text-xs leading-relaxed transition-all shadow-sm`;
+  el.innerHTML = `
+    <div class="flex items-center justify-between font-bold">
+      <div class="flex items-center gap-2">
+        <i data-lucide="loader-2" class="w-4 h-4 text-purple-600 animate-spin"></i>
+        <span>Выгрузка из WB Advert API (v3/fullstats): интервал ${currentChunkIndex} из ${totalChunks}</span>
+      </div>
+      <span class="text-purple-700">${percent}%</span>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="w-full bg-purple-200/60 rounded-full h-2 overflow-hidden">
+      <div class="bg-gradient-to-r from-purple-600 to-indigo-600 h-2 rounded-full transition-all duration-300" style="width: ${percent}%"></div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-500 gap-1 pt-1">
+      <div>Период: <strong>${currentChunk.fromFormatted} — ${currentChunk.toFormatted}</strong></div>
+      <div>Накоплено расходов: <strong class="text-purple-900">${formatCurrency(currentSum)}</strong></div>
+    </div>
+  `;
+  el.classList.remove('hidden');
+
+  if (window.lucide) lucide.createIcons();
+}
+
+/**
+ * Updates the raw JSON debug textarea and meta info
+ */
+function setRawApiData(dataObj) {
+  lastRawApiData = dataObj;
+  const textarea = document.getElementById('rawApiDataTextarea');
+  const meta = document.getElementById('rawApiDataMeta');
+
+  if (!textarea) return;
+
+  try {
+    const formatted = JSON.stringify(dataObj, null, 2);
+    textarea.value = formatted;
+    
+    if (meta) {
+      const lineCount = formatted.split('\n').length;
+      const byteSize = new Blob([formatted]).size;
+      const sizeStr = byteSize > 1024 ? (byteSize / 1024).toFixed(1) + ' КБ' : byteSize + ' Б';
+      meta.innerText = `${lineCount} строк (${sizeStr})`;
+    }
+  } catch (e) {
+    textarea.value = String(dataObj);
+  }
+}
+
+function copyRawApiDataToClipboard() {
+  const textarea = document.getElementById('rawApiDataTextarea');
+  if (!textarea || !textarea.value) {
+    showApiTokensStatus("Поле с сырыми данными пусто", "warning");
+    return;
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(textarea.value).then(() => {
+      showApiTokensStatus("Сырой JSON скопирован в буфер обмена", "success");
+    });
+  }
+}
+
+function clearRawApiDataDisplay() {
+  const textarea = document.getElementById('rawApiDataTextarea');
+  const meta = document.getElementById('rawApiDataMeta');
+  if (textarea) textarea.value = '';
+  if (meta) meta.innerText = '0 строк';
+  lastRawApiData = null;
+}
+
+/**
+ * Splits a date range (startDate, endDate) into non-overlapping intervals of max maxDays (default 30 days)
+ */
+function splitDateRangeIntoChunks(startDate, endDate, maxDays = 30) {
+  const chunks = [];
+  let currentStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const finalEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+  while (currentStart <= finalEnd) {
+    let currentEnd = new Date(currentStart.getTime() + (maxDays - 1) * 24 * 60 * 60 * 1000);
+    if (currentEnd > finalEnd) {
+      currentEnd = new Date(finalEnd.getTime());
+    }
+
+    chunks.push({
+      from: toLocalInputDate(currentStart),
+      to: toLocalInputDate(currentEnd),
+      fromFormatted: formatDate(currentStart),
+      toFormatted: formatDate(currentEnd),
+      daysCount: Math.round((currentEnd - currentStart) / (24 * 60 * 60 * 1000)) + 1
+    });
+
+    currentStart = new Date(currentEnd.getTime() + 24 * 60 * 60 * 1000);
+  }
+
+  return chunks;
+}
+
+/**
+ * Helper to make API requests with CORS proxy fallback
+ */
+async function fetchWbApi(url, token, options = {}) {
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+  const headers = {
+    'Authorization': token,
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
+  };
+
+  try {
+    const res = await fetch(url, { ...options, headers });
+    return res;
+  } catch (corsErr) {
+    console.warn("Direct fetch to WB API failed, using CORS proxy:", corsErr);
+    return await fetch(proxyUrl, { ...options, headers });
+  }
+}
+
+/**
  * Fetch campaign info and map advertId -> [nmId1, nmId2, ...]
  * Uses https://advert-api.wildberries.ru/api/advert/v2/adverts and /adv/v1/promotion/adverts
  */
@@ -299,7 +628,7 @@ async function fetchWbAdSpendForReport() {
         await new Promise(resolve => setTimeout(resolve, 450));
       }
 
-      // 2A. Method requested by user: GET https://advert-api.wildberries.ru/adv/v3/fullstats
+      // 2A. Method: GET https://advert-api.wildberries.ru/adv/v3/fullstats
       let chunkLoaded = false;
       const allCampIds = Object.keys(campNmsMap);
 
