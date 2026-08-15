@@ -688,7 +688,37 @@ function renderSppModalTable() {
   setText('sppModalSubtitle', `Средняя СПП по всему отчету: ${globalStats.sppAvg ? globalStats.sppAvg.toFixed(2) : '0.00'}%`);
 }
 
-function renderDailyTimelineChart() {
+let currentTimelineMode = 'dual'; // 'dual' | 'single' | 'percent'
+
+function setTimelineChartMode(mode) {
+  currentTimelineMode = mode;
+  
+  const btnDual = document.getElementById('btnTimelineModeDual');
+  const btnSingle = document.getElementById('btnTimelineModeSingle');
+  const btnPercent = document.getElementById('btnTimelineModePercent');
+
+  const activeClasses = ['bg-white', 'text-purple-700', 'shadow-xs'];
+
+  [
+    { el: btnDual, id: 'dual' },
+    { el: btnSingle, id: 'single' },
+    { el: btnPercent, id: 'percent' }
+  ].forEach(({ el, id }) => {
+    if (!el) return;
+    if (id === mode) {
+      el.classList.add(...activeClasses);
+      el.classList.remove('text-slate-600', 'hover:text-slate-900');
+    } else {
+      el.classList.remove(...activeClasses);
+      el.classList.add('text-slate-600', 'hover:text-slate-900');
+    }
+  });
+
+  renderDailyTimelineChart(true);
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderDailyTimelineChart(forceRecreate = false) {
   const canvas = document.getElementById('dailyTimelineChart');
   if (!canvas) return;
 
@@ -704,16 +734,27 @@ function renderDailyTimelineChart() {
   }
 
   const labels = [];
-  const dataTurnover = [];
-  const dataNetProfit = [];
-  const dataPayout = [];
-  const dataFees = [];
-  const dataLogistics = [];
-  const dataReturns = [];
-  const dataWbExpenses = [];
-  const dataDeductions = [];
-  const dataCogs = [];
-  const dataTax = [];
+  const rawTurnover = [];
+  const rawNetProfit = [];
+  const rawPayout = [];
+  const rawFees = [];
+  const rawLogistics = [];
+  const rawReturns = [];
+  const rawWbExpenses = [];
+  const rawDeductions = [];
+  const rawCogs = [];
+  const rawTax = [];
+
+  const pctTurnover = [];
+  const pctNetProfit = [];
+  const pctPayout = [];
+  const pctFees = [];
+  const pctLogistics = [];
+  const pctReturns = [];
+  const pctWbExpenses = [];
+  const pctDeductions = [];
+  const pctCogs = [];
+  const pctTax = [];
 
   sortedDateKeys.forEach(dateKey => {
     const day = timeline[dateKey];
@@ -739,17 +780,34 @@ function renderDailyTimelineChart() {
       - dayCogs;
     day.netProfit = dayNetProfit;
 
-    dataTurnover.push(day.turnover);
-    dataNetProfit.push(dayNetProfit);
-    dataPayout.push(day.payout);
-    dataFees.push(day.fees);
-    dataLogistics.push(day.logistics);
-    dataReturns.push(day.returnsTurnover);
-    dataWbExpenses.push(day.wbExpenses);
-    dataDeductions.push(day.deductions);
-    dataCogs.push(dayCogs);
-    dataTax.push(day.tax);
+    const t = day.turnover || 0;
+    const calcPct = (val) => t > 0 ? (val / t) * 100 : 0;
+
+    rawTurnover.push(t);
+    rawNetProfit.push(dayNetProfit);
+    rawPayout.push(day.payout || 0);
+    rawFees.push(day.fees || 0);
+    rawLogistics.push(day.logistics || 0);
+    rawReturns.push(day.returnsTurnover || 0);
+    rawWbExpenses.push(day.wbExpenses || 0);
+    rawDeductions.push(day.deductions || 0);
+    rawCogs.push(dayCogs);
+    rawTax.push(day.tax || 0);
+
+    pctTurnover.push(t > 0 ? 100 : 0);
+    pctNetProfit.push(calcPct(dayNetProfit));
+    pctPayout.push(calcPct(day.payout || 0));
+    pctFees.push(calcPct(day.fees || 0));
+    pctLogistics.push(calcPct(day.logistics || 0));
+    pctReturns.push(calcPct(day.returnsTurnover || 0));
+    pctWbExpenses.push(calcPct(day.wbExpenses || 0));
+    pctDeductions.push(calcPct(day.deductions || 0));
+    pctCogs.push(calcPct(dayCogs));
+    pctTax.push(calcPct(day.tax || 0));
   });
+
+  const isPercent = currentTimelineMode === 'percent';
+  const isDual = currentTimelineMode === 'dual';
 
   const getVisibility = (id) => {
     const el = document.getElementById(id);
@@ -760,7 +818,9 @@ function renderDailyTimelineChart() {
     {
       id: 'chkLineTurnover',
       label: 'Выкуп (T)',
-      data: dataTurnover,
+      data: isPercent ? pctTurnover : rawTurnover,
+      rubleData: rawTurnover,
+      yAxisID: 'y',
       borderColor: '#8b5cf6',
       backgroundColor: 'rgba(139, 92, 246, 0.05)',
       borderWidth: 2.5,
@@ -774,7 +834,9 @@ function renderDailyTimelineChart() {
     {
       id: 'chkLineNetProfit',
       label: 'Чистая прибыль',
-      data: dataNetProfit,
+      data: isPercent ? pctNetProfit : rawNetProfit,
+      rubleData: rawNetProfit,
+      yAxisID: 'y',
       borderColor: '#10b981',
       backgroundColor: 'rgba(16, 185, 129, 0.08)',
       borderWidth: 3,
@@ -788,7 +850,9 @@ function renderDailyTimelineChart() {
     {
       id: 'chkLinePayout',
       label: 'К перечислению (AH)',
-      data: dataPayout,
+      data: isPercent ? pctPayout : rawPayout,
+      rubleData: rawPayout,
+      yAxisID: 'y',
       borderColor: '#06b6d4',
       backgroundColor: 'transparent',
       borderWidth: 2,
@@ -800,9 +864,27 @@ function renderDailyTimelineChart() {
       hidden: !getVisibility('chkLinePayout')
     },
     {
+      id: 'chkLineCogs',
+      label: 'Себестоимость (COGS)',
+      data: isPercent ? pctCogs : rawCogs,
+      rubleData: rawCogs,
+      yAxisID: 'y',
+      borderColor: '#6366f1',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointHoverRadius: 6,
+      pointBackgroundColor: '#6366f1',
+      pointStyle: 'circle',
+      tension: 0.25,
+      hidden: !getVisibility('chkLineCogs')
+    },
+    {
       id: 'chkLineFees',
       label: 'Комиссия и эквайринг',
-      data: dataFees,
+      data: isPercent ? pctFees : rawFees,
+      rubleData: rawFees,
+      yAxisID: isDual ? 'y1' : 'y',
       borderColor: '#f59e0b',
       backgroundColor: 'transparent',
       borderWidth: 2,
@@ -816,7 +898,9 @@ function renderDailyTimelineChart() {
     {
       id: 'chkLineLogistics',
       label: 'Логистика (AK)',
-      data: dataLogistics,
+      data: isPercent ? pctLogistics : rawLogistics,
+      rubleData: rawLogistics,
+      yAxisID: isDual ? 'y1' : 'y',
       borderColor: '#3b82f6',
       backgroundColor: 'transparent',
       borderWidth: 2,
@@ -830,7 +914,9 @@ function renderDailyTimelineChart() {
     {
       id: 'chkLineReturns',
       label: 'Возвраты (T)',
-      data: dataReturns,
+      data: isPercent ? pctReturns : rawReturns,
+      rubleData: rawReturns,
+      yAxisID: isDual ? 'y1' : 'y',
       borderColor: '#f43f5e',
       backgroundColor: 'transparent',
       borderWidth: 2,
@@ -845,7 +931,9 @@ function renderDailyTimelineChart() {
     {
       id: 'chkLineWbExpenses',
       label: 'Расходы WB',
-      data: dataWbExpenses,
+      data: isPercent ? pctWbExpenses : rawWbExpenses,
+      rubleData: rawWbExpenses,
+      yAxisID: isDual ? 'y1' : 'y',
       borderColor: '#ec4899',
       backgroundColor: 'transparent',
       borderWidth: 2,
@@ -859,7 +947,9 @@ function renderDailyTimelineChart() {
     {
       id: 'chkLineDeductions',
       label: 'Удержания (BI)',
-      data: dataDeductions,
+      data: isPercent ? pctDeductions : rawDeductions,
+      rubleData: rawDeductions,
+      yAxisID: isDual ? 'y1' : 'y',
       borderColor: '#b45309',
       backgroundColor: 'transparent',
       borderWidth: 2,
@@ -872,23 +962,11 @@ function renderDailyTimelineChart() {
       hidden: !getVisibility('chkLineDeductions')
     },
     {
-      id: 'chkLineCogs',
-      label: 'Себестоимость (COGS)',
-      data: dataCogs,
-      borderColor: '#6366f1',
-      backgroundColor: 'transparent',
-      borderWidth: 2,
-      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
-      pointHoverRadius: 6,
-      pointBackgroundColor: '#6366f1',
-      pointStyle: 'circle',
-      tension: 0.25,
-      hidden: !getVisibility('chkLineCogs')
-    },
-    {
       id: 'chkLineTax',
       label: 'Налог (O)',
-      data: dataTax,
+      data: isPercent ? pctTax : rawTax,
+      rubleData: rawTax,
+      yAxisID: isDual ? 'y1' : 'y',
       borderColor: '#ca8a04',
       backgroundColor: 'transparent',
       borderWidth: 2,
@@ -901,14 +979,81 @@ function renderDailyTimelineChart() {
     }
   ];
 
-  if (dailyTimelineChartInstance) {
+  if (dailyTimelineChartInstance && !forceRecreate) {
     dailyTimelineChartInstance.data.labels = labels;
     dailyTimelineChartInstance.data.datasets = datasets;
     dailyTimelineChartInstance.update();
     return;
   }
 
+  if (dailyTimelineChartInstance) {
+    dailyTimelineChartInstance.destroy();
+    dailyTimelineChartInstance = null;
+  }
+
   const ctx = canvas.getContext('2d');
+
+  // Configure scales based on mode
+  const scalesConfig = {
+    x: {
+      grid: {
+        color: 'rgba(241, 245, 249, 1)'
+      },
+      ticks: {
+        font: { size: 11 },
+        maxRotation: 45
+      }
+    },
+    y: {
+      display: true,
+      position: 'left',
+      grid: {
+        color: 'rgba(241, 245, 249, 1)'
+      },
+      title: {
+        display: true,
+        text: isPercent ? 'Доля от выкупа (%)' : (isDual ? 'Выручка и прибыль (₽)' : 'Сумма (₽)'),
+        color: isDual ? '#8b5cf6' : '#64748b',
+        font: { size: 11, weight: 'bold' }
+      },
+      ticks: {
+        font: { size: 11 },
+        callback: function(value) {
+          if (isPercent) {
+            return value.toFixed(0) + '%';
+          }
+          if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M ₽';
+          if (Math.abs(value) >= 1000) return (value / 1000).toFixed(0) + 'k ₽';
+          return value + ' ₽';
+        }
+      }
+    }
+  };
+
+  if (isDual) {
+    scalesConfig.y1 = {
+      display: true,
+      position: 'right',
+      grid: {
+        drawOnChartArea: false // Prevents overlapping grid lines
+      },
+      title: {
+        display: true,
+        text: 'Расходы и удержания (₽)',
+        color: '#ec4899',
+        font: { size: 11, weight: 'bold' }
+      },
+      ticks: {
+        font: { size: 11 },
+        callback: function(value) {
+          if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M ₽';
+          if (Math.abs(value) >= 1000) return (value / 1000).toFixed(0) + 'k ₽';
+          return value + ' ₽';
+        }
+      }
+    };
+  }
+
   dailyTimelineChartInstance = new Chart(ctx, {
     type: 'line',
     data: {
@@ -943,36 +1088,19 @@ function renderDailyTimelineChart() {
             label: function(context) {
               let label = context.dataset.label || '';
               if (label) label += ': ';
-              label += formatCurrency(context.parsed.y);
+              
+              if (isPercent) {
+                const rubleVal = context.dataset.rubleData ? context.dataset.rubleData[context.dataIndex] : 0;
+                label += context.parsed.y.toFixed(2) + '% (' + formatCurrency(rubleVal) + ')';
+              } else {
+                label += formatCurrency(context.parsed.y);
+              }
               return label;
             }
           }
         }
       },
-      scales: {
-        x: {
-          grid: {
-            color: 'rgba(241, 245, 249, 1)'
-          },
-          ticks: {
-            font: { size: 11 },
-            maxRotation: 45
-          }
-        },
-        y: {
-          grid: {
-            color: 'rgba(241, 245, 249, 1)'
-          },
-          ticks: {
-            font: { size: 11 },
-            callback: function(value) {
-              if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M ₽';
-              if (Math.abs(value) >= 1000) return (value / 1000).toFixed(0) + 'k ₽';
-              return value + ' ₽';
-            }
-          }
-        }
-      }
+      scales: scalesConfig
     }
   });
 }
@@ -1016,4 +1144,3 @@ function updateDailyTimelineChartVisibility() {
     dailyTimelineChartInstance.update();
   }
 }
-

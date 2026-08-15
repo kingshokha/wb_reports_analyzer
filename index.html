@@ -35,7 +35,7 @@
   <!-- Top Right Version Badge -->
   <div class="fixed top-2.5 right-4 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-xs text-xs select-none">
     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-    <span class="font-bold text-purple-700">v1.5.1</span>
+    <span class="font-bold text-purple-700">v1.6.0</span>
     <span class="text-slate-300">|</span>
     <span class="font-medium text-slate-500">15.08.2026</span>
   </div>
@@ -344,7 +344,7 @@
 
           <!-- Daily Timeline Trend Chart -->
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
               <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
                   <i data-lucide="trending-up" class="w-4 h-4"></i>
@@ -352,6 +352,22 @@
                 <div>
                   <h3 class="text-base font-bold text-slate-900 leading-tight">Динамика показателей по дням</h3>
                 </div>
+              </div>
+
+              <!-- Mode Switcher (Решение 2 + 3) -->
+              <div class="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200/80 text-xs font-semibold select-none self-start sm:self-auto">
+                <button type="button" id="btnTimelineModeDual" onclick="setTimelineChartMode('dual')" class="timeline-mode-btn px-3 py-1.5 rounded-lg bg-white text-purple-700 shadow-xs transition-all font-bold flex items-center gap-1.5" title="Две независимые шкалы: левая для выручки и прибыли, правая для расходов">
+                  <i data-lucide="split" class="w-3.5 h-3.5 text-purple-600"></i>
+                  <span>Две оси Y (₽)</span>
+                </button>
+                <button type="button" id="btnTimelineModeSingle" onclick="setTimelineChartMode('single')" class="timeline-mode-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all font-bold flex items-center gap-1.5" title="Единый общий масштаб в рублях для всех линий">
+                  <i data-lucide="align-justify" class="w-3.5 h-3.5 text-slate-500"></i>
+                  <span>Единая шкала (₽)</span>
+                </button>
+                <button type="button" id="btnTimelineModePercent" onclick="setTimelineChartMode('percent')" class="timeline-mode-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all font-bold flex items-center gap-1.5" title="Показывать долю каждого расхода в процентах (%) от выручки за день">
+                  <i data-lucide="percent" class="w-3.5 h-3.5 text-slate-500"></i>
+                  <span>Доля от выкупа (%)</span>
+                </button>
               </div>
             </div>
 
