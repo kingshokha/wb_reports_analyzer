@@ -843,7 +843,7 @@ function renderDailyTimelineChart(forceRecreate = false) {
       pointRadius: sortedDateKeys.length > 30 ? 2 : 4,
       pointHoverRadius: 7,
       pointBackgroundColor: '#10b981',
-      pointStyle: 'triangle',
+      pointStyle: 'circle',
       tension: 0.25,
       hidden: !getVisibility('chkLineNetProfit')
     },
@@ -859,7 +859,7 @@ function renderDailyTimelineChart(forceRecreate = false) {
       pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#06b6d4',
-      pointStyle: 'rect',
+      pointStyle: 'circle',
       tension: 0.25,
       hidden: !getVisibility('chkLinePayout')
     },
@@ -891,7 +891,7 @@ function renderDailyTimelineChart(forceRecreate = false) {
       pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#f59e0b',
-      pointStyle: 'star',
+      pointStyle: 'circle',
       tension: 0.25,
       hidden: !getVisibility('chkLineFees')
     },
@@ -907,7 +907,7 @@ function renderDailyTimelineChart(forceRecreate = false) {
       pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#3b82f6',
-      pointStyle: 'rectRot',
+      pointStyle: 'circle',
       tension: 0.25,
       hidden: !getVisibility('chkLineLogistics')
     },
@@ -924,7 +924,7 @@ function renderDailyTimelineChart(forceRecreate = false) {
       pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#f43f5e',
-      pointStyle: 'crossRot',
+      pointStyle: 'circle',
       tension: 0.25,
       hidden: !getVisibility('chkLineReturns')
     },
@@ -940,7 +940,7 @@ function renderDailyTimelineChart(forceRecreate = false) {
       pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#ec4899',
-      pointStyle: 'cross',
+      pointStyle: 'circle',
       tension: 0.25,
       hidden: !getVisibility('chkLineWbExpenses')
     },
@@ -957,7 +957,7 @@ function renderDailyTimelineChart(forceRecreate = false) {
       pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#b45309',
-      pointStyle: 'rectRounded',
+      pointStyle: 'circle',
       tension: 0.25,
       hidden: !getVisibility('chkLineDeductions')
     },
@@ -973,25 +973,11 @@ function renderDailyTimelineChart(forceRecreate = false) {
       pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#ca8a04',
-      pointStyle: 'dash',
+      pointStyle: 'circle',
       tension: 0.25,
       hidden: !getVisibility('chkLineTax')
     }
   ];
-
-  if (dailyTimelineChartInstance && !forceRecreate) {
-    dailyTimelineChartInstance.data.labels = labels;
-    dailyTimelineChartInstance.data.datasets = datasets;
-    dailyTimelineChartInstance.update();
-    return;
-  }
-
-  if (dailyTimelineChartInstance) {
-    dailyTimelineChartInstance.destroy();
-    dailyTimelineChartInstance = null;
-  }
-
-  const ctx = canvas.getContext('2d');
 
   // Configure scales based on mode
   const scalesConfig = {
@@ -1031,29 +1017,91 @@ function renderDailyTimelineChart(forceRecreate = false) {
   };
 
   if (isDual) {
-    scalesConfig.y1 = {
+    let minY = 0, maxY = 0;
+    let minY1 = 0, maxY1 = 0;
+
+    datasets.forEach(ds => {
+      if (ds.hidden) return;
+      const dataArr = ds.data || [];
+      if (dataArr.length === 0) return;
+      const minVal = Math.min(...dataArr);
+      const maxVal = Math.max(...dataArr);
+
+      if (ds.yAxisID === 'y1') {
+        if (minVal < minY1) minY1 = minVal;
+        if (maxVal > maxY1) maxY1 = maxVal;
+      } else {
+        if (minVal < minY) minY = minVal;
+        if (maxVal > maxY) maxY = maxVal;
+      }
+    });
+
+    if (maxY > 0) maxY = maxY * 1.05;
+    if (maxY1 > 0) maxY1 = maxY1 * 1.05;
+
+    if (maxY <= 0) maxY = 100;
+    if (maxY1 <= 0) maxY1 = 100;
+
+    // Calculate synchronized zero baseline for both axes
+    const negRatioY = minY < 0 ? Math.abs(minY) / maxY : 0;
+    const negRatioY1 = minY1 < 0 ? Math.abs(minY1) / maxY1 : 0;
+    const maxNegRatio = Math.max(negRatioY, negRatioY1);
+
+    if (maxNegRatio > 0) {
+      scalesConfig.y.min = -Math.ceil(maxNegRatio * maxY);
+      scalesConfig.y.max = Math.ceil(maxY);
+      scalesConfig.y1 = {
+        min: -Math.ceil(maxNegRatio * maxY1),
+        max: Math.ceil(maxY1)
+      };
+    } else {
+      scalesConfig.y.min = 0;
+      scalesConfig.y.beginAtZero = true;
+      scalesConfig.y.max = Math.ceil(maxY);
+      scalesConfig.y1 = {
+        min: 0,
+        beginAtZero: true,
+        max: Math.ceil(maxY1)
+      };
+    }
+
+    scalesConfig.y1.display = true;
+    scalesConfig.y1.position = 'right';
+    scalesConfig.y1.grid = {
+      drawOnChartArea: false // Prevents overlapping grid lines
+    };
+    scalesConfig.y1.title = {
       display: true,
-      position: 'right',
-      grid: {
-        drawOnChartArea: false // Prevents overlapping grid lines
-      },
-      title: {
-        display: true,
-        text: 'Расходы и удержания (₽)',
-        color: '#ec4899',
-        font: { size: 11, weight: 'bold' }
-      },
-      ticks: {
-        font: { size: 11 },
-        callback: function(value) {
-          if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M ₽';
-          if (Math.abs(value) >= 1000) return (value / 1000).toFixed(0) + 'k ₽';
-          return value + ' ₽';
-        }
+      text: 'Расходы и удержания (₽)',
+      color: '#ec4899',
+      font: { size: 11, weight: 'bold' }
+    };
+    scalesConfig.y1.ticks = {
+      font: { size: 11 },
+      callback: function(value) {
+        if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M ₽';
+        if (Math.abs(value) >= 1000) return (value / 1000).toFixed(0) + 'k ₽';
+        return value + ' ₽';
       }
     };
+  } else {
+    scalesConfig.y.beginAtZero = true;
   }
 
+  if (dailyTimelineChartInstance && !forceRecreate) {
+    dailyTimelineChartInstance.data.labels = labels;
+    dailyTimelineChartInstance.data.datasets = datasets;
+    dailyTimelineChartInstance.options.scales = scalesConfig;
+    dailyTimelineChartInstance.update('none'); // Update without animation
+    return;
+  }
+
+  if (dailyTimelineChartInstance) {
+    dailyTimelineChartInstance.destroy();
+    dailyTimelineChartInstance = null;
+  }
+
+  const ctx = canvas.getContext('2d');
   dailyTimelineChartInstance = new Chart(ctx, {
     type: 'line',
     data: {
@@ -1061,6 +1109,7 @@ function renderDailyTimelineChart(forceRecreate = false) {
       datasets: datasets
     },
     options: {
+      animation: false,
       responsive: true,
       maintainAspectRatio: false,
       interaction: {
@@ -1130,17 +1179,5 @@ function updateDailyTimelineChartVisibility() {
     chkAll.checked = lineIds.every(id => document.getElementById(id)?.checked);
   }
 
-  if (dailyTimelineChartInstance) {
-    const getVisibility = (id) => {
-      const el = document.getElementById(id);
-      return el ? el.checked : true;
-    };
-
-    dailyTimelineChartInstance.data.datasets.forEach(ds => {
-      if (ds.id) {
-        ds.hidden = !getVisibility(ds.id);
-      }
-    });
-    dailyTimelineChartInstance.update();
-  }
+  renderDailyTimelineChart(false);
 }
