@@ -135,6 +135,7 @@ function updateFinancials() {
   setText('taxLabel', formatCurrency(globalStats.taxSum));
 
   renderFinanceChart(calculatedNetProfit, adSpendInput, calculatedCOGS, otherSpendInput);
+  renderDailyTimelineChart();
   if (window.lucide) lucide.createIcons();
 }
 
@@ -680,3 +681,297 @@ function renderSppModalTable() {
 
   setText('sppModalSubtitle', `Средняя СПП по всему отчету: ${globalStats.sppAvg ? globalStats.sppAvg.toFixed(2) : '0.00'}%`);
 }
+
+function renderDailyTimelineChart() {
+  const canvas = document.getElementById('dailyTimelineChart');
+  if (!canvas) return;
+
+  const timeline = globalStats.dailyTimeline || {};
+  const sortedDateKeys = Object.keys(timeline).sort();
+
+  if (sortedDateKeys.length === 0) {
+    if (dailyTimelineChartInstance) {
+      dailyTimelineChartInstance.destroy();
+      dailyTimelineChartInstance = null;
+    }
+    return;
+  }
+
+  const labels = [];
+  const dataTurnover = [];
+  const dataNetProfit = [];
+  const dataPayout = [];
+  const dataFees = [];
+  const dataLogistics = [];
+  const dataReturns = [];
+  const dataWbExpenses = [];
+  const dataDeductions = [];
+  const dataCogs = [];
+  const dataTax = [];
+
+  sortedDateKeys.forEach(dateKey => {
+    const day = timeline[dateKey];
+    labels.push(day.dateFormatted || dateKey);
+
+    let dayCogs = 0;
+    if (day.skuSoldQty) {
+      for (const sku in day.skuSoldQty) {
+        const qty = day.skuSoldQty[sku];
+        if (qty > 0) {
+          const unitCost = (skuCogsMap[sku] || 0) + (skuFfMap[sku] || 0);
+          dayCogs += qty * unitCost;
+        }
+      }
+    }
+    day.cogs = dayCogs;
+
+    const dayNetProfit = day.payout 
+      - day.logistics 
+      - day.wbExpenses 
+      - day.deductions 
+      - day.tax 
+      - dayCogs;
+    day.netProfit = dayNetProfit;
+
+    dataTurnover.push(day.turnover);
+    dataNetProfit.push(dayNetProfit);
+    dataPayout.push(day.payout);
+    dataFees.push(day.fees);
+    dataLogistics.push(day.logistics);
+    dataReturns.push(day.returnsTurnover);
+    dataWbExpenses.push(day.wbExpenses);
+    dataDeductions.push(day.deductions);
+    dataCogs.push(dayCogs);
+    dataTax.push(day.tax);
+  });
+
+  const getVisibility = (id) => {
+    const el = document.getElementById(id);
+    return el ? el.checked : true;
+  };
+
+  const datasets = [
+    {
+      id: 'chkLineTurnover',
+      label: 'Выкуп (T)',
+      data: dataTurnover,
+      borderColor: '#8b5cf6',
+      backgroundColor: 'rgba(139, 92, 246, 0.05)',
+      borderWidth: 2.5,
+      pointRadius: sortedDateKeys.length > 30 ? 2 : 4,
+      pointHoverRadius: 6,
+      pointBackgroundColor: '#8b5cf6',
+      pointStyle: 'circle',
+      tension: 0.25,
+      hidden: !getVisibility('chkLineTurnover')
+    },
+    {
+      id: 'chkLineNetProfit',
+      label: 'Чистая прибыль',
+      data: dataNetProfit,
+      borderColor: '#10b981',
+      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+      borderWidth: 3,
+      pointRadius: sortedDateKeys.length > 30 ? 2 : 4,
+      pointHoverRadius: 7,
+      pointBackgroundColor: '#10b981',
+      pointStyle: 'triangle',
+      tension: 0.25,
+      hidden: !getVisibility('chkLineNetProfit')
+    },
+    {
+      id: 'chkLinePayout',
+      label: 'К перечислению (AH)',
+      data: dataPayout,
+      borderColor: '#06b6d4',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointHoverRadius: 6,
+      pointBackgroundColor: '#06b6d4',
+      pointStyle: 'rect',
+      tension: 0.25,
+      hidden: !getVisibility('chkLinePayout')
+    },
+    {
+      id: 'chkLineFees',
+      label: 'Комиссия и эквайринг',
+      data: dataFees,
+      borderColor: '#f59e0b',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointHoverRadius: 6,
+      pointBackgroundColor: '#f59e0b',
+      pointStyle: 'star',
+      tension: 0.25,
+      hidden: !getVisibility('chkLineFees')
+    },
+    {
+      id: 'chkLineLogistics',
+      label: 'Логистика (AK)',
+      data: dataLogistics,
+      borderColor: '#3b82f6',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointHoverRadius: 6,
+      pointBackgroundColor: '#3b82f6',
+      pointStyle: 'rectRot',
+      tension: 0.25,
+      hidden: !getVisibility('chkLineLogistics')
+    },
+    {
+      id: 'chkLineReturns',
+      label: 'Возвраты (T)',
+      data: dataReturns,
+      borderColor: '#f43f5e',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      borderDash: [5, 4],
+      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointHoverRadius: 6,
+      pointBackgroundColor: '#f43f5e',
+      pointStyle: 'crossRot',
+      tension: 0.25,
+      hidden: !getVisibility('chkLineReturns')
+    },
+    {
+      id: 'chkLineWbExpenses',
+      label: 'Расходы WB',
+      data: dataWbExpenses,
+      borderColor: '#ec4899',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointHoverRadius: 6,
+      pointBackgroundColor: '#ec4899',
+      pointStyle: 'cross',
+      tension: 0.25,
+      hidden: !getVisibility('chkLineWbExpenses')
+    },
+    {
+      id: 'chkLineDeductions',
+      label: 'Удержания (BI)',
+      data: dataDeductions,
+      borderColor: '#b45309',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      borderDash: [6, 3],
+      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointHoverRadius: 6,
+      pointBackgroundColor: '#b45309',
+      pointStyle: 'rectRounded',
+      tension: 0.25,
+      hidden: !getVisibility('chkLineDeductions')
+    },
+    {
+      id: 'chkLineCogs',
+      label: 'Себестоимость (COGS)',
+      data: dataCogs,
+      borderColor: '#6366f1',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointHoverRadius: 6,
+      pointBackgroundColor: '#6366f1',
+      pointStyle: 'circle',
+      tension: 0.25,
+      hidden: !getVisibility('chkLineCogs')
+    },
+    {
+      id: 'chkLineTax',
+      label: 'Налог (O)',
+      data: dataTax,
+      borderColor: '#ca8a04',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointHoverRadius: 6,
+      pointBackgroundColor: '#ca8a04',
+      pointStyle: 'dash',
+      tension: 0.25,
+      hidden: !getVisibility('chkLineTax')
+    }
+  ];
+
+  if (dailyTimelineChartInstance) {
+    dailyTimelineChartInstance.data.labels = labels;
+    dailyTimelineChartInstance.data.datasets = datasets;
+    dailyTimelineChartInstance.update();
+    return;
+  }
+
+  const ctx = canvas.getContext('2d');
+  dailyTimelineChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) label += ': ';
+              label += formatCurrency(context.parsed.y);
+              return label;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            color: 'rgba(241, 245, 249, 1)'
+          },
+          ticks: {
+            font: { size: 10 },
+            maxRotation: 45
+          }
+        },
+        y: {
+          grid: {
+            color: 'rgba(241, 245, 249, 1)'
+          },
+          ticks: {
+            font: { size: 10 },
+            callback: function(value) {
+              if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M ₽';
+              if (Math.abs(value) >= 1000) return (value / 1000).toFixed(0) + 'k ₽';
+              return value + ' ₽';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function updateDailyTimelineChartVisibility() {
+  if (dailyTimelineChartInstance) {
+    const getVisibility = (id) => {
+      const el = document.getElementById(id);
+      return el ? el.checked : true;
+    };
+
+    dailyTimelineChartInstance.data.datasets.forEach(ds => {
+      if (ds.id) {
+        ds.hidden = !getVisibility(ds.id);
+      }
+    });
+    dailyTimelineChartInstance.update();
+  }
+}
+

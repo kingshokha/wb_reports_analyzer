@@ -77,6 +77,7 @@ let globalStats = {
   taxSum: 0,
   sppAvg: 0,
   logisticsBreakdown: {},
+  dailyTimeline: {},
   products: {}
 };
 
@@ -93,6 +94,7 @@ let cogsSortDirection = 'asc';
 
 let financeChartInstance = null;
 let logisticsChartInstance = null;
+let dailyTimelineChartInstance = null;
 
 function loadSkuCogsFromStorage() {
   try {

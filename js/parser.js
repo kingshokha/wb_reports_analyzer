@@ -292,6 +292,40 @@ function processRows(rows, skipAutoDetect) {
 
     validDataRowCount++;
 
+    const dayKey = dVal ? toLocalInputDate(dVal) : '';
+    if (dayKey) {
+      if (!globalStats.dailyTimeline[dayKey]) {
+        globalStats.dailyTimeline[dayKey] = {
+          date: dVal,
+          dateKey: dayKey,
+          dateFormatted: formatDate(dVal),
+          salesTurnover: 0,
+          returnsTurnover: 0,
+          turnover: 0,
+          salesPayout: 0,
+          returnsPayout: 0,
+          payout: 0,
+          commission: 0,
+          acquiring: 0,
+          fees: 0,
+          logistics: 0,
+          storage: 0,
+          fines: 0,
+          tariffDesigner: 0,
+          deductions: 0,
+          acceptance: 0,
+          wbExpenses: 0,
+          salesRetailSum: 0,
+          returnsRetailSum: 0,
+          tax: 0,
+          skuSoldQty: {},
+          cogs: 0,
+          netProfit: 0
+        };
+      }
+    }
+    const dayItem = dayKey ? globalStats.dailyTimeline[dayKey] : null;
+
     if (rowW !== 0) {
       let sppVal = rowW;
       if (Math.abs(sppVal) > 0 && Math.abs(sppVal) <= 1) {
@@ -313,6 +347,13 @@ function processRows(rows, skipAutoDetect) {
     globalStats.tariffDesignerSum += Math.abs(rowAP);
     globalStats.acceptanceSum += Math.abs(rowBJ);
 
+    if (dayItem) {
+      dayItem.storage += rowBH;
+      dayItem.fines += Math.abs(rowAO);
+      dayItem.tariffDesigner += Math.abs(rowAP);
+      dayItem.acceptance += Math.abs(rowBJ);
+    }
+
     if (rowBI !== 0) {
       globalStats.deductionsSum += rowBI;
       globalStats.deductionsList.push({
@@ -322,10 +363,13 @@ function processRows(rows, skipAutoDetect) {
         reason: rowAQ || 'Удержание / Взыскание',
         amount: rowBI
       });
+      if (dayItem) dayItem.deductions += rowBI;
     }
 
     if (rowAK !== 0) {
       globalStats.logisticsSum += rowAK;
+      if (dayItem) dayItem.logistics += rowAK;
+
       const logType = rowAQ || 'Не указан / Прочее';
       if (!globalStats.logisticsBreakdown[logType]) {
         globalStats.logisticsBreakdown[logType] = { sum: 0, count: 0 };
@@ -421,6 +465,17 @@ function processRows(rows, skipAutoDetect) {
       salesRetailSum += Math.abs(rowO);
       globalStats.salesPayoutSum += rowAH;
 
+      if (dayItem) {
+        dayItem.salesTurnover += rowT;
+        dayItem.commission += rowCommission;
+        dayItem.acquiring += acquiringVal;
+        dayItem.salesRetailSum += Math.abs(rowO);
+        dayItem.salesPayout += rowAH;
+        if (skuVal) {
+          dayItem.skuSoldQty[skuVal] = (dayItem.skuSoldQty[skuVal] || 0) + 1;
+        }
+      }
+
       const prod = globalStats.products[skuVal];
       prod.soldQty++;
       prod.salesTurnover += rowT;
@@ -436,6 +491,17 @@ function processRows(rows, skipAutoDetect) {
       returnsAcquiringSum += acquiringVal;
       returnsRetailSum += Math.abs(rowO);
       globalStats.returnsPayoutSum += Math.abs(rowAH);
+
+      if (dayItem) {
+        dayItem.returnsTurnover += Math.abs(rowT);
+        dayItem.commission -= rowCommission;
+        dayItem.acquiring -= acquiringVal;
+        dayItem.returnsRetailSum += Math.abs(rowO);
+        dayItem.returnsPayout += Math.abs(rowAH);
+        if (skuVal) {
+          dayItem.skuSoldQty[skuVal] = (dayItem.skuSoldQty[skuVal] || 0) - 1;
+        }
+      }
 
       globalStats.returnsList.push({
         date: dVal ? formatDate(dVal) : (row[COL_MAP.M] ? String(row[COL_MAP.M]).trim() : '—'),
@@ -456,6 +522,7 @@ function processRows(rows, skipAutoDetect) {
 
     } else {
       globalStats.salesPayoutSum += rowAH;
+      if (dayItem) dayItem.salesPayout += rowAH;
     }
   }
 
@@ -477,6 +544,15 @@ function processRows(rows, skipAutoDetect) {
 
   const netRetailSum = salesRetailSum - returnsRetailSum;
   globalStats.taxSum = netRetailSum * (taxRatePercent / 100);
+
+  for (const dayKey in globalStats.dailyTimeline) {
+    const day = globalStats.dailyTimeline[dayKey];
+    day.turnover = day.salesTurnover - day.returnsTurnover;
+    day.fees = day.commission + day.acquiring;
+    day.payout = day.salesPayout - day.returnsPayout;
+    day.wbExpenses = day.storage + day.fines + day.tariffDesigner + day.acceptance;
+    day.tax = Math.max(0, (day.salesRetailSum - day.returnsRetailSum)) * (taxRatePercent / 100);
+  }
 
   for (const sku in globalStats.products) {
     const prod = globalStats.products[sku];

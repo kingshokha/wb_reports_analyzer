@@ -160,7 +160,7 @@ function renderProductTableHeaders() {
 
   const cols = [
     { id: 'sku', title: 'Артикул WB (D)', field: 'sku' },
-    { id: 'supplierSku', title: 'Арт. поставщика (F)', field: 'supplierSku' },
+    { id: 'supplierSku', title: 'Арт. продавца (F)', field: 'supplierSku' },
     { id: 'category', title: 'Категория (C)', field: 'category' },
     { id: 'name', title: 'Название (G)', field: 'name' },
     { id: 'sold', title: 'Продано (шт)', field: 'sold', alignRight: true },
@@ -431,7 +431,7 @@ function exportSKUTableCSV() {
   if (productsList.length === 0) return;
   
   let csvContent = "\uFEFF"; 
-  csvContent += "Артикул WB (D);Артикул поставщика (F);Категория (C);Название (G);Продано (шт);Возвраты (шт);Сумма выкупа (T);Комиссия и Эквайринг;Логистика (AK);Себестоимость;Налог (₽);Чистая прибыль\r\n";
+  csvContent += "Артикул WB (D);Артикул продавца (F);Категория (C);Название (G);Продано (шт);Возвраты (шт);Сумма выкупа (T);Комиссия и Эквайринг;Логистика (AK);Себестоимость;Налог (₽);Чистая прибыль\r\n";
   
   productsList.forEach(p => {
     const commAcqSum = p.commission + p.acquiring;
