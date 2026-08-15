@@ -620,7 +620,6 @@ function renderReturnsModalTable() {
       <td class="py-2.5 px-4 font-mono text-slate-500">${item.date}</td>
       <td class="py-2.5 px-4 font-mono font-semibold text-slate-700">${item.sku}</td>
       <td class="py-2.5 px-4 font-mono text-slate-500">${item.supplierSku}</td>
-      <td class="py-2.5 px-4 text-slate-600 font-medium">${item.category}</td>
       <td class="py-2.5 px-4 text-slate-800 font-medium max-w-xs truncate" title="${item.name}">${item.name}</td>
       <td class="py-2.5 px-4 text-right font-bold text-rose-600">${formatCurrency(item.amount)}</td>
     `;
@@ -628,7 +627,7 @@ function renderReturnsModalTable() {
   });
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400">Возвраты не найдены</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400">Возвраты не найдены</td></tr>`;
   }
 
   setText('returnsModalSubtitle', `Всего возвратов в отчете: ${returnsList.length} шт на сумму ${formatCurrency(globalStats.returnsSum || 0)}`);
@@ -921,6 +920,18 @@ function renderDailyTimelineChart() {
           display: false
         },
         tooltip: {
+          enabled: true,
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          titleColor: '#ffffff',
+          bodyColor: '#e2e8f0',
+          titleFont: { size: 13, weight: 'bold' },
+          bodyFont: { size: 12, weight: '500' },
+          padding: 14,
+          cornerRadius: 12,
+          boxPadding: 6,
+          titleMarginBottom: 8,
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.1)',
           callbacks: {
             label: function(context) {
               let label = context.dataset.label || '';
@@ -937,7 +948,7 @@ function renderDailyTimelineChart() {
             color: 'rgba(241, 245, 249, 1)'
           },
           ticks: {
-            font: { size: 10 },
+            font: { size: 11 },
             maxRotation: 45
           }
         },
@@ -946,7 +957,7 @@ function renderDailyTimelineChart() {
             color: 'rgba(241, 245, 249, 1)'
           },
           ticks: {
-            font: { size: 10 },
+            font: { size: 11 },
             callback: function(value) {
               if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(1) + 'M ₽';
               if (Math.abs(value) >= 1000) return (value / 1000).toFixed(0) + 'k ₽';
@@ -959,7 +970,31 @@ function renderDailyTimelineChart() {
   });
 }
 
+function toggleAllTimelineLines(selectAll) {
+  const lineIds = [
+    'chkLineTurnover', 'chkLineNetProfit', 'chkLinePayout', 'chkLineFees',
+    'chkLineLogistics', 'chkLineReturns', 'chkLineWbExpenses', 'chkLineDeductions',
+    'chkLineCogs', 'chkLineTax'
+  ];
+  lineIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = selectAll;
+  });
+  updateDailyTimelineChartVisibility();
+}
+
 function updateDailyTimelineChartVisibility() {
+  const lineIds = [
+    'chkLineTurnover', 'chkLineNetProfit', 'chkLinePayout', 'chkLineFees',
+    'chkLineLogistics', 'chkLineReturns', 'chkLineWbExpenses', 'chkLineDeductions',
+    'chkLineCogs', 'chkLineTax'
+  ];
+
+  const chkAll = document.getElementById('chkLineSelectAll');
+  if (chkAll) {
+    chkAll.checked = lineIds.every(id => document.getElementById(id)?.checked);
+  }
+
   if (dailyTimelineChartInstance) {
     const getVisibility = (id) => {
       const el = document.getElementById(id);
