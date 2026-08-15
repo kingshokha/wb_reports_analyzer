@@ -197,8 +197,65 @@ function showApiTokensStatus(msg, type = "info") {
   if (window.lucide) lucide.createIcons();
 }
 
+function showApiTokensProgress(currentChunkIndex, totalChunks, currentChunk, currentSum, percent) {
+  const el = document.getElementById('apiTokensStatusAlert');
+  if (!el) return;
+
+  el.className = `p-5 rounded-2xl border bg-purple-50/80 text-purple-950 border-purple-200 flex flex-col gap-3 text-xs leading-relaxed transition-all shadow-sm`;
+  el.innerHTML = `
+    <div class="flex items-center justify-between font-bold">
+      <div class="flex items-center gap-2">
+        <i data-lucide="loader-2" class="w-4 h-4 text-purple-600 animate-spin"></i>
+        <span>Выгрузка из WB API: интервал ${currentChunkIndex} из ${totalChunks}</span>
+      </div>
+      <span class="text-purple-700">${percent}%</span>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="w-full bg-purple-200/60 rounded-full h-2 overflow-hidden">
+      <div class="bg-gradient-to-r from-purple-600 to-indigo-600 h-2 rounded-full transition-all duration-300" style="width: ${percent}%"></div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-500 gap-1 pt-1">
+      <div>Текущий период: <strong>${currentChunk.fromFormatted} — ${currentChunk.toFormatted}</strong></div>
+      <div>Накоплено расходов: <strong class="text-purple-900">${formatCurrency(currentSum)}</strong></div>
+    </div>
+  `;
+  el.classList.remove('hidden');
+
+  if (window.lucide) lucide.createIcons();
+}
+
 /**
- * Fetch WB Advertising / Promotion Spend by SKU for the report period
+ * Splits a date range (startDate, endDate) into non-overlapping intervals of max maxDays (default 30 days)
+ */
+function splitDateRangeIntoChunks(startDate, endDate, maxDays = 30) {
+  const chunks = [];
+  let currentStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const finalEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+  while (currentStart <= finalEnd) {
+    let currentEnd = new Date(currentStart.getTime() + (maxDays - 1) * 24 * 60 * 60 * 1000);
+    if (currentEnd > finalEnd) {
+      currentEnd = new Date(finalEnd.getTime());
+    }
+
+    chunks.push({
+      from: toLocalInputDate(currentStart),
+      to: toLocalInputDate(currentEnd),
+      fromFormatted: formatDate(currentStart),
+      toFormatted: formatDate(currentEnd),
+      daysCount: Math.round((currentEnd - currentStart) / (24 * 60 * 60 * 1000)) + 1
+    });
+
+    currentStart = new Date(currentEnd.getTime() + 24 * 60 * 60 * 1000);
+  }
+
+  return chunks;
+}
+
+/**
+ * Fetch WB Advertising / Promotion Spend by SKU for the report period with chunking & rate limit handling
  */
 async function fetchWbAdSpendForReport() {
   const activeTokenObj = getActiveApiTokenObj();
@@ -210,93 +267,132 @@ async function fetchWbAdSpendForReport() {
   const token = activeTokenObj.token.trim();
 
   // Determine date range from input dates or min/max dates of parsed report
-  let fromDateStr = '';
-  let toDateStr = '';
+  let startDate = null;
+  let endDate = null;
 
   const inputFrom = document.getElementById('inputDateFrom')?.value;
   const inputTo = document.getElementById('inputDateTo')?.value;
 
   if (inputFrom && inputTo) {
-    fromDateStr = inputFrom;
-    toDateStr = inputTo;
+    startDate = parseDate(inputFrom);
+    endDate = parseDate(inputTo);
   } else if (minFileDate && maxFileDate) {
-    fromDateStr = toLocalInputDate(minFileDate);
-    toDateStr = toLocalInputDate(maxFileDate);
+    startDate = new Date(minFileDate.getTime());
+    endDate = new Date(maxFileDate.getTime());
   } else {
     // Default to last 30 days
-    const endD = new Date();
-    const startD = new Date(endD.getTime() - 30 * 24 * 60 * 60 * 1000);
-    fromDateStr = toLocalInputDate(startD);
-    toDateStr = toLocalInputDate(endD);
+    endDate = new Date();
+    startDate = new Date(endDate.getTime() - 29 * 24 * 60 * 60 * 1000);
   }
+
+  if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    showApiTokensStatus("Не удалось определить диапазон дат отчета. Выберите период в фильтре дат.", "error");
+    return;
+  }
+
+  if (startDate > endDate) {
+    const tmp = startDate;
+    startDate = endDate;
+    endDate = tmp;
+  }
+
+  // Split into <= 30-day chunks
+  const chunks = splitDateRangeIntoChunks(startDate, endDate, 30);
 
   const btnSync = document.getElementById('btnSyncWbAdSpend');
   if (btnSync) {
     btnSync.disabled = true;
-    btnSync.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Загрузка расходов из WB API...`;
+    btnSync.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Выгрузка расходов...`;
   }
 
-  showApiTokensStatus(`Запрашиваем рекламные расходы с ${fromDateStr} по ${toDateStr} через Wildberries Advert API...`, "info");
+  const allRecords = [];
+  let totalAdSum = 0;
 
   try {
-    const directUrl = `https://advert-api.wildberries.ru/adv/v1/upd?from=${fromDateStr}&to=${toDateStr}`;
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(directUrl)}`;
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const progressPercent = Math.round(((i) / chunks.length) * 100);
 
-    let response = null;
-    let usedProxy = false;
-
-    try {
-      response = await fetch(directUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-    } catch (corsErr) {
-      console.warn("Direct fetch to WB Advert API failed, trying CORS proxy fallback...", corsErr);
-      usedProxy = true;
-      response = await fetch(proxyUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-
-    if (!response || !response.ok) {
-      const errText = response ? await response.text() : 'Сетевая ошибка';
-      let detailedMsg = `Код ответа WB API: ${response ? response.status : 'Ошибка'}. `;
-      if (response && response.status === 401) {
-        detailedMsg += 'Неверный или просроченный токен авторизации. Убедитесь, что у токена включена категория «Продвижение / Реклама».';
-      } else if (response && response.status === 429) {
-        detailedMsg += 'Превышен лимит запросов к API Wildberries. Пожалуйста, подождите 1 минуту и повторите попытку.';
-      } else {
-        detailedMsg += errText ? errText.substring(0, 150) : 'Проверьте токен и доступность API.';
+      // Inform user about current chunk progress
+      showApiTokensProgress(i + 1, chunks.length, chunk, totalAdSum, progressPercent);
+      if (btnSync) {
+        btnSync.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Интервал ${i + 1}/${chunks.length} (${progressPercent}%)...`;
       }
-      showApiTokensStatus(detailedMsg, "error");
+
+      // Respect WB API rate limit: polite delay of 450ms between chunk calls
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 450));
+      }
+
+      const directUrl = `https://advert-api.wildberries.ru/adv/v1/upd?from=${chunk.from}&to=${chunk.to}`;
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(directUrl)}`;
+
+      let response = null;
+      let usedProxy = false;
+
+      const makeRequest = async (targetUrl) => {
+        return fetch(targetUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          }
+        });
+      };
+
+      try {
+        response = await makeRequest(directUrl);
+      } catch (corsErr) {
+        usedProxy = true;
+        response = await makeRequest(proxyUrl);
+      }
+
+      // Handle 429 Too Many Requests with automatic retry after 2.5s
+      if (response && response.status === 429) {
+        showApiTokensStatus(`Лимит запросов WB API: ожидание 2.5 сек перед повтором интервала ${chunk.fromFormatted} — ${chunk.toFormatted}...`, "warning");
+        await new Promise(resolve => setTimeout(resolve, 2500));
+        response = await makeRequest(usedProxy ? proxyUrl : directUrl);
+      }
+
+      if (!response || !response.ok) {
+        const errText = response ? await response.text() : 'Сетевая ошибка';
+        let detailedMsg = `Ошибка при выгрузке интервала ${chunk.fromFormatted} — ${chunk.toFormatted} (Код ${response ? response.status : 'ERR'}): `;
+        if (response && response.status === 401) {
+          detailedMsg += 'Неверный токен. Убедитесь, что токен активен и имеет права категории «Продвижение / Реклама».';
+        } else if (response && response.status === 429) {
+          detailedMsg += 'Превышен лимит запросов к WB API. Подождите минуту и повторите попытку.';
+        } else {
+          detailedMsg += errText ? errText.substring(0, 150) : 'Проверьте доступность API.';
+        }
+        showApiTokensStatus(detailedMsg, "error");
+        return;
+      }
+
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        data.forEach(rec => {
+          allRecords.push(rec);
+          const sumVal = parseNum(rec.updSum !== undefined ? rec.updSum : (rec.sum !== undefined ? rec.sum : rec.cost));
+          if (sumVal > 0) totalAdSum += sumVal;
+        });
+      }
+    }
+
+    // Process and aggregate all records across all chunks
+    if (allRecords.length === 0) {
+      showApiTokensStatus(
+        `Запрос выполнен успешно (${chunks.length} ${chunks.length === 1 ? 'интервал' : 'интервала'}, ${formatDate(startDate)} — ${formatDate(endDate)}), но рекламных списаний в кабинете WB за этот период не найдено.`,
+        "warning"
+      );
       return;
     }
 
-    const data = await response.json();
-
-    if (!Array.isArray(data) || data.length === 0) {
-      showApiTokensStatus(`WB API ответил успешно, но за период с ${fromDateStr} по ${toDateStr} рекламные списания не найдены.`, "warning");
-      return;
-    }
-
-    // Process and aggregate ad spend per SKU / nmId
-    let totalAdSum = 0;
-    let matchedSkusCount = 0;
     const newSkuAdMap = {};
+    let matchedSkusCount = 0;
 
-    data.forEach(item => {
-      // Structure of /adv/v1/upd item: { updTime, advertId, campName, advertType, paymentType, updSum, sum, nmIds: [...] }
+    allRecords.forEach(item => {
       const sumVal = parseNum(item.updSum !== undefined ? item.updSum : (item.sum !== undefined ? item.sum : item.cost));
       if (sumVal <= 0) return;
-
-      totalAdSum += sumVal;
 
       const nmIds = Array.isArray(item.nmIds) && item.nmIds.length > 0 
         ? item.nmIds 
@@ -306,24 +402,22 @@ async function fetchWbAdSpendForReport() {
         const skuStr = String(nmIds[0]).trim();
         newSkuAdMap[skuStr] = (newSkuAdMap[skuStr] || 0) + sumVal;
       } else if (nmIds.length > 1) {
-        // Divide proportionally or equally among SKUs in this campaign
         const perSkuSum = sumVal / nmIds.length;
         nmIds.forEach(id => {
           const skuStr = String(id).trim();
           newSkuAdMap[skuStr] = (newSkuAdMap[skuStr] || 0) + perSkuSum;
         });
       } else if (item.advertId) {
-        // If nmIds not returned in upd, associate with advertId fallback
         const advKey = `adv_${item.advertId}`;
         newSkuAdMap[advKey] = (newSkuAdMap[advKey] || 0) + sumVal;
       }
     });
 
-    // Merge into skuAdSpendMap
+    // Merge into global map and storage
     skuAdSpendMap = newSkuAdMap;
     saveSkuAdSpendToStorage();
 
-    // Apply ad spend to productsList and globalStats.products
+    // Assign to report products
     let totalAssignedToReportSkus = 0;
     for (const sku in globalStats.products) {
       const prod = globalStats.products[sku];
@@ -346,11 +440,11 @@ async function fetchWbAdSpendForReport() {
     if (typeof applyProductFilters === 'function') applyProductFilters();
 
     const reportMatchText = matchedSkusCount > 0 
-      ? ` Сопоставлено с артикулами в текущем отчете: ${matchedSkusCount} SKU на сумму ${formatCurrency(totalAssignedToReportSkus)}.`
+      ? ` Сопоставлено с товарами в текущем отчете: ${matchedSkusCount} SKU на сумму ${formatCurrency(totalAssignedToReportSkus)}.`
       : '';
 
     showApiTokensStatus(
-      `✅ Успешно получены расходы на рекламу за период ${fromDateStr} — ${toDateStr}! Всего расходов в кабинете WB: <strong>${formatCurrency(totalAdSum)}</strong>.${reportMatchText} Данные внесены в столбец «Реклама» таблицы товаров и учтены в расчете чистой прибыли.`,
+      `✅ Успешно выгружено ${chunks.length} ${chunks.length === 1 ? 'интервал' : 'интервалов'} за период <strong>${formatDate(startDate)} — ${formatDate(endDate)}</strong>! Всего рекламных затрат: <strong>${formatCurrency(totalAdSum)}</strong>.${reportMatchText} Данные внесены в столбец «Реклама» таблицы товаров и учтены в расчете чистой прибыли.`,
       "success"
     );
 
