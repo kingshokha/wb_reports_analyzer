@@ -324,3 +324,15 @@ function changeItemsPerPage(val) {
   if (typeof renderProductTable === 'function') renderProductTable();
   if (typeof renderCogsTable === 'function') renderCogsTable();
 }
+
+function lockBodyScroll() {
+  document.body.classList.add('overflow-hidden');
+}
+
+function unlockBodyScroll() {
+  const openModals = document.querySelectorAll('[id^="modal"]:not(.hidden)');
+  if (openModals.length === 0) {
+    document.body.classList.remove('overflow-hidden');
+  }
+}
+

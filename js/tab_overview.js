@@ -343,6 +343,7 @@ function renderLogisticsBreakdown() {
 }
 
 function openTurnoverModal() {
+  if (typeof lockBodyScroll === "function") lockBodyScroll();
   const modal = document.getElementById('modalTurnover');
   if (!modal) return;
 
@@ -363,9 +364,11 @@ function openTurnoverModal() {
 function closeTurnoverModal() {
   const modal = document.getElementById('modalTurnover');
   if (modal) modal.classList.add('hidden');
+  if (typeof unlockBodyScroll === "function") unlockBodyScroll();
 }
 
 function openFeesModal() {
+  if (typeof lockBodyScroll === "function") lockBodyScroll();
   const modal = document.getElementById('modalFees');
   if (!modal) return;
 
@@ -387,9 +390,11 @@ function openFeesModal() {
 function closeFeesModal() {
   const modal = document.getElementById('modalFees');
   if (modal) modal.classList.add('hidden');
+  if (typeof unlockBodyScroll === "function") unlockBodyScroll();
 }
 
 function openTotalWbPayableModal() {
+  if (typeof lockBodyScroll === "function") lockBodyScroll();
   const modal = document.getElementById('modalTotalWbPayable');
   if (!modal) return;
 
@@ -417,9 +422,11 @@ function openTotalWbPayableModal() {
 function closeTotalWbPayableModal() {
   const modal = document.getElementById('modalTotalWbPayable');
   if (modal) modal.classList.add('hidden');
+  if (typeof unlockBodyScroll === "function") unlockBodyScroll();
 }
 
 function openExpensesModal() {
+  if (typeof lockBodyScroll === "function") lockBodyScroll();
   const modal = document.getElementById('modalExpenses');
   if (!modal) return;
   
@@ -461,6 +468,7 @@ function openExpensesModal() {
 function closeExpensesModal() {
   const modal = document.getElementById('modalExpenses');
   if (modal) modal.classList.add('hidden');
+  if (typeof unlockBodyScroll === "function") unlockBodyScroll();
 }
 
 let deductionsSortField = 'date';
@@ -576,6 +584,7 @@ function renderDeductionsTable() {
 }
 
 function openDeductionsModal() {
+  if (typeof lockBodyScroll === "function") lockBodyScroll();
   const modal = document.getElementById('modalDeductions');
   if (!modal) return;
 
@@ -592,9 +601,11 @@ function openDeductionsModal() {
 function closeDeductionsModal() {
   const modal = document.getElementById('modalDeductions');
   if (modal) modal.classList.add('hidden');
+  if (typeof unlockBodyScroll === "function") unlockBodyScroll();
 }
 
 function openReturnsModal() {
+  if (typeof lockBodyScroll === "function") lockBodyScroll();
   const modal = document.getElementById('modalReturns');
   if (modal) {
     modal.classList.remove('hidden');
@@ -606,6 +617,7 @@ function openReturnsModal() {
 function closeReturnsModal() {
   const modal = document.getElementById('modalReturns');
   if (modal) modal.classList.add('hidden');
+  if (typeof unlockBodyScroll === "function") unlockBodyScroll();
 }
 
 function renderReturnsModalTable() {
@@ -649,6 +661,7 @@ function renderReturnsModalTable() {
 }
 
 function openSppModal() {
+  if (typeof lockBodyScroll === "function") lockBodyScroll();
   const modal = document.getElementById('modalSpp');
   if (modal) {
     modal.classList.remove('hidden');
@@ -660,6 +673,7 @@ function openSppModal() {
 function closeSppModal() {
   const modal = document.getElementById('modalSpp');
   if (modal) modal.classList.add('hidden');
+  if (typeof unlockBodyScroll === "function") unlockBodyScroll();
 }
 
 function renderSppModalTable() {
@@ -934,7 +948,7 @@ function renderDailyTimelineChart() {
       borderColor: '#f43f5e',
       backgroundColor: 'transparent',
       borderWidth: 2,
-      borderDash: [5, 4],
+      
       pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#f43f5e',
@@ -967,7 +981,7 @@ function renderDailyTimelineChart() {
       borderColor: '#b45309',
       backgroundColor: 'transparent',
       borderWidth: 2,
-      borderDash: [6, 3],
+      
       pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#b45309',

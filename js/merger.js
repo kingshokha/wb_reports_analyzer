@@ -3,6 +3,7 @@
  */
 
 function openMergerModal() {
+  if (typeof lockBodyScroll === "function") lockBodyScroll();
   const modal = document.getElementById('modalMerger');
   if (modal) {
     modal.classList.remove('hidden');
@@ -13,9 +14,8 @@ function openMergerModal() {
 
 function closeMergerModal() {
   const modal = document.getElementById('modalMerger');
-  if (modal) {
-    modal.classList.add('hidden');
-  }
+  if (modal) modal.classList.add('hidden');
+  if (typeof unlockBodyScroll === "function") unlockBodyScroll();
 }
 
 async function addFilesToMerger(fileList) {

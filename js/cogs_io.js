@@ -107,6 +107,7 @@ function fallbackCopyTextToClipboard(text, count) {
 }
 
 function openCogsImportModal() {
+  if (typeof lockBodyScroll === "function") lockBodyScroll();
   const modal = document.getElementById('modalCogsImport');
   if (!modal) return;
 
@@ -126,6 +127,7 @@ function openCogsImportModal() {
 function closeCogsImportModal() {
   const modal = document.getElementById('modalCogsImport');
   if (modal) modal.classList.add('hidden');
+  if (typeof unlockBodyScroll === "function") unlockBodyScroll();
 }
 
 async function pasteFromClipboardToCogsImport() {
