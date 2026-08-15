@@ -13,6 +13,7 @@ let skuTableColumns = {
   comm_acq: true,
   logistics: true,
   cogs: true,
+  ad_spend: true,
   tax: true,
   payout: true
 };
@@ -148,6 +149,9 @@ function toggleSkuColumn(colName) {
     const chkAll = document.getElementById('col_chk_all');
     if (chkAll) chkAll.checked = allChecked;
 
+    const colChk = document.getElementById(`col_chk_${colName}`);
+    if (colChk) colChk.checked = skuTableColumns[colName];
+
     renderProductTableHeaders();
     renderProductTable();
   }
@@ -169,8 +173,9 @@ function renderProductTableHeaders() {
     { id: 'comm_acq', title: 'Комиссия и Эквайринг', field: 'comm_acq', alignRight: true },
     { id: 'logistics', title: 'Логистика (AK)', field: 'logistics', alignRight: true },
     { id: 'cogs', title: 'Себестоимость', field: 'cogs', alignRight: true },
+    { id: 'ad_spend', title: 'Реклама (₽)', field: 'ad_spend', alignRight: true },
     { id: 'tax', title: 'Налог (₽)', field: 'tax', alignRight: true },
-    { id: 'payout', title: 'Чистая прибыль', field: 'payout', alignRight: true, tooltip: 'Без учета логистики' }
+    { id: 'payout', title: 'Чистая прибыль', field: 'payout', alignRight: true, tooltip: 'С учетом всех расходов, себестоимости и рекламы' }
   ];
 
   cols.forEach(col => {
@@ -242,10 +247,16 @@ function sortProducts(field, preventToggle = false) {
       valA = a.soldQty * ((skuCogsMap[a.sku] || 0) + (skuFfMap[a.sku] || 0));
       valB = b.soldQty * ((skuCogsMap[b.sku] || 0) + (skuFfMap[b.sku] || 0));
     }
+    else if (field === 'ad_spend') {
+      valA = (a.adSpend !== undefined ? a.adSpend : (skuAdSpendMap[a.sku] || 0));
+      valB = (b.adSpend !== undefined ? b.adSpend : (skuAdSpendMap[b.sku] || 0));
+    }
     else if (field === 'tax') { valA = a.taxSum || 0; valB = b.taxSum || 0; }
     else if (field === 'payout') {
-      valA = a.turnover - (a.commission + a.acquiring) - (a.logistics || 0) - (a.soldQty * ((skuCogsMap[a.sku] || 0) + (skuFfMap[a.sku] || 0))) - (a.taxSum || 0);
-      valB = b.turnover - (b.commission + b.acquiring) - (b.logistics || 0) - (b.soldQty * ((skuCogsMap[b.sku] || 0) + (skuFfMap[b.sku] || 0))) - (b.taxSum || 0);
+      const adA = (a.adSpend !== undefined ? a.adSpend : (skuAdSpendMap[a.sku] || 0));
+      const adB = (b.adSpend !== undefined ? b.adSpend : (skuAdSpendMap[b.sku] || 0));
+      valA = a.turnover - (a.commission + a.acquiring) - (a.logistics || 0) - (a.soldQty * ((skuCogsMap[a.sku] || 0) + (skuFfMap[a.sku] || 0))) - (a.taxSum || 0) - adA;
+      valB = b.turnover - (b.commission + b.acquiring) - (b.logistics || 0) - (b.soldQty * ((skuCogsMap[b.sku] || 0) + (skuFfMap[b.sku] || 0))) - (b.taxSum || 0) - adB;
     }
 
     return currentSortDirection === 'asc' ? valA - valB : valB - valA;
@@ -271,6 +282,7 @@ function renderProductTable() {
     let totalCommAcq = 0;
     let totalLogisticsSum = 0;
     let totalCogsSum = 0;
+    let totalAdSpendSum = 0;
     let totalTaxSum = 0;
     let totalProfit = 0;
 
@@ -286,9 +298,12 @@ function renderProductTable() {
       const unitFf = skuFfMap[p.sku] || 0;
       const itemCogs = p.soldQty * (unitCogs + unitFf);
       totalCogsSum += itemCogs;
+      const itemAdSpend = p.adSpend !== undefined ? p.adSpend : (skuAdSpendMap[p.sku] || 0);
+      p.adSpend = itemAdSpend;
+      totalAdSpendSum += itemAdSpend;
       const itemTax = (p.taxSum || 0);
       totalTaxSum += itemTax;
-      const itemProfit = p.turnover - commAcq - itemLogistics - itemCogs - itemTax;
+      const itemProfit = p.turnover - commAcq - itemLogistics - itemCogs - itemTax - itemAdSpend;
       p.profit = itemProfit;
       totalProfit += itemProfit;
     });
@@ -332,6 +347,9 @@ function renderProductTable() {
     if (skuTableColumns.cogs) {
       summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-purple-950 font-extrabold">${formatCurrency(totalCogsSum)}</td>`;
     }
+    if (skuTableColumns.ad_spend) {
+      summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-purple-950 font-extrabold">${formatCurrency(totalAdSpendSum)}</td>`;
+    }
     if (skuTableColumns.tax) {
       summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-amber-800 font-extrabold">${formatCurrency(totalTaxSum)}</td>`;
     }
@@ -355,12 +373,17 @@ function renderProductTable() {
     const unitFf = skuFfMap[p.sku] || 0;
     const totalUnit = unitCogs + unitFf;
     const totalCogs = p.soldQty * totalUnit;
+    const itemAdSpend = p.adSpend !== undefined ? p.adSpend : (skuAdSpendMap[p.sku] || 0);
     const itemTax = p.taxSum || 0;
-    const itemProfit = p.profit !== undefined ? p.profit : (p.turnover - commAcqSum - itemLogistics - totalCogs - itemTax);
+    const itemProfit = p.profit !== undefined ? p.profit : (p.turnover - commAcqSum - itemLogistics - totalCogs - itemTax - itemAdSpend);
     
     const cogsLabel = totalUnit > 0 
       ? `<span class="font-semibold text-slate-800">${formatCurrency(totalCogs)}</span>`
       : `<span class="text-slate-400 font-normal">Не указана</span>`;
+
+    const adSpendLabel = itemAdSpend > 0
+      ? `<span class="font-semibold text-rose-600">${formatCurrency(itemAdSpend)}</span>`
+      : `<span class="text-slate-400 font-normal">0.00 ₽</span>`;
 
     const tr = document.createElement('tr');
     tr.className = "hover:bg-slate-50 transition-colors text-slate-700 text-xs";
@@ -395,6 +418,9 @@ function renderProductTable() {
     }
     if (skuTableColumns.cogs) {
       rowCellsHTML += `<td class="py-3 px-5 text-right">${cogsLabel}</td>`;
+    }
+    if (skuTableColumns.ad_spend) {
+      rowCellsHTML += `<td class="py-3 px-5 text-right">${adSpendLabel}</td>`;
     }
     if (skuTableColumns.tax) {
       rowCellsHTML += `<td class="py-3 px-5 text-right font-medium text-amber-800">${formatCurrency(itemTax)}</td>`;
@@ -431,7 +457,7 @@ function exportSKUTableCSV() {
   if (productsList.length === 0) return;
   
   let csvContent = "\uFEFF"; 
-  csvContent += "Артикул WB (D);Артикул продавца (F);Категория (C);Название (G);Продано (шт);Возвраты (шт);Сумма выкупа (T);Комиссия и Эквайринг;Логистика (AK);Себестоимость;Налог (₽);Чистая прибыль\r\n";
+  csvContent += "Артикул WB (D);Артикул продавца (F);Категория (C);Название (G);Продано (шт);Возвраты (шт);Сумма выкупа (T);Комиссия и Эквайринг;Логистика (AK);Себестоимость;Реклама (₽);Налог (₽);Чистая прибыль\r\n";
   
   productsList.forEach(p => {
     const commAcqSum = p.commission + p.acquiring;
@@ -439,8 +465,9 @@ function exportSKUTableCSV() {
     const unitCogs = skuCogsMap[p.sku] || 0;
     const unitFf = skuFfMap[p.sku] || 0;
     const totalCogs = p.soldQty * (unitCogs + unitFf);
+    const itemAdSpend = p.adSpend !== undefined ? p.adSpend : (skuAdSpendMap[p.sku] || 0);
     const taxVal = p.taxSum || 0;
-    const itemProfit = p.profit !== undefined ? p.profit : (p.turnover - commAcqSum - itemLogistics - totalCogs - taxVal);
+    const itemProfit = p.profit !== undefined ? p.profit : (p.turnover - commAcqSum - itemLogistics - totalCogs - taxVal - itemAdSpend);
 
     const row = [
       `"${p.sku.replace(/"/g, '""')}"`,
@@ -453,6 +480,7 @@ function exportSKUTableCSV() {
       commAcqSum.toFixed(2),
       (p.logistics || 0).toFixed(2),
       totalCogs.toFixed(2),
+      itemAdSpend.toFixed(2),
       taxVal.toFixed(2),
       itemProfit.toFixed(2)
     ];

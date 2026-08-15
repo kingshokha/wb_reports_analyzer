@@ -47,12 +47,18 @@ let COL_MAP = {
 
 const LOCAL_STORAGE_COGS_KEY = 'wb_reports_sku_cogs_map';
 const LOCAL_STORAGE_FF_KEY = 'wb_reports_sku_ff_map';
+const LOCAL_STORAGE_API_TOKENS_KEY = 'wb_analytics_api_tokens';
+const LOCAL_STORAGE_ACTIVE_TOKEN_ID_KEY = 'wb_analytics_active_token_id';
+const LOCAL_STORAGE_SKU_AD_SPEND_KEY = 'wb_analytics_sku_ad_spend';
 
 let lastLoadedRows = null;
 let minFileDate = null;
 let maxFileDate = null;
 let skuCogsMap = {};
 let skuFfMap = {};
+let skuAdSpendMap = {};
+let apiTokensList = [];
+let activeApiTokenId = null;
 let mergerFiles = [];
 
 let globalStats = {
@@ -119,6 +125,57 @@ function saveSkuCogsToStorage() {
     localStorage.setItem(LOCAL_STORAGE_FF_KEY, JSON.stringify(skuFfMap));
   } catch (e) {
     console.error("Ошибка сохранения себестоимости и ФФ в localStorage:", e);
+  }
+}
+
+function loadApiTokensFromStorage() {
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_API_TOKENS_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) apiTokensList = parsed;
+    }
+    const savedActiveId = localStorage.getItem(LOCAL_STORAGE_ACTIVE_TOKEN_ID_KEY);
+    if (savedActiveId) {
+      activeApiTokenId = savedActiveId;
+    } else if (apiTokensList.length > 0) {
+      activeApiTokenId = apiTokensList[0].id;
+    }
+  } catch (e) {
+    console.error("Ошибка чтения API токенов из localStorage:", e);
+  }
+}
+
+function saveApiTokensToStorage() {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_API_TOKENS_KEY, JSON.stringify(apiTokensList));
+    if (activeApiTokenId) {
+      localStorage.setItem(LOCAL_STORAGE_ACTIVE_TOKEN_ID_KEY, activeApiTokenId);
+    } else {
+      localStorage.removeItem(LOCAL_STORAGE_ACTIVE_TOKEN_ID_KEY);
+    }
+  } catch (e) {
+    console.error("Ошибка сохранения API токенов в localStorage:", e);
+  }
+}
+
+function loadSkuAdSpendFromStorage() {
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_SKU_AD_SPEND_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object') skuAdSpendMap = parsed;
+    }
+  } catch (e) {
+    console.error("Ошибка чтения расходов рекламы из localStorage:", e);
+  }
+}
+
+function saveSkuAdSpendToStorage() {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_SKU_AD_SPEND_KEY, JSON.stringify(skuAdSpendMap));
+  } catch (e) {
+    console.error("Ошибка сохранения расходов рекламы в localStorage:", e);
   }
 }
 
