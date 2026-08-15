@@ -1,3 +1,18 @@
+
+function getProductAdSpend(p) {
+  if (!p) return 0;
+  const s = String(p.sku || '').trim();
+  const numS = String(parseInt(s, 10) || '');
+  const supp = String(p.supplierSku || '').trim();
+
+  const fromMap = (typeof skuAdSpendMap !== 'undefined' && skuAdSpendMap)
+    ? (skuAdSpendMap[s] || skuAdSpendMap[numS] || skuAdSpendMap[supp] || skuAdSpendMap[p.sku] || 0)
+    : 0;
+
+  if (fromMap > 0) return fromMap;
+  return p.adSpend || 0;
+}
+
 /**
  * WB Finance Analytics - Products by SKU Tab Logic
  */
@@ -248,13 +263,13 @@ function sortProducts(field, preventToggle = false) {
       valB = b.soldQty * ((skuCogsMap[b.sku] || 0) + (skuFfMap[b.sku] || 0));
     }
     else if (field === 'ad_spend') {
-      valA = (a.adSpend !== undefined ? a.adSpend : (skuAdSpendMap[a.sku] || 0));
-      valB = (b.adSpend !== undefined ? b.adSpend : (skuAdSpendMap[b.sku] || 0));
+      valA = getProductAdSpend(a);
+      valB = getProductAdSpend(b);
     }
     else if (field === 'tax') { valA = a.taxSum || 0; valB = b.taxSum || 0; }
     else if (field === 'payout') {
-      const adA = (a.adSpend !== undefined ? a.adSpend : (skuAdSpendMap[a.sku] || 0));
-      const adB = (b.adSpend !== undefined ? b.adSpend : (skuAdSpendMap[b.sku] || 0));
+      const adA = getProductAdSpend(a);
+      const adB = getProductAdSpend(b);
       valA = a.turnover - (a.commission + a.acquiring) - (a.logistics || 0) - (a.soldQty * ((skuCogsMap[a.sku] || 0) + (skuFfMap[a.sku] || 0))) - (a.taxSum || 0) - adA;
       valB = b.turnover - (b.commission + b.acquiring) - (b.logistics || 0) - (b.soldQty * ((skuCogsMap[b.sku] || 0) + (skuFfMap[b.sku] || 0))) - (b.taxSum || 0) - adB;
     }
@@ -298,7 +313,7 @@ function renderProductTable() {
       const unitFf = skuFfMap[p.sku] || 0;
       const itemCogs = p.soldQty * (unitCogs + unitFf);
       totalCogsSum += itemCogs;
-      const itemAdSpend = p.adSpend !== undefined ? p.adSpend : (skuAdSpendMap[p.sku] || 0);
+      const itemAdSpend = getProductAdSpend(p);
       p.adSpend = itemAdSpend;
       totalAdSpendSum += itemAdSpend;
       const itemTax = (p.taxSum || 0);
@@ -373,7 +388,7 @@ function renderProductTable() {
     const unitFf = skuFfMap[p.sku] || 0;
     const totalUnit = unitCogs + unitFf;
     const totalCogs = p.soldQty * totalUnit;
-    const itemAdSpend = p.adSpend !== undefined ? p.adSpend : (skuAdSpendMap[p.sku] || 0);
+    const itemAdSpend = getProductAdSpend(p);
     const itemTax = p.taxSum || 0;
     const itemProfit = p.profit !== undefined ? p.profit : (p.turnover - commAcqSum - itemLogistics - totalCogs - itemTax - itemAdSpend);
     
@@ -465,7 +480,7 @@ function exportSKUTableCSV() {
     const unitCogs = skuCogsMap[p.sku] || 0;
     const unitFf = skuFfMap[p.sku] || 0;
     const totalCogs = p.soldQty * (unitCogs + unitFf);
-    const itemAdSpend = p.adSpend !== undefined ? p.adSpend : (skuAdSpendMap[p.sku] || 0);
+    const itemAdSpend = getProductAdSpend(p);
     const taxVal = p.taxSum || 0;
     const itemProfit = p.profit !== undefined ? p.profit : (p.turnover - commAcqSum - itemLogistics - totalCogs - taxVal - itemAdSpend);
 

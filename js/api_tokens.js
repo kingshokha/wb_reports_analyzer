@@ -308,27 +308,54 @@ function splitDateRangeIntoChunks(startDate, endDate, maxDays = 30) {
 }
 
 /**
- * Helper to make API requests with CORS proxy fallback
+ * Helper to make API requests with multiple CORS proxies fallback
  */
 async function fetchWbApi(url, token, options = {}) {
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
   const headers = {
     'Authorization': token,
     'Content-Type': 'application/json',
     ...(options.headers || {})
   };
 
+  // 1. Direct fetch
   try {
     const res = await fetch(url, { ...options, headers });
-    return res;
+    if (res && res.status !== 0) return res;
   } catch (corsErr) {
-    console.warn("Direct fetch to WB API failed, using CORS proxy:", corsErr);
-    return await fetch(proxyUrl, { ...options, headers });
+    console.warn("Direct fetch failed for " + url + ", trying proxy 1...", corsErr);
+  }
+
+  // 2. Proxy 1: corsproxy.io
+  try {
+    const proxy1 = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    const res = await fetch(proxy1, { ...options, headers });
+    if (res && res.status !== 0) return res;
+  } catch (e1) {
+    console.warn("Proxy 1 failed, trying proxy 2...", e1);
+  }
+
+  // 3. Proxy 2: allorigins.win
+  try {
+    const proxy2 = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxy2, { ...options, headers });
+    if (res && res.status !== 0) return res;
+  } catch (e2) {
+    console.warn("Proxy 2 failed, trying proxy 3...", e2);
+  }
+
+  // 4. Proxy 3: codetabs
+  try {
+    const proxy3 = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
+    const res = await fetch(proxy3, { ...options, headers });
+    return res;
+  } catch (e3) {
+    console.error("All proxies failed for " + url + ":", e3);
+    throw e3;
   }
 }
 
 /**
- * Method 1: GET https://advert-api.wildberries.ru/api/advert/v2/adverts
+ * Method 1: GET https://advert-api.wildberries.ru/api/advert/v2/adverts (and fallbacks)
  * Retrieves all campaigns, their IDs, and all associated SKU/nmId articles.
  */
 async function fetchAdvertsV2Campaigns(token, rawCollector) {
@@ -347,14 +374,12 @@ async function fetchAdvertsV2Campaigns(token, rawCollector) {
     };
 
     const nms = [];
-    // Direct nms/nm/nmId/nm_id
     if (Array.isArray(adv.nms)) nms.push(...adv.nms);
     if (Array.isArray(adv.nm)) nms.push(...adv.nm);
     if (Array.isArray(adv.nmIds)) nms.push(...adv.nmIds);
     if (adv.nmId) nms.push(adv.nmId);
     if (adv.nm_id) nms.push(adv.nm_id);
 
-    // params
     if (Array.isArray(adv.params)) {
       adv.params.forEach(p => {
         if (Array.isArray(p.nms)) nms.push(...p.nms);
@@ -364,14 +389,12 @@ async function fetchAdvertsV2Campaigns(token, rawCollector) {
       });
     }
 
-    // autoParams
     if (adv.autoParams) {
       if (Array.isArray(adv.autoParams.nms)) nms.push(...adv.autoParams.nms);
       if (Array.isArray(adv.autoParams.nm)) nms.push(...adv.autoParams.nm);
       if (adv.autoParams.nmId) nms.push(adv.autoParams.nmId);
     }
 
-    // unitedParams
     if (Array.isArray(adv.unitedParams)) {
       adv.unitedParams.forEach(p => {
         if (Array.isArray(p.nms)) nms.push(...p.nms);
@@ -380,7 +403,6 @@ async function fetchAdvertsV2Campaigns(token, rawCollector) {
       });
     }
 
-    // cards / items
     if (Array.isArray(adv.cards)) {
       adv.cards.forEach(c => {
         if (c.nmId) nms.push(c.nmId);
@@ -395,10 +417,14 @@ async function fetchAdvertsV2Campaigns(token, rawCollector) {
     }
 
     const cleanSkus = Array.from(new Set(nms.map(n => String(n).trim()))).filter(Boolean);
-    campArticlesMap[advId] = cleanSkus;
+    if (!campArticlesMap[advId] || campArticlesMap[advId].length === 0) {
+      campArticlesMap[advId] = cleanSkus;
+    } else if (cleanSkus.length > 0) {
+      campArticlesMap[advId] = Array.from(new Set([...campArticlesMap[advId], ...cleanSkus]));
+    }
   };
 
-  // 1. Primary: https://advert-api.wildberries.ru/api/advert/v2/adverts
+  // 1. Primary endpoint: https://advert-api.wildberries.ru/api/advert/v2/adverts
   try {
     const resV2 = await fetchWbApi('https://advert-api.wildberries.ru/api/advert/v2/adverts', token);
     if (resV2 && resV2.ok) {
@@ -421,7 +447,7 @@ async function fetchAdvertsV2Campaigns(token, rawCollector) {
     if (rawCollector) rawCollector['api_advert_v2_adverts_exception'] = errV2.message;
   }
 
-  // 2. Fallback: https://advert-api.wildberries.ru/adv/v1/promotion/adverts
+  // 2. Supplementary endpoint: https://advert-api.wildberries.ru/adv/v1/promotion/adverts
   try {
     const resV1 = await fetchWbApi('https://advert-api.wildberries.ru/adv/v1/promotion/adverts', token);
     if (resV1 && resV1.ok) {
@@ -435,13 +461,67 @@ async function fetchAdvertsV2Campaigns(token, rawCollector) {
     console.warn("adv/v1/promotion/adverts call failed:", errV1);
   }
 
+  // 3. Supplementary endpoint: https://advert-api.wildberries.ru/adv/v0/allcamps
+  try {
+    const resV0 = await fetchWbApi('https://advert-api.wildberries.ru/adv/v0/allcamps', token);
+    if (resV0 && resV0.ok) {
+      const dataV0 = await resV0.json();
+      if (rawCollector) rawCollector['adv_v0_allcamps'] = dataV0;
+      if (Array.isArray(dataV0)) {
+        dataV0.forEach(processAdvert);
+      } else if (dataV0 && typeof dataV0 === 'object') {
+        Object.values(dataV0).forEach(val => {
+          if (Array.isArray(val)) val.forEach(processAdvert);
+        });
+      }
+    }
+  } catch (errV0) {
+    console.warn("adv/v0/allcamps call failed:", errV0);
+  }
+
   return { campArticlesMap, campInfoMap };
+}
+
+/**
+ * Apply all SKU advertising spends to data structures and re-render tables
+ */
+function updateAllProductAdSpends() {
+  for (const sku in globalStats.products) {
+    const prod = globalStats.products[sku];
+    const cleanSku = String(sku || '').trim();
+    const numSku = String(parseInt(cleanSku, 10) || '');
+    const cleanSupp = String(prod.supplierSku || '').trim();
+    const ad = skuAdSpendMap[cleanSku] || skuAdSpendMap[numSku] || skuAdSpendMap[cleanSupp] || skuAdSpendMap[sku] || 0;
+    prod.adSpend = ad;
+  }
+
+  if (Array.isArray(productsList)) {
+    productsList.forEach(p => {
+      const cleanSku = String(p.sku || '').trim();
+      const numSku = String(parseInt(cleanSku, 10) || '');
+      const cleanSupp = String(p.supplierSku || '').trim();
+      p.adSpend = skuAdSpendMap[cleanSku] || skuAdSpendMap[numSku] || skuAdSpendMap[cleanSupp] || skuAdSpendMap[p.sku] || 0;
+    });
+  }
+
+  if (Array.isArray(filteredProducts)) {
+    filteredProducts.forEach(p => {
+      const cleanSku = String(p.sku || '').trim();
+      const numSku = String(parseInt(cleanSku, 10) || '');
+      const cleanSupp = String(p.supplierSku || '').trim();
+      p.adSpend = skuAdSpendMap[cleanSku] || skuAdSpendMap[numSku] || skuAdSpendMap[cleanSupp] || skuAdSpendMap[p.sku] || 0;
+    });
+  }
+
+  if (typeof updateFinancials === 'function') updateFinancials();
+  if (typeof renderProductTable === 'function') renderProductTable();
+  if (typeof applyProductFilters === 'function') applyProductFilters();
 }
 
 /**
  * Full Pipeline:
  * 1. GET https://advert-api.wildberries.ru/api/advert/v2/adverts -> IDs & Articles
- * 2. GET https://advert-api.wildberries.ru/adv/v3/fullstats -> Campaign Spends
+ * 2. GET https://advert-api.wildberries.ru/adv/v3/fullstats & /adv/v1/upd -> Campaign Spends
  * 3. Match Campaign IDs from (2) with (1) and distribute spends to SKUs
  */
 async function fetchWbAdSpendForReport() {
@@ -504,15 +584,15 @@ async function fetchWbAdSpendForReport() {
   const { campArticlesMap, campInfoMap } = await fetchAdvertsV2Campaigns(token, rawPayload.rawResponses);
   rawPayload['matched_campaigns_to_articles'] = campArticlesMap;
   
-  const allCampaignIds = Object.keys(campArticlesMap);
-  console.log(`Found ${allCampaignIds.length} campaigns from api/advert/v2/adverts:`, campArticlesMap);
+  const knownCampaignIds = new Set(Object.keys(campArticlesMap));
+  console.log(`Found ${knownCampaignIds.size} campaigns from api/advert/v2/adverts:`, campArticlesMap);
 
   const campaignSpendsMap = {};
   const directSkuSpendsMap = {};
   let totalAdSum = 0;
 
   try {
-    // STEP 2: Query GET https://advert-api.wildberries.ru/adv/v3/fullstats
+    // STEP 2: Query GET https://advert-api.wildberries.ru/adv/v3/fullstats & /adv/v1/upd
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       const progressPercent = Math.round(((i) / chunks.length) * 100);
@@ -526,12 +606,34 @@ async function fetchWbAdSpendForReport() {
         await new Promise(resolve => setTimeout(resolve, 450));
       }
 
-      let chunkFullstatsLoaded = false;
+      // 2A. Query /adv/v1/upd for this chunk to discover any active or historical campaign IDs
+      try {
+        const updUrl = `https://advert-api.wildberries.ru/adv/v1/upd?from=${chunk.from}&to=${chunk.to}`;
+        const resUpd = await fetchWbApi(updUrl, token);
+        if (resUpd && resUpd.ok) {
+          const dataUpd = await resUpd.json();
+          rawPayload.rawResponses[`v1_upd_${chunk.from}_${chunk.to}`] = dataUpd;
+          if (Array.isArray(dataUpd) && dataUpd.length > 0) {
+            dataUpd.forEach(updItem => {
+              const campId = String(updItem.advertId || updItem.id || '').trim();
+              if (campId) knownCampaignIds.add(campId);
+              const uSum = parseNum(updItem.updSum !== undefined ? updItem.updSum : (updItem.sum || updItem.cost));
+              if (campId && uSum > 0) {
+                campaignSpendsMap[campId] = (campaignSpendsMap[campId] || 0) + uSum;
+                totalAdSum += uSum;
+              }
+            });
+          }
+        }
+      } catch (uErr) {
+        console.warn("v1/upd call failed for chunk:", uErr);
+      }
 
-      // Query fullstats for campaigns in batches of up to 50
-      if (allCampaignIds.length > 0) {
-        for (let b = 0; b < allCampaignIds.length; b += 50) {
-          const batchIds = allCampaignIds.slice(b, b + 50);
+      // 2B. Query v3/fullstats for all known campaign IDs
+      const allCampList = Array.from(knownCampaignIds);
+      if (allCampList.length > 0) {
+        for (let b = 0; b < allCampList.length; b += 50) {
+          const batchIds = allCampList.slice(b, b + 50);
           const v3Url = `https://advert-api.wildberries.ru/adv/v3/fullstats?ids=${batchIds.join(',')}&from=${chunk.from}&to=${chunk.to}`;
           
           try {
@@ -546,12 +648,11 @@ async function fetchWbAdSpendForReport() {
               rawPayload.rawResponses[`v3_fullstats_${chunk.from}_${chunk.to}_batch${b}`] = dataV3;
               
               if (Array.isArray(dataV3) && dataV3.length > 0) {
-                chunkFullstatsLoaded = true;
                 dataV3.forEach(campItem => {
                   const campId = String(campItem.advertId || campItem.id || campItem.advert_id || '').trim();
                   if (!campId) return;
 
-                  let itemSum = 0;
+                  let itemDirectSum = 0;
 
                   // 1. Direct nm spends in days -> apps -> nm
                   if (Array.isArray(campItem.days)) {
@@ -564,7 +665,7 @@ async function fetchWbAdSpendForReport() {
                               const nSum = parseNum(n.sum !== undefined ? n.sum : (n.cost || n.spend));
                               if (nmId && nSum > 0) {
                                 directSkuSpendsMap[nmId] = (directSkuSpendsMap[nmId] || 0) + nSum;
-                                itemSum += nSum;
+                                itemDirectSum += nSum;
                               }
                             });
                           }
@@ -577,7 +678,7 @@ async function fetchWbAdSpendForReport() {
                           const nSum = parseNum(n.sum !== undefined ? n.sum : (n.cost || n.spend));
                           if (nmId && nSum > 0) {
                             directSkuSpendsMap[nmId] = (directSkuSpendsMap[nmId] || 0) + nSum;
-                            itemSum += nSum;
+                            itemDirectSum += nSum;
                           }
                         });
                       }
@@ -591,18 +692,18 @@ async function fetchWbAdSpendForReport() {
                       const bSum = parseNum(b.sum !== undefined ? b.sum : (b.cost || b.spend));
                       if (nmId && bSum > 0) {
                         directSkuSpendsMap[nmId] = (directSkuSpendsMap[nmId] || 0) + bSum;
-                        itemSum += bSum;
+                        itemDirectSum += bSum;
                       }
                     });
                   }
 
-                  // 3. Fallback to top-level sum of campaign if inner nms were not specified
+                  // Top level sum
                   const topCampSum = parseNum(campItem.sum !== undefined ? campItem.sum : (campItem.cost || campItem.spend));
-                  const finalCampSum = itemSum > 0 ? itemSum : topCampSum;
+                  const finalSum = itemDirectSum > 0 ? itemDirectSum : topCampSum;
 
-                  if (finalCampSum > 0) {
-                    campaignSpendsMap[campId] = (campaignSpendsMap[campId] || 0) + finalCampSum;
-                    totalAdSum += finalCampSum;
+                  if (finalSum > 0 && !campaignSpendsMap[campId]) {
+                    campaignSpendsMap[campId] = finalSum;
+                    totalAdSum += finalSum;
                   }
                 });
               }
@@ -618,33 +719,10 @@ async function fetchWbAdSpendForReport() {
           }
         }
       }
-
-      // Supplementary fallback: adv/v1/upd to ensure no write-offs are missed
-      if (!chunkFullstatsLoaded) {
-        const updUrl = `https://advert-api.wildberries.ru/adv/v1/upd?from=${chunk.from}&to=${chunk.to}`;
-        try {
-          let resUpd = await fetchWbApi(updUrl, token);
-          if (resUpd && resUpd.ok) {
-            const dataUpd = await resUpd.json();
-            rawPayload.rawResponses[`v1_upd_${chunk.from}_${chunk.to}`] = dataUpd;
-            if (Array.isArray(dataUpd) && dataUpd.length > 0) {
-              dataUpd.forEach(updItem => {
-                const campId = String(updItem.advertId || updItem.id || '').trim();
-                const uSum = parseNum(updItem.updSum !== undefined ? updItem.updSum : (updItem.sum || updItem.cost));
-                if (campId && uSum > 0) {
-                  campaignSpendsMap[campId] = (campaignSpendsMap[campId] || 0) + uSum;
-                  totalAdSum += uSum;
-                }
-              });
-            }
-          }
-        } catch (uErr) {
-          console.warn("v1/upd fallback failed:", uErr);
-        }
-      }
     }
 
     rawPayload['campaign_spends_by_id'] = campaignSpendsMap;
+    rawPayload['direct_sku_spends'] = directSkuSpendsMap;
 
     // STEP 3: MATCHING (Сопоставление ID кампаний с артикулами из api/advert/v2/adverts)
     const newSkuAdMap = {};
@@ -662,7 +740,6 @@ async function fetchWbAdSpendForReport() {
       const skus = campArticlesMap[advId] || [];
 
       if (skus.length > 0) {
-        // If direct SKU spends were not found for this campaign, distribute evenly
         const alreadyAssigned = skus.reduce((sum, s) => sum + (directSkuSpendsMap[s] || 0), 0);
         if (alreadyAssigned < campSpend) {
           const remaining = campSpend - alreadyAssigned;
@@ -672,7 +749,6 @@ async function fetchWbAdSpendForReport() {
           });
         }
       } else {
-        // Check regex for article numbers in campaign name
         const info = campInfoMap[advId];
         let foundRegexNms = [];
         if (info && info.name) {
@@ -708,34 +784,18 @@ async function fetchWbAdSpendForReport() {
     skuAdSpendMap = newSkuAdMap;
     saveSkuAdSpendToStorage();
 
+    // Update state and UI
+    updateAllProductAdSpends();
+
     let matchedSkusCount = 0;
     let totalAssignedToReportSkus = 0;
 
-    // Apply to globalStats.products
     for (const sku in globalStats.products) {
       const prod = globalStats.products[sku];
-      const cleanSku = String(sku).trim();
-      const ad = skuAdSpendMap[cleanSku] || skuAdSpendMap[sku] || 0;
-      prod.adSpend = ad;
-      if (ad > 0) {
+      if ((prod.adSpend || 0) > 0) {
         matchedSkusCount++;
-        totalAssignedToReportSkus += ad;
+        totalAssignedToReportSkus += prod.adSpend;
       }
-    }
-
-    // Apply to productsList & filteredProducts
-    if (Array.isArray(productsList)) {
-      productsList.forEach(p => {
-        const cleanSku = String(p.sku).trim();
-        p.adSpend = skuAdSpendMap[cleanSku] || skuAdSpendMap[p.sku] || 0;
-      });
-    }
-
-    if (Array.isArray(filteredProducts)) {
-      filteredProducts.forEach(p => {
-        const cleanSku = String(p.sku).trim();
-        p.adSpend = skuAdSpendMap[cleanSku] || skuAdSpendMap[p.sku] || 0;
-      });
     }
 
     // Update overall ad spend input field on overview tab
@@ -743,11 +803,6 @@ async function fetchWbAdSpendForReport() {
     if (adInput) {
       adInput.value = totalAdSum.toFixed(2);
     }
-
-    // Update financials and re-render tables
-    if (typeof updateFinancials === 'function') updateFinancials();
-    if (typeof renderProductTable === 'function') renderProductTable();
-    if (typeof applyProductFilters === 'function') applyProductFilters();
 
     const reportMatchText = matchedSkusCount > 0 
       ? ` Сопоставлено с товарами в текущем отчете: ${matchedSkusCount} SKU на сумму ${formatCurrency(totalAssignedToReportSkus)}.`
