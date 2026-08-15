@@ -241,6 +241,7 @@ function processRows(rows, skipAutoDetect) {
     taxSum: 0,
     sppAvg: 0,
     logisticsBreakdown: {},
+    dailyTimeline: {},
     products: {}
   };
 
@@ -294,6 +295,7 @@ function processRows(rows, skipAutoDetect) {
 
     const dayKey = dVal ? toLocalInputDate(dVal) : '';
     if (dayKey) {
+      if (!globalStats.dailyTimeline) globalStats.dailyTimeline = {};
       if (!globalStats.dailyTimeline[dayKey]) {
         globalStats.dailyTimeline[dayKey] = {
           date: dVal,
