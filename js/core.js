@@ -387,8 +387,23 @@ function lockBodyScroll() {
 }
 
 function unlockBodyScroll() {
-  const openModals = document.querySelectorAll('[id^="modal"]:not(.hidden)');
-  if (openModals.length === 0) {
+  const modalRootIds = [
+    'modalTurnover',
+    'modalFees',
+    'modalTotalWbPayable',
+    'modalExpenses',
+    'modalDeductions',
+    'modalMerger',
+    'modalReturns',
+    'modalSpp',
+    'modalCogsImport'
+  ];
+  const hasOpenModal = modalRootIds.some(id => {
+    const el = document.getElementById(id);
+    return el && !el.classList.contains('hidden');
+  });
+
+  if (!hasOpenModal) {
     document.body.classList.remove('overflow-hidden');
   }
 }

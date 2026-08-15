@@ -206,7 +206,7 @@ function showApiTokensProgress(currentChunkIndex, totalChunks, currentChunk, cur
     <div class="flex items-center justify-between font-bold">
       <div class="flex items-center gap-2">
         <i data-lucide="loader-2" class="w-4 h-4 text-purple-600 animate-spin"></i>
-        <span>Выгрузка из WB API: интервал ${currentChunkIndex} из ${totalChunks}</span>
+        <span>Выгрузка из WB Advert API (v3/fullstats): интервал ${currentChunkIndex} из ${totalChunks}</span>
       </div>
       <span class="text-purple-700">${percent}%</span>
     </div>
@@ -217,7 +217,7 @@ function showApiTokensProgress(currentChunkIndex, totalChunks, currentChunk, cur
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-500 gap-1 pt-1">
-      <div>Текущий период: <strong>${currentChunk.fromFormatted} — ${currentChunk.toFormatted}</strong></div>
+      <div>Период: <strong>${currentChunk.fromFormatted} — ${currentChunk.toFormatted}</strong></div>
       <div>Накоплено расходов: <strong class="text-purple-900">${formatCurrency(currentSum)}</strong></div>
     </div>
   `;
@@ -255,30 +255,33 @@ function splitDateRangeIntoChunks(startDate, endDate, maxDays = 30) {
 }
 
 /**
+ * Helper to make API requests with CORS proxy fallback
+ */
+async function fetchWbApi(url, token, options = {}) {
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+  const headers = {
+    'Authorization': token,
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
+  };
+
+  try {
+    const res = await fetch(url, { ...options, headers });
+    return res;
+  } catch (corsErr) {
+    console.warn("Direct fetch to WB API failed, using CORS proxy:", corsErr);
+    return await fetch(proxyUrl, { ...options, headers });
+  }
+}
+
+/**
  * Fetch campaign info and map advertId -> [nmId1, nmId2, ...]
  */
 async function fetchCampaignArticlesMap(token) {
   const campNmsMap = {};
 
-  const makeReq = async (url) => {
-    const directUrl = url;
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(directUrl)}`;
-    try {
-      return await fetch(directUrl, {
-        method: 'GET',
-        headers: { 'Authorization': token, 'Content-Type': 'application/json' }
-      });
-    } catch (e) {
-      return await fetch(proxyUrl, {
-        method: 'GET',
-        headers: { 'Authorization': token, 'Content-Type': 'application/json' }
-      });
-    }
-  };
-
   try {
-    // 1. Query /adv/v1/promotion/adverts (all campaigns of seller)
-    const res = await makeReq('https://advert-api.wildberries.ru/adv/v1/promotion/adverts');
+    const res = await fetchWbApi('https://advert-api.wildberries.ru/adv/v1/promotion/adverts', token);
     if (res && res.ok) {
       const adverts = await res.json();
       if (Array.isArray(adverts)) {
@@ -318,7 +321,108 @@ async function fetchCampaignArticlesMap(token) {
 }
 
 /**
- * Fetch WB Advertising / Promotion Spend by SKU for the report period with chunking & rate limit handling
+ * Recursively extracts nmId and sum from WB fullstats response
+ */
+function extractNmSpendsFromFullstats(data, newSkuAdMap, campNmsMap) {
+  if (!Array.isArray(data)) return 0;
+  let totalExtracted = 0;
+
+  data.forEach(item => {
+    let foundInnerNm = false;
+
+    // 1. Structure: days -> apps -> nm -> nmId / sum
+    if (Array.isArray(item.days)) {
+      item.days.forEach(day => {
+        if (Array.isArray(day.apps)) {
+          day.apps.forEach(app => {
+            if (Array.isArray(app.nm)) {
+              app.nm.forEach(nmItem => {
+                const nmId = nmItem.nmId || nmItem.nm || nmItem.id;
+                const sumVal = parseNum(nmItem.sum !== undefined ? nmItem.sum : (nmItem.cost || nmItem.spend));
+                if (nmId && sumVal > 0) {
+                  const skuKey = String(nmId).trim();
+                  newSkuAdMap[skuKey] = (newSkuAdMap[skuKey] || 0) + sumVal;
+                  totalExtracted += sumVal;
+                  foundInnerNm = true;
+                }
+              });
+            }
+          });
+        }
+
+        // Structure: days -> nms -> nmId / sum
+        if (Array.isArray(day.nms)) {
+          day.nms.forEach(nmItem => {
+            const nmId = nmItem.nmId || nmItem.nm || nmItem.id;
+            const sumVal = parseNum(nmItem.sum !== undefined ? nmItem.sum : (nmItem.cost || nmItem.spend));
+            if (nmId && sumVal > 0) {
+              const skuKey = String(nmId).trim();
+              newSkuAdMap[skuKey] = (newSkuAdMap[skuKey] || 0) + sumVal;
+              totalExtracted += sumVal;
+              foundInnerNm = true;
+            }
+          });
+        }
+      });
+    }
+
+    // 2. Structure: boosterStats -> nm / sum
+    if (Array.isArray(item.boosterStats)) {
+      item.boosterStats.forEach(b => {
+        const nmId = b.nm || b.nmId || b.id;
+        const sumVal = parseNum(b.sum !== undefined ? b.sum : (b.cost || b.spend));
+        if (nmId && sumVal > 0) {
+          const skuKey = String(nmId).trim();
+          newSkuAdMap[skuKey] = (newSkuAdMap[skuKey] || 0) + sumVal;
+          totalExtracted += sumVal;
+          foundInnerNm = true;
+        }
+      });
+    }
+
+    // 3. Structure: item.nms -> nmId / sum
+    if (Array.isArray(item.nms)) {
+      item.nms.forEach(nmItem => {
+        const nmId = nmItem.nmId || nmItem.nm || nmItem.id;
+        const sumVal = parseNum(nmItem.sum !== undefined ? nmItem.sum : (nmItem.cost || nmItem.spend));
+        if (nmId && sumVal > 0) {
+          const skuKey = String(nmId).trim();
+          newSkuAdMap[skuKey] = (newSkuAdMap[skuKey] || 0) + sumVal;
+          totalExtracted += sumVal;
+          foundInnerNm = true;
+        }
+      });
+    }
+
+    // 4. If campaign has top-level sum and no inner nms were parsed, distribute via campNmsMap
+    const topSum = parseNum(item.sum !== undefined ? item.sum : (item.cost || item.spend || item.updSum));
+    if (!foundInnerNm && topSum > 0) {
+      const advId = item.advertId || item.id;
+      let nms = campNmsMap[String(advId)] || [];
+      if (nms.length === 0 && item.campName) {
+        const m = item.campName.match(/\b\d{7,10}\b/g);
+        if (m && m.length > 0) nms = Array.from(new Set(m.map(String)));
+      }
+
+      if (nms.length > 0) {
+        const perSku = topSum / nms.length;
+        nms.forEach(sku => {
+          const skuKey = String(sku).trim();
+          newSkuAdMap[skuKey] = (newSkuAdMap[skuKey] || 0) + perSku;
+        });
+      } else {
+        const fallbackKey = advId ? `adv_${advId}` : `unassigned`;
+        newSkuAdMap[fallbackKey] = (newSkuAdMap[fallbackKey] || 0) + topSum;
+      }
+      totalExtracted += topSum;
+    }
+  });
+
+  return totalExtracted;
+}
+
+/**
+ * Fetch WB Advertising / Promotion Spend by SKU using GET /adv/v3/fullstats & /adv/v1/upd fallback
  */
 async function fetchWbAdSpendForReport() {
   const activeTokenObj = getActiveApiTokenObj();
@@ -329,7 +433,6 @@ async function fetchWbAdSpendForReport() {
 
   const token = activeTokenObj.token.trim();
 
-  // Determine date range from input dates or min/max dates of parsed report
   let startDate = null;
   let endDate = null;
 
@@ -366,17 +469,17 @@ async function fetchWbAdSpendForReport() {
     btnSync.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Подготовка...`;
   }
 
-  showApiTokensStatus("Считываем список рекламных кампаний и привязку к артикулам...", "info");
+  showApiTokensStatus("1/3. Считываем кампании продавца из Wildberries API...", "info");
 
-  // Step 1: Pre-fetch campaign -> articles mapping
+  // Step 1: Pre-fetch campaign articles map
   const campNmsMap = await fetchCampaignArticlesMap(token);
   console.log("WB Campaign articles mapped:", Object.keys(campNmsMap).length);
 
-  const allRecords = [];
+  const newSkuAdMap = {};
   let totalAdSum = 0;
 
   try {
-    // Step 2: Fetch /adv/v1/upd for each 30-day chunk
+    // Step 2: Query GET /adv/v3/fullstats and /adv/v1/upd for each 30-day chunk
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       const progressPercent = Math.round(((i) / chunks.length) * 100);
@@ -390,118 +493,81 @@ async function fetchWbAdSpendForReport() {
         await new Promise(resolve => setTimeout(resolve, 450));
       }
 
-      const directUrl = `https://advert-api.wildberries.ru/adv/v1/upd?from=${chunk.from}&to=${chunk.to}`;
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(directUrl)}`;
+      // 2A. Method requested by user: GET https://advert-api.wildberries.ru/adv/v3/fullstats
+      let chunkLoaded = false;
+      const allCampIds = Object.keys(campNmsMap);
 
-      let response = null;
-      let usedProxy = false;
+      if (allCampIds.length > 0) {
+        // Query fullstats in batches of up to 50 campaigns
+        for (let b = 0; b < allCampIds.length; b += 50) {
+          const batchIds = allCampIds.slice(b, b + 50);
+          const v3Url = `https://advert-api.wildberries.ru/adv/v3/fullstats?ids=${batchIds.join(',')}&from=${chunk.from}&to=${chunk.to}`;
+          
+          try {
+            let resV3 = await fetchWbApi(v3Url, token);
+            if (resV3 && resV3.status === 429) {
+              await new Promise(r => setTimeout(r, 2500));
+              resV3 = await fetchWbApi(v3Url, token);
+            }
 
-      const makeRequest = async (targetUrl) => {
-        return fetch(targetUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': token,
-            'Content-Type': 'application/json'
+            if (resV3 && resV3.ok) {
+              const dataV3 = await resV3.json();
+              if (Array.isArray(dataV3) && dataV3.length > 0) {
+                console.log(`v3/fullstats response for interval ${chunk.fromFormatted}-${chunk.toFormatted}:`, dataV3);
+                const sumExtracted = extractNmSpendsFromFullstats(dataV3, newSkuAdMap, campNmsMap);
+                totalAdSum += sumExtracted;
+                chunkLoaded = true;
+              }
+            }
+          } catch (v3Err) {
+            console.warn("v3/fullstats batch fetch failed:", v3Err);
           }
-        });
-      };
-
-      try {
-        response = await makeRequest(directUrl);
-      } catch (corsErr) {
-        usedProxy = true;
-        response = await makeRequest(proxyUrl);
-      }
-
-      if (response && response.status === 429) {
-        showApiTokensStatus(`Лимит запросов WB API: ожидание 2.5 сек перед повтором интервала ${chunk.fromFormatted} — ${chunk.toFormatted}...`, "warning");
-        await new Promise(resolve => setTimeout(resolve, 2500));
-        response = await makeRequest(usedProxy ? proxyUrl : directUrl);
-      }
-
-      if (!response || !response.ok) {
-        const errText = response ? await response.text() : 'Сетевая ошибка';
-        let detailedMsg = `Ошибка при выгрузке интервала ${chunk.fromFormatted} — ${chunk.toFormatted} (Код ${response ? response.status : 'ERR'}): `;
-        if (response && response.status === 401) {
-          detailedMsg += 'Неверный токен. Убедитесь, что токен активен и имеет права категории «Продвижение / Реклама».';
-        } else if (response && response.status === 429) {
-          detailedMsg += 'Превышен лимит запросов к WB API. Подождите минуту и повторите попытку.';
-        } else {
-          detailedMsg += errText ? errText.substring(0, 150) : 'Проверьте доступность API.';
         }
-        showApiTokensStatus(detailedMsg, "error");
-        return;
       }
 
-      const data = await response.json();
-      if (Array.isArray(data) && data.length > 0) {
-        data.forEach(rec => {
-          allRecords.push(rec);
-          const sumVal = parseNum(rec.updSum !== undefined ? rec.updSum : (rec.sum !== undefined ? rec.sum : rec.cost));
-          if (sumVal > 0) totalAdSum += sumVal;
-        });
+      // 2B. Fallback or addition: GET /adv/v1/upd
+      const updUrl = `https://advert-api.wildberries.ru/adv/v1/upd?from=${chunk.from}&to=${chunk.to}`;
+      try {
+        let resUpd = await fetchWbApi(updUrl, token);
+        if (resUpd && resUpd.status === 429) {
+          await new Promise(r => setTimeout(r, 2500));
+          resUpd = await fetchWbApi(updUrl, token);
+        }
+
+        if (resUpd && resUpd.ok) {
+          const dataUpd = await resUpd.json();
+          if (Array.isArray(dataUpd) && dataUpd.length > 0) {
+            console.log(`v1/upd response for interval ${chunk.fromFormatted}-${chunk.toFormatted}:`, dataUpd);
+            // If v3/fullstats didn't already populate this chunk, extract from upd
+            if (!chunkLoaded) {
+              const sumExtracted = extractNmSpendsFromFullstats(dataUpd, newSkuAdMap, campNmsMap);
+              totalAdSum += sumExtracted;
+            }
+          }
+        }
+      } catch (updErr) {
+        console.warn("v1/upd fetch failed:", updErr);
       }
     }
 
-    if (allRecords.length === 0) {
+    console.log("Final newSkuAdMap:", newSkuAdMap);
+
+    if (Object.keys(newSkuAdMap).length === 0) {
       showApiTokensStatus(
-        `Запрос выполнен успешно (${chunks.length} ${chunks.length === 1 ? 'интервал' : 'интервала'}, ${formatDate(startDate)} — ${formatDate(endDate)}), но рекламных списаний в кабинете WB за этот период не найдено.`,
+        `Запрос выполнен успешно (${chunks.length} ${chunks.length === 1 ? 'интервал' : 'интервала'}, ${formatDate(startDate)} — ${formatDate(endDate)}), но рекламных расходов в кабинете WB за этот период не найдено.`,
         "warning"
       );
       return;
     }
 
-    // Step 3: Distribute spend to SKUs
-    const newSkuAdMap = {};
-
-    allRecords.forEach(item => {
-      const sumVal = parseNum(item.updSum !== undefined ? item.updSum : (item.sum !== undefined ? item.sum : item.cost));
-      if (sumVal <= 0) return;
-
-      let nms = [];
-
-      // A) Direct nmIds on record
-      if (Array.isArray(item.nmIds) && item.nmIds.length > 0) {
-        nms = item.nmIds.map(String);
-      } else if (item.nmId) {
-        nms = [String(item.nmId)];
-      } else if (Array.isArray(item.nms) && item.nms.length > 0) {
-        nms = item.nms.map(String);
-      }
-
-      // B) Lookup from pre-fetched campaigns map
-      if (nms.length === 0 && item.advertId && campNmsMap[String(item.advertId)]) {
-        nms = campNmsMap[String(item.advertId)];
-      }
-
-      // C) Fallback: Regex for 7-10 digit article numbers in campaign name
-      if (nms.length === 0 && item.campName) {
-        const m = item.campName.match(/\b\d{7,10}\b/g);
-        if (m && m.length > 0) {
-          nms = Array.from(new Set(m.map(String)));
-        }
-      }
-
-      if (nms.length > 0) {
-        const perSkuSum = sumVal / nms.length;
-        nms.forEach(skuId => {
-          const cleanSku = String(skuId).trim();
-          newSkuAdMap[cleanSku] = (newSkuAdMap[cleanSku] || 0) + perSkuSum;
-        });
-      } else {
-        const fallbackKey = item.advertId ? `adv_${item.advertId}` : `unassigned`;
-        newSkuAdMap[fallbackKey] = (newSkuAdMap[fallbackKey] || 0) + sumVal;
-      }
-    });
-
-    // Step 4: Persist and bind to state
+    // Step 3: Save to storage
     skuAdSpendMap = newSkuAdMap;
     saveSkuAdSpendToStorage();
 
     let matchedSkusCount = 0;
     let totalAssignedToReportSkus = 0;
 
-    // Apply to globalStats.products
+    // Step 4: Apply to globalStats.products
     for (const sku in globalStats.products) {
       const prod = globalStats.products[sku];
       const cleanSku = String(sku).trim();
@@ -513,7 +579,7 @@ async function fetchWbAdSpendForReport() {
       }
     }
 
-    // Apply to productsList
+    // Step 5: Apply to productsList & filteredProducts
     if (Array.isArray(productsList)) {
       productsList.forEach(p => {
         const cleanSku = String(p.sku).trim();
@@ -521,7 +587,6 @@ async function fetchWbAdSpendForReport() {
       });
     }
 
-    // Apply to filteredProducts
     if (Array.isArray(filteredProducts)) {
       filteredProducts.forEach(p => {
         const cleanSku = String(p.sku).trim();
@@ -529,25 +594,23 @@ async function fetchWbAdSpendForReport() {
       });
     }
 
-    // Set overall ad spend input field on overview tab
+    // Step 6: Set overall ad spend input field on overview tab
     const adInput = document.getElementById('inputAdSpend');
     if (adInput) {
       adInput.value = totalAdSum.toFixed(2);
     }
 
-    // Update financials and re-render product table
+    // Step 7: Update financials and re-render tables
     if (typeof updateFinancials === 'function') updateFinancials();
     if (typeof renderProductTable === 'function') renderProductTable();
     if (typeof applyProductFilters === 'function') applyProductFilters();
 
     const reportMatchText = matchedSkusCount > 0 
       ? ` Сопоставлено с товарами в текущем отчете: ${matchedSkusCount} SKU на сумму ${formatCurrency(totalAssignedToReportSkus)}.`
-      : (Object.keys(newSkuAdMap).length > 0 
-          ? ` Загружены расходы по ${Object.keys(newSkuAdMap).length} рекламным кампаниям/артикулам.`
-          : '');
+      : ` Найдено расходов по ${Object.keys(newSkuAdMap).length} артикулам/кампаниям.`;
 
     showApiTokensStatus(
-      `✅ Успешно выгружено ${chunks.length} ${chunks.length === 1 ? 'интервал' : 'интервалов'} за период <strong>${formatDate(startDate)} — ${formatDate(endDate)}</strong>! Всего расходов на рекламу: <strong>${formatCurrency(totalAdSum)}</strong>.${reportMatchText} Данные отображаются в столбце «Реклама» таблицы товаров и учтены в расчете чистой прибыли.`,
+      `✅ Успешно выгружено по методу <strong>adv/v3/fullstats</strong> за период <strong>${formatDate(startDate)} — ${formatDate(endDate)}</strong>! Всего рекламных затрат: <strong>${formatCurrency(totalAdSum)}</strong>.${reportMatchText} Данные отображаются в столбце «Реклама» таблицы товаров и учтены в расчете чистой прибыли.`,
       "success"
     );
 
