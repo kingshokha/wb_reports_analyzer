@@ -401,7 +401,9 @@ function renderProductTable() {
       : `<span class="text-slate-400 font-normal">0.00 ₽</span>`;
 
     const tr = document.createElement('tr');
-    tr.className = "hover:bg-slate-50 transition-colors text-slate-700 text-xs";
+    tr.className = "hover:bg-purple-50/50 transition-colors text-slate-700 text-xs cursor-pointer group";
+    tr.setAttribute("onclick", "openProductTimelineModal('" + p.sku + "')");
+    tr.setAttribute("title", "Нажмите, чтобы посмотреть динамику цен и продаж товара");
     
     let rowCellsHTML = '';
     if (skuTableColumns.sku) {

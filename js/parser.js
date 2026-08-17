@@ -400,6 +400,51 @@ function processRows(rows, skipAutoDetect) {
             turnover: 0,
             payout: 0
           };
+
+    if (skuVal && dayKey && globalStats.products[skuVal]) {
+      const prodTimeline = globalStats.products[skuVal];
+      if (!prodTimeline.dailyTimeline) prodTimeline.dailyTimeline = {};
+      if (!prodTimeline.dailyTimeline[dayKey]) {
+        prodTimeline.dailyTimeline[dayKey] = {
+          date: dVal,
+          dateKey: dayKey,
+          dateFormatted: formatDate(dVal),
+          soldQty: 0,
+          returnedQty: 0,
+          turnoverT: 0,
+          retailSumO: 0,
+          payableAH: 0,
+          logisticsAK: 0,
+          sppSum: 0,
+          sppCount: 0
+        };
+      }
+      const pDay = prodTimeline.dailyTimeline[dayKey];
+
+      if (rowW !== 0) {
+        let sppVal = rowW;
+        if (Math.abs(sppVal) > 0 && Math.abs(sppVal) <= 1) sppVal = sppVal * 100;
+        pDay.sppSum += Math.abs(sppVal);
+        pDay.sppCount += 1;
+      }
+
+      if (rowAK !== 0) {
+        pDay.logisticsAK += rowAK;
+      }
+
+      if (isSale) {
+        pDay.soldQty += 1;
+        pDay.turnoverT += rowT;
+        pDay.retailSumO += Math.abs(rowO);
+        pDay.payableAH += rowAH;
+      } else if (isReturn) {
+        pDay.returnedQty += 1;
+        pDay.turnoverT -= Math.abs(rowT);
+        pDay.retailSumO -= Math.abs(rowO);
+        pDay.payableAH -= Math.abs(rowAH);
+      }
+    }
+
         }
         globalStats.products[skuVal].logistics += rowAK;
       }

@@ -396,7 +396,8 @@ function unlockBodyScroll() {
     'modalMerger',
     'modalReturns',
     'modalSpp',
-    'modalCogsImport'
+    'modalCogsImport',
+    'modalProductTimeline'
   ];
   const hasOpenModal = modalRootIds.some(id => {
     const el = document.getElementById(id);
