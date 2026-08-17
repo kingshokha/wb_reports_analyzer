@@ -35,7 +35,7 @@
   <!-- Top Right Version Badge -->
   <div class="fixed top-2.5 right-4 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-xs text-xs select-none">
     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-    <span class="font-bold text-purple-700">v1.8.2</span>
+    <span class="font-bold text-purple-700">v1.8.4</span>
     <span class="text-slate-300">|</span>
     <span class="font-medium text-slate-500">18.08.2026</span>
   </div>
@@ -1439,18 +1439,18 @@
   <script src="js/app.js"></script>
 
   <!-- Modal: Product Detailed Timeline -->
-  <div id="modalProductTimeline" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center hidden p-3 sm:p-5">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-5xl w-full overflow-hidden border border-slate-100 flex flex-col max-h-[92vh]">
+  <div id="modalProductTimeline" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center hidden p-2 sm:p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-[96vw] lg:max-w-7xl overflow-hidden border border-slate-100 flex flex-col max-h-[95vh]">
       
       <!-- Header -->
-      <div class="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white p-5 flex justify-between items-center shrink-0">
+      <div class="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white p-3.5 sm:p-4 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-purple-200 shrink-0">
+          <div class="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-purple-200 shrink-0">
             <i data-lucide="line-chart" class="w-5 h-5"></i>
           </div>
           <div>
             <div class="flex items-center gap-2 flex-wrap">
-              <h3 id="skuModalTitle" class="font-bold text-base text-white">Динамика по товару</h3>
+              <h3 id="skuModalTitle" class="font-bold text-sm sm:text-base text-white">Динамика по товару</h3>
               <span id="skuModalBadge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-purple-500/30 text-purple-200 border border-purple-400/30"></span>
             </div>
             <p id="skuModalSubtitle" class="text-xs text-purple-200/80 mt-0.5">Детализация цен, СПП, выплат, логистики и продаж по дням</p>
@@ -1462,13 +1462,13 @@
       </div>
 
       <!-- Scrollable Body -->
-      <div class="p-5 sm:p-6 overflow-y-auto custom-scrollbar space-y-6 flex-grow">
+      <div class="p-3.5 sm:p-4 overflow-y-auto custom-scrollbar space-y-3.5 flex-grow">
 
-        <!-- Metrics Toggles Bar -->
-        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3 select-none">
+        <!-- Metrics Toggles Bar (Single line pills with flex wrap) -->
+        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 space-y-2 select-none">
           <div class="flex items-center justify-between">
             <span class="font-bold text-xs text-slate-700 flex items-center gap-1.5">
-              <i data-lucide="sliders" class="w-4 h-4 text-purple-600"></i>
+              <i data-lucide="sliders" class="w-3.5 h-3.5 text-purple-600"></i>
               Показатели на графике:
             </span>
             <div class="flex items-center gap-2 text-[11px]">
@@ -1478,66 +1478,80 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 text-xs">
-            <label class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-purple-300 transition-colors">
-              <input type="checkbox" id="chkSkuT" checked onchange="updateSkuTimelineChart()" class="rounded text-purple-600 focus:ring-purple-500 w-4 h-4" />
-              <span class="text-[11px] font-semibold text-purple-900">Цена выкупа (T)</span>
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-purple-300 transition-colors shrink-0 whitespace-nowrap shadow-2xs">
+              <input type="checkbox" id="chkSkuT" checked onchange="updateSkuTimelineChart()" class="rounded text-purple-600 focus:ring-purple-500 w-3.5 h-3.5" />
+              <span class="text-[11px] font-semibold text-purple-900 whitespace-nowrap">Цена выкупа (T)</span>
             </label>
 
-            <label class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-blue-300 transition-colors">
-              <input type="checkbox" id="chkSkuP" checked onchange="updateSkuTimelineChart()" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4" />
-              <span class="text-[11px] font-semibold text-blue-900">Цена пок. (P)</span>
+            <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-blue-300 transition-colors shrink-0 whitespace-nowrap shadow-2xs">
+              <input type="checkbox" id="chkSkuP" checked onchange="updateSkuTimelineChart()" class="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5" />
+              <span class="text-[11px] font-semibold text-blue-900 whitespace-nowrap">Цена пок. (P)</span>
             </label>
 
-            <label class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-emerald-300 transition-colors">
-              <input type="checkbox" id="chkSkuW" checked onchange="updateSkuTimelineChart()" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4" />
-              <span class="text-[11px] font-semibold text-emerald-900">СПП % (W)</span>
+            <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-emerald-300 transition-colors shrink-0 whitespace-nowrap shadow-2xs">
+              <input type="checkbox" id="chkSkuW" checked onchange="updateSkuTimelineChart()" class="rounded text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5" />
+              <span class="text-[11px] font-semibold text-emerald-900 whitespace-nowrap">СПП % (W)</span>
             </label>
 
-            <label class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-amber-300 transition-colors">
-              <input type="checkbox" id="chkSkuAH" checked onchange="updateSkuTimelineChart()" class="rounded text-amber-600 focus:ring-amber-500 w-4 h-4" />
-              <span class="text-[11px] font-semibold text-amber-900">К перечислению (AH)</span>
+            <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-amber-300 transition-colors shrink-0 whitespace-nowrap shadow-2xs">
+              <input type="checkbox" id="chkSkuAH" checked onchange="updateSkuTimelineChart()" class="rounded text-amber-600 focus:ring-amber-500 w-3.5 h-3.5" />
+              <span class="text-[11px] font-semibold text-amber-900 whitespace-nowrap">К перечислению (AH)</span>
             </label>
 
-            <label class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-rose-300 transition-colors">
-              <input type="checkbox" id="chkSkuAK" checked onchange="updateSkuTimelineChart()" class="rounded text-rose-600 focus:ring-rose-500 w-4 h-4" />
-              <span class="text-[11px] font-semibold text-rose-900">Логистика (AK)</span>
+            <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-rose-300 transition-colors shrink-0 whitespace-nowrap shadow-2xs">
+              <input type="checkbox" id="chkSkuAK" checked onchange="updateSkuTimelineChart()" class="rounded text-rose-600 focus:ring-rose-500 w-3.5 h-3.5" />
+              <span class="text-[11px] font-semibold text-rose-900 whitespace-nowrap">Логистика (AK)</span>
             </label>
 
-            <label class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-indigo-300 transition-colors">
-              <input type="checkbox" id="chkSkuSold" checked onchange="updateSkuTimelineChart()" class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4" />
-              <span class="text-[11px] font-semibold text-indigo-900">Продано (шт)</span>
+            <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-indigo-300 transition-colors shrink-0 whitespace-nowrap shadow-2xs">
+              <input type="checkbox" id="chkSkuSold" checked onchange="updateSkuTimelineChart()" class="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5" />
+              <span class="text-[11px] font-semibold text-indigo-900 whitespace-nowrap">Продано (шт)</span>
             </label>
 
-            <label class="flex items-center gap-2 p-2 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-rose-400 transition-colors">
-              <input type="checkbox" id="chkSkuReturned" checked onchange="updateSkuTimelineChart()" class="rounded text-rose-500 focus:ring-rose-500 w-4 h-4" />
-              <span class="text-[11px] font-semibold text-rose-800">Возвраты (шт)</span>
+            <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-rose-400 transition-colors shrink-0 whitespace-nowrap shadow-2xs">
+              <input type="checkbox" id="chkSkuReturned" checked onchange="updateSkuTimelineChart()" class="rounded text-rose-500 focus:ring-rose-500 w-3.5 h-3.5" />
+              <span class="text-[11px] font-semibold text-rose-800 whitespace-nowrap">Возвраты (шт)</span>
             </label>
           </div>
         </div>
 
         <!-- Chart Container -->
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs relative">
-          <div class="h-80 sm:h-96 w-full">
+        <div class="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs relative">
+          <div class="h-72 sm:h-84 lg:h-96 w-full">
             <canvas id="chartSkuTimeline"></canvas>
           </div>
         </div>
 
-        <!-- Summary KPI Cards for this SKU -->
-        <div id="skuModalKpiCards" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
+        <!-- Section: Average & Totals Cards for Selected Period -->
+        <div class="space-y-3 pt-1">
+          <!-- Totals Row -->
+          <div>
+            <span class="text-xs font-bold text-slate-700 block mb-2">Итоги за выбранный период:</span>
+            <div id="skuModalKpiCards" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
+            </div>
+          </div>
+
+          <!-- Averages Row -->
+          <div>
+            <span class="text-xs font-bold text-purple-900 block mb-2 flex items-center gap-1">
+              <i data-lucide="calculator" class="w-3.5 h-3.5 text-purple-600"></i>
+              Средние значения на выбранном периоде:
+            </span>
+            <div id="skuModalAvgCards" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 text-xs">
+            </div>
+          </div>
         </div>
 
       </div>
 
       <!-- Footer -->
-      <div class="bg-slate-50 p-4 border-t border-slate-200/80 flex justify-end shrink-0">
+      <div class="bg-slate-50 p-3 border-t border-slate-200/80 flex justify-end shrink-0">
         <button type="button" onclick="closeProductTimelineModal()" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold transition-colors cursor-pointer text-xs">
           Закрыть
         </button>
       </div>
 
     </div>
-  </div>
-
-</body>
+  </div></body>
 </html>

@@ -71,40 +71,109 @@ function toggleAllSkuTimelineMetrics(selectAll) {
 
 function renderSkuModalKpis(prod) {
   const container = document.getElementById('skuModalKpiCards');
-  if (!container) return;
+  const avgContainer = document.getElementById('skuModalAvgCards');
+  if (!container && !avgContainer) return;
 
   const unitCogs = skuCogsMap[prod.sku] || 0;
   const unitFf = skuFfMap[prod.sku] || 0;
   const totalCogs = prod.soldQty * (unitCogs + unitFf);
   const adSpend = getProductAdSpend ? getProductAdSpend(prod) : (prod.adSpend || 0);
 
-  container.innerHTML = `
-    <div class="bg-purple-50/70 p-3 rounded-2xl border border-purple-100 space-y-1">
-      <div class="text-[10px] text-purple-700 font-semibold uppercase tracking-wider">Выкуп (T)</div>
-      <div class="text-sm font-black text-purple-900">${formatCurrency(prod.turnover)}</div>
-    </div>
-    <div class="bg-indigo-50/70 p-3 rounded-2xl border border-indigo-100 space-y-1">
-      <div class="text-[10px] text-indigo-700 font-semibold uppercase tracking-wider">Продано</div>
-      <div class="text-sm font-black text-indigo-900">${prod.soldQty} шт</div>
-    </div>
-    <div class="bg-rose-50/70 p-3 rounded-2xl border border-rose-100 space-y-1">
-      <div class="text-[10px] text-rose-700 font-semibold uppercase tracking-wider">Возвраты</div>
-      <div class="text-sm font-black text-rose-900">${prod.returnedQty} шт</div>
-    </div>
-    <div class="bg-amber-50/70 p-3 rounded-2xl border border-amber-100 space-y-1">
-      <div class="text-[10px] text-amber-700 font-semibold uppercase tracking-wider">К перечислению (AH)</div>
-      <div class="text-sm font-black text-amber-900">${formatCurrency(prod.payout)}</div>
-    </div>
-    <div class="bg-rose-50/70 p-3 rounded-2xl border border-rose-100 space-y-1">
-      <div class="text-[10px] text-rose-700 font-semibold uppercase tracking-wider">Логистика (AK)</div>
-      <div class="text-sm font-black text-rose-900">${formatCurrency(prod.logistics || 0)}</div>
-    </div>
-    <div class="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-100 space-y-1">
-      <div class="text-[10px] text-emerald-700 font-semibold uppercase tracking-wider">Реклама API</div>
-      <div class="text-sm font-black text-emerald-900">${formatCurrency(adSpend)}</div>
-    </div>
-  `;
+  // Period totals
+  if (container) {
+    container.innerHTML = `
+      <div class="bg-purple-50/70 p-2.5 rounded-2xl border border-purple-100 space-y-0.5">
+        <div class="text-[10px] text-purple-700 font-semibold uppercase tracking-wider">Выкуп (T)</div>
+        <div class="text-xs sm:text-sm font-black text-purple-900">${formatCurrency(prod.turnover)}</div>
+      </div>
+      <div class="bg-indigo-50/70 p-2.5 rounded-2xl border border-indigo-100 space-y-0.5">
+        <div class="text-[10px] text-indigo-700 font-semibold uppercase tracking-wider">Продано</div>
+        <div class="text-xs sm:text-sm font-black text-indigo-900">${prod.soldQty} шт</div>
+      </div>
+      <div class="bg-rose-50/70 p-2.5 rounded-2xl border border-rose-100 space-y-0.5">
+        <div class="text-[10px] text-rose-700 font-semibold uppercase tracking-wider">Возвраты</div>
+        <div class="text-xs sm:text-sm font-black text-rose-900">${prod.returnedQty} шт</div>
+      </div>
+      <div class="bg-amber-50/70 p-2.5 rounded-2xl border border-amber-100 space-y-0.5">
+        <div class="text-[10px] text-amber-700 font-semibold uppercase tracking-wider">К перечислению (AH)</div>
+        <div class="text-xs sm:text-sm font-black text-amber-900">${formatCurrency(prod.payout)}</div>
+      </div>
+      <div class="bg-rose-50/70 p-2.5 rounded-2xl border border-rose-100 space-y-0.5">
+        <div class="text-[10px] text-rose-700 font-semibold uppercase tracking-wider">Логистика (AK)</div>
+        <div class="text-xs sm:text-sm font-black text-rose-900">${formatCurrency(prod.logistics || 0)}</div>
+      </div>
+      <div class="bg-emerald-50/70 p-2.5 rounded-2xl border border-emerald-100 space-y-0.5">
+        <div class="text-[10px] text-emerald-700 font-semibold uppercase tracking-wider">Реклама API</div>
+        <div class="text-xs sm:text-sm font-black text-emerald-900">${formatCurrency(adSpend)}</div>
+      </div>
+    `;
+  }
+
+  // Calculate Averages for the period
+  let daysCount = 0;
+  let sppSumTotal = 0;
+  let sppCountTotal = 0;
+
+  if (prod.dailyTimeline) {
+    const dates = Object.keys(prod.dailyTimeline);
+    daysCount = dates.length;
+    dates.forEach(dKey => {
+      const day = prod.dailyTimeline[dKey];
+      if (day.sppCount > 0) {
+        sppSumTotal += day.sppSum;
+        sppCountTotal += day.sppCount;
+      }
+    });
+  }
+
+  const avgBuyerPriceP = prod.soldQty > 0 ? (prod.turnover / prod.soldQty) : 0;
+  const avgSppPercent = sppCountTotal > 0 ? (sppSumTotal / sppCountTotal) : 0;
+  const avgPayableAHPerUnit = prod.soldQty > 0 ? (prod.payout / prod.soldQty) : 0;
+  const avgLogisticsPerUnit = prod.soldQty > 0 ? ((prod.logistics || 0) / prod.soldQty) : 0;
+  const avgSalesPerDay = daysCount > 0 ? (prod.soldQty / daysCount) : 0;
+  const avgReturnsPerDay = daysCount > 0 ? (prod.returnedQty / daysCount) : 0;
+  const avgTurnoverPerDay = daysCount > 0 ? (prod.turnover / daysCount) : 0;
+
+  if (avgContainer) {
+    avgContainer.innerHTML = `
+      <div class="bg-white p-2.5 rounded-2xl border border-purple-200/80 space-y-0.5 shadow-2xs">
+        <div class="text-[10px] text-purple-700 font-bold uppercase tracking-wider">Ср. Выкуп / день</div>
+        <div class="text-xs font-extrabold text-purple-900">${formatCurrency(avgTurnoverPerDay)}</div>
+      </div>
+
+      <div class="bg-white p-2.5 rounded-2xl border border-blue-200/80 space-y-0.5 shadow-2xs">
+        <div class="text-[10px] text-blue-700 font-bold uppercase tracking-wider">Ср. цена пок. (P)</div>
+        <div class="text-xs font-extrabold text-blue-900">${formatCurrency(avgBuyerPriceP)} / шт</div>
+      </div>
+
+      <div class="bg-white p-2.5 rounded-2xl border border-emerald-200/80 space-y-0.5 shadow-2xs">
+        <div class="text-[10px] text-emerald-700 font-bold uppercase tracking-wider">Ср. СПП % (W)</div>
+        <div class="text-xs font-extrabold text-emerald-900">${avgSppPercent.toFixed(1)}%</div>
+      </div>
+
+      <div class="bg-white p-2.5 rounded-2xl border border-amber-200/80 space-y-0.5 shadow-2xs">
+        <div class="text-[10px] text-amber-700 font-bold uppercase tracking-wider">Ср. Выплата (AH)</div>
+        <div class="text-xs font-extrabold text-amber-900">${formatCurrency(avgPayableAHPerUnit)} / шт</div>
+      </div>
+
+      <div class="bg-white p-2.5 rounded-2xl border border-rose-200/80 space-y-0.5 shadow-2xs">
+        <div class="text-[10px] text-rose-700 font-bold uppercase tracking-wider">Ср. Логистика (AK)</div>
+        <div class="text-xs font-extrabold text-rose-900">${formatCurrency(avgLogisticsPerUnit)} / ед</div>
+      </div>
+
+      <div class="bg-white p-2.5 rounded-2xl border border-indigo-200/80 space-y-0.5 shadow-2xs">
+        <div class="text-[10px] text-indigo-700 font-bold uppercase tracking-wider">Продаж в день</div>
+        <div class="text-xs font-extrabold text-indigo-900">${avgSalesPerDay.toFixed(1)} шт/день</div>
+      </div>
+
+      <div class="bg-white p-2.5 rounded-2xl border border-rose-200/80 space-y-0.5 shadow-2xs">
+        <div class="text-[10px] text-rose-600 font-bold uppercase tracking-wider">Возвратов в день</div>
+        <div class="text-xs font-extrabold text-rose-800">${avgReturnsPerDay.toFixed(1)} шт/день</div>
+      </div>
+    `;
+  }
 }
+
 
 function updateSkuTimelineChart() {
   if (!currentTimelineSku) return;

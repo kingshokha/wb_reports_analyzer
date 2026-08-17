@@ -104,18 +104,71 @@ let dailyTimelineChartInstance = null;
 
 function loadSkuCogsFromStorage() {
   try {
-    const savedCogs = localStorage.getItem(LOCAL_STORAGE_COGS_KEY);
-    if (savedCogs) {
-      const parsed = JSON.parse(savedCogs);
-      if (parsed && typeof parsed === 'object') skuCogsMap = parsed;
+    const rawCogsKeys = [LOCAL_STORAGE_COGS_KEY, 'sku_cogs_map', 'wb_cogs_map', 'cogsMap'];
+    const rawFfKeys = [LOCAL_STORAGE_FF_KEY, 'sku_ff_map', 'wb_ff_map', 'ffMap'];
+
+    if (typeof localStorage !== 'undefined') {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.toLowerCase().includes('cogs') || k.toLowerCase().includes('sebes'))) {
+          if (!rawCogsKeys.includes(k)) rawCogsKeys.push(k);
+        }
+        if (k && (k.toLowerCase().includes('ff') || k.toLowerCase().includes('fulfil'))) {
+          if (!rawFfKeys.includes(k)) rawFfKeys.push(k);
+        }
+      }
     }
-    const savedFf = localStorage.getItem(LOCAL_STORAGE_FF_KEY);
-    if (savedFf) {
-      const parsed = JSON.parse(savedFf);
-      if (parsed && typeof parsed === 'object') skuFfMap = parsed;
-    }
+
+    const mergedCogs = {};
+    rawCogsKeys.forEach(key => {
+      try {
+        const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            for (const itemKey in parsed) {
+              const val = parseNum(parsed[itemKey]);
+              if (val > 0) {
+                mergedCogs[itemKey] = val;
+                const cleanKey = String(itemKey).trim();
+                const numKey = String(parseInt(cleanKey, 10) || '');
+                if (cleanKey) mergedCogs[cleanKey] = val;
+                if (numKey && !isNaN(parseInt(cleanKey, 10))) mergedCogs[numKey] = val;
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    });
+    skuCogsMap = mergedCogs;
+
+    const mergedFf = {};
+    rawFfKeys.forEach(key => {
+      try {
+        const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            for (const itemKey in parsed) {
+              const val = parseNum(parsed[itemKey]);
+              if (val > 0) {
+                mergedFf[itemKey] = val;
+                const cleanKey = String(itemKey).trim();
+                const numKey = String(parseInt(cleanKey, 10) || '');
+                if (cleanKey) mergedFf[cleanKey] = val;
+                if (numKey && !isNaN(parseInt(cleanKey, 10))) mergedFf[numKey] = val;
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    });
+    skuFfMap = mergedFf;
+
+    if (typeof saveSkuCogsToStorage === 'function') saveSkuCogsToStorage();
+
   } catch (e) {
-    console.error("Ошибка чтения себестоимости и ФФ из localStorage:", e);
+    console.error("Ошибка восстановления себестоимости из localStorage:", e);
   }
 }
 
