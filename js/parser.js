@@ -485,11 +485,6 @@ function processRows(rows, skipAutoDetect) {
         pDay.sppCount += 1;
       }
 
-      if (rowP > 0) {
-        pDay.pricePSum += rowP;
-        pDay.pricePCount += 1;
-      }
-
       if (rowAK !== 0) {
         pDay.logisticsAK += rowAK;
       }
@@ -499,11 +494,19 @@ function processRows(rows, skipAutoDetect) {
         pDay.turnoverT += rowT;
         pDay.retailSumO += Math.abs(rowO);
         pDay.payableAH += rowAH;
+        if (rowP !== 0) {
+          pDay.pricePSum += Math.abs(rowP);
+          pDay.pricePCount += 1;
+        }
       } else if (isReturn) {
         pDay.returnedQty += 1;
         pDay.turnoverT -= Math.abs(rowT);
         pDay.retailSumO -= Math.abs(rowO);
         pDay.payableAH -= Math.abs(rowAH);
+        if (rowP !== 0) {
+          pDay.pricePSum -= Math.abs(rowP);
+          pDay.pricePCount += 1;
+        }
       }
     }
 

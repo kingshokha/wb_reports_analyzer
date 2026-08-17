@@ -152,8 +152,8 @@ function renderSkuModalKpis(prod) {
       </div>
 
       <div class="bg-white p-2.5 rounded-2xl border border-blue-200/80 space-y-0.5 shadow-2xs">
-        <div class="text-[10px] text-blue-700 font-bold uppercase tracking-wider">Ср. цена клиента (P)</div>
-        <div class="text-xs font-extrabold text-blue-900">${formatCurrency(avgBuyerPriceP)} / шт</div>
+        <div class="text-[10px] text-blue-700 font-bold uppercase tracking-wider">Ср. сумма (P) / день</div>
+        <div class="text-xs font-extrabold text-blue-900">${formatCurrency(daysCount > 0 ? (totalPSum / daysCount) : 0)}</div>
       </div>
 
       <div class="bg-white p-2.5 rounded-2xl border border-emerald-200/80 space-y-0.5 shadow-2xs">
@@ -223,16 +223,9 @@ function updateSkuTimelineChart() {
     const day = prod.dailyTimeline[dKey];
     dataT.push(day.turnoverT || 0);
 
-    // Calculate client price P (strictly from Column P if present)
-    let clientPriceP = 0;
-    if (day.pricePCount > 0) {
-      clientPriceP = day.pricePSum / day.pricePCount;
-    } else if (day.soldQty > 0) {
-      clientPriceP = day.turnoverT / day.soldQty;
-    } else if (day.retailSumO > 0) {
-      clientPriceP = day.retailSumO;
-    }
-    dataP.push(Math.round(clientPriceP * 100) / 100);
+    // Total sum of Column P for that day
+    const totalPForDay = day.pricePSum !== undefined ? day.pricePSum : 0;
+    dataP.push(Math.round(totalPForDay * 100) / 100);
 
     // Calculate SPP W
     const sppPercent = day.sppCount > 0 ? (day.sppSum / day.sppCount) : 0;
