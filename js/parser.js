@@ -148,6 +148,7 @@ function processRows(rows, skipAutoDetect) {
     K:  letterToIdx('K'),   // 10 - Обоснование для оплаты
     M:  letterToIdx('M'),   // 12 - Дата операции
     O:  letterToIdx('O'),   // 14 - Розничная цена (для расчета налога)
+    P:  letterToIdx('P'),   // 15 - Цена для клиента / Вайлдберриз реализовал Товар (Пр)   // 14 - Розничная цена (для расчета налога)
     T:  letterToIdx('T'),   // 19 - Цена розничная с учетом скидки (сумма выкупа)
     W:  letterToIdx('W'),   // 22 - СПП, %
     X:  letterToIdx('X'),   // 23 - Комиссия WB, % (кВВ)
@@ -284,6 +285,7 @@ function processRows(rows, skipAutoDetect) {
     const rowBI = parseNum(row[COL_MAP.BI]);
     const rowBJ = parseNum(row[COL_MAP.BJ]);
     const rowO = parseNum(row[COL_MAP.O]);
+    const rowP = parseNum(row[COL_MAP.P]);
 
     if (!skuVal && rowAK === 0 && rowBH === 0 && rowT === 0 && rowAO === 0 && rowAP === 0 && rowBI === 0 && rowBJ === 0) continue;
     
@@ -466,6 +468,8 @@ function processRows(rows, skipAutoDetect) {
           returnedQty: 0,
           turnoverT: 0,
           retailSumO: 0,
+          pricePSum: 0,
+          pricePCount: 0,
           payableAH: 0,
           logisticsAK: 0,
           sppSum: 0,
@@ -479,6 +483,11 @@ function processRows(rows, skipAutoDetect) {
         if (Math.abs(sppVal) > 0 && Math.abs(sppVal) <= 1) sppVal = sppVal * 100;
         pDay.sppSum += Math.abs(sppVal);
         pDay.sppCount += 1;
+      }
+
+      if (rowP > 0) {
+        pDay.pricePSum += rowP;
+        pDay.pricePCount += 1;
       }
 
       if (rowAK !== 0) {

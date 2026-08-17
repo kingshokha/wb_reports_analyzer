@@ -83,7 +83,7 @@ function renderSkuModalKpis(prod) {
   if (container) {
     container.innerHTML = `
       <div class="bg-purple-50/70 p-2.5 rounded-2xl border border-purple-100 space-y-0.5">
-        <div class="text-[10px] text-purple-700 font-semibold uppercase tracking-wider">Выкуп (T)</div>
+        <div class="text-[10px] text-purple-700 font-semibold uppercase tracking-wider">Выкупы (T)</div>
         <div class="text-xs sm:text-sm font-black text-purple-900">${formatCurrency(prod.turnover)}</div>
       </div>
       <div class="bg-indigo-50/70 p-2.5 rounded-2xl border border-indigo-100 space-y-0.5">
@@ -126,7 +126,17 @@ function renderSkuModalKpis(prod) {
     });
   }
 
-  const avgBuyerPriceP = prod.soldQty > 0 ? (prod.turnover / prod.soldQty) : 0;
+  let totalPSum = 0;
+  let totalPCount = 0;
+  if (prod.dailyTimeline) {
+    Object.values(prod.dailyTimeline).forEach(d => {
+      if (d.pricePCount > 0) {
+        totalPSum += d.pricePSum;
+        totalPCount += d.pricePCount;
+      }
+    });
+  }
+  const avgBuyerPriceP = totalPCount > 0 ? (totalPSum / totalPCount) : (prod.soldQty > 0 ? (prod.turnover / prod.soldQty) : 0);
   const avgSppPercent = sppCountTotal > 0 ? (sppSumTotal / sppCountTotal) : 0;
   const avgPayableAHPerUnit = prod.soldQty > 0 ? (prod.payout / prod.soldQty) : 0;
   const avgLogisticsPerUnit = prod.soldQty > 0 ? ((prod.logistics || 0) / prod.soldQty) : 0;
@@ -142,7 +152,7 @@ function renderSkuModalKpis(prod) {
       </div>
 
       <div class="bg-white p-2.5 rounded-2xl border border-blue-200/80 space-y-0.5 shadow-2xs">
-        <div class="text-[10px] text-blue-700 font-bold uppercase tracking-wider">Ср. цена пок. (P)</div>
+        <div class="text-[10px] text-blue-700 font-bold uppercase tracking-wider">Ср. цена клиента (P)</div>
         <div class="text-xs font-extrabold text-blue-900">${formatCurrency(avgBuyerPriceP)} / шт</div>
       </div>
 
@@ -213,14 +223,16 @@ function updateSkuTimelineChart() {
     const day = prod.dailyTimeline[dKey];
     dataT.push(day.turnoverT || 0);
 
-    // Calculate buyer price P
-    let buyerPriceP = 0;
-    if (day.soldQty > 0) {
-      buyerPriceP = day.turnoverT / day.soldQty;
+    // Calculate client price P (strictly from Column P if present)
+    let clientPriceP = 0;
+    if (day.pricePCount > 0) {
+      clientPriceP = day.pricePSum / day.pricePCount;
+    } else if (day.soldQty > 0) {
+      clientPriceP = day.turnoverT / day.soldQty;
     } else if (day.retailSumO > 0) {
-      buyerPriceP = day.retailSumO;
+      clientPriceP = day.retailSumO;
     }
-    dataP.push(Math.round(buyerPriceP * 100) / 100);
+    dataP.push(Math.round(clientPriceP * 100) / 100);
 
     // Calculate SPP W
     const sppPercent = day.sppCount > 0 ? (day.sppSum / day.sppCount) : 0;
@@ -245,7 +257,7 @@ function updateSkuTimelineChart() {
 
   if (showT) {
     datasets.push({
-      label: 'Цена выкупа T (₽)',
+      label: 'Выкупы T (₽)',
       data: dataT,
       borderColor: '#9333ea', // purple-600
       backgroundColor: '#9333ea',
@@ -261,7 +273,7 @@ function updateSkuTimelineChart() {
 
   if (showP) {
     datasets.push({
-      label: 'Цена пок. P (₽)',
+      label: 'Цена для клиента P (₽)',
       data: dataP,
       borderColor: '#2563eb', // blue-600
       backgroundColor: '#2563eb',
