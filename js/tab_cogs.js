@@ -1,3 +1,20 @@
+
+function getProductUnitCogs(sku, supplierSku) {
+  if (typeof skuCogsMap === 'undefined' || !skuCogsMap) return 0;
+  const s = String(sku || '').trim();
+  const numS = String(parseInt(s, 10) || '');
+  const supp = String(supplierSku || '').trim();
+  return skuCogsMap[s] || skuCogsMap[numS] || skuCogsMap[supp] || skuCogsMap[sku] || 0;
+}
+
+function getProductUnitFf(sku, supplierSku) {
+  if (typeof skuFfMap === 'undefined' || !skuFfMap) return 0;
+  const s = String(sku || '').trim();
+  const numS = String(parseInt(s, 10) || '');
+  const supp = String(supplierSku || '').trim();
+  return skuFfMap[s] || skuFfMap[numS] || skuFfMap[supp] || skuFfMap[sku] || 0;
+}
+
 /**
  * WB Finance Analytics - Cost of Goods Sold (COGS) Tab Logic
  */
@@ -5,23 +22,50 @@
 function calculateTotalCogs() {
   let total = 0;
   productsList.forEach(p => {
-    const cogsVal = skuCogsMap[p.sku] || 0;
-    const ffVal = skuFfMap[p.sku] || 0;
+    const cogsVal = getProductUnitCogs(p.sku, p.supplierSku);
+    const ffVal = getProductUnitFf(p.sku, p.supplierSku);
     total += p.soldQty * (cogsVal + ffVal);
   });
   return total;
 }
 
+
 function updateSkuCogs(sku, val) {
   const numericVal = parseNum(val);
+  const cleanSku = String(sku || '').trim();
+  const numSku = String(parseInt(cleanSku, 10) || '');
+
   if (numericVal > 0) {
     skuCogsMap[sku] = numericVal;
+    if (cleanSku) skuCogsMap[cleanSku] = numericVal;
+    if (numSku) skuCogsMap[numSku] = numericVal;
   } else {
     delete skuCogsMap[sku];
+    if (cleanSku) delete skuCogsMap[cleanSku];
+    if (numSku) delete skuCogsMap[numSku];
   }
   saveSkuCogsToStorage();
   onCogsOrFfUpdated(sku);
 }
+
+function updateSkuFf(sku, val) {
+  const numericVal = parseNum(val);
+  const cleanSku = String(sku || '').trim();
+  const numSku = String(parseInt(cleanSku, 10) || '');
+
+  if (numericVal > 0) {
+    skuFfMap[sku] = numericVal;
+    if (cleanSku) skuFfMap[cleanSku] = numericVal;
+    if (numSku) skuFfMap[numSku] = numericVal;
+  } else {
+    delete skuFfMap[sku];
+    if (cleanSku) delete skuFfMap[cleanSku];
+    if (numSku) delete skuFfMap[numSku];
+  }
+  saveSkuCogsToStorage();
+  onCogsOrFfUpdated(sku);
+}
+
 
 function updateSkuFf(sku, val) {
   const numericVal = parseNum(val);
