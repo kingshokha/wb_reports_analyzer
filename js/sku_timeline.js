@@ -222,6 +222,20 @@ function updateSkuTimelineChart() {
   const allReportDates = Object.keys(globalStats.dailyTimeline || {}).sort();
   const baseDates = allReportDates.length > 0 ? allReportDates : Object.keys(prod.dailyTimeline || {}).sort();
 
+  // Active checkbox states
+  const showT = document.getElementById('chkSkuT')?.checked || false;
+  const showAvgT = document.getElementById('chkSkuAvgT')?.checked || false;
+  const showP = document.getElementById('chkSkuP')?.checked || false;
+  const showW = document.getElementById('chkSkuW')?.checked || false;
+  const showAH = document.getElementById('chkSkuAH')?.checked || false;
+  const showAK = document.getElementById('chkSkuAK')?.checked || false;
+  const showSold = document.getElementById('chkSkuSold')?.checked || false;
+  const showReturned = document.getElementById('chkSkuReturned')?.checked || false;
+  const showProfit = document.getElementById('chkSkuProfit')?.checked || false;
+
+  const unitCogsVal = typeof getProductUnitCogs === 'function' ? getProductUnitCogs(prod.sku, prod.supplierSku) : (skuCogsMap[prod.sku] || 0);
+  const unitFfVal = typeof getProductUnitFf === 'function' ? getProductUnitFf(prod.sku, prod.supplierSku) : (skuFfMap[prod.sku] || 0);
+
   const hideZeros = document.getElementById('chkSkuHideZeroDays')?.checked || false;
 
   let sortedDates = baseDates;
@@ -229,13 +243,26 @@ function updateSkuTimelineChart() {
     sortedDates = baseDates.filter(dKey => {
       const day = prod.dailyTimeline ? prod.dailyTimeline[dKey] : null;
       if (!day) return false;
-      const hasActivity = (day.soldQty > 0) || 
-                          (day.returnedQty > 0) || 
-                          (Math.abs(day.turnoverT || 0) > 0) || 
-                          (Math.abs(day.payableAH || 0) > 0) || 
-                          (Math.abs(day.logisticsAK || 0) > 0) || 
-                          ((day.pricePSum || 0) > 0);
-      return hasActivity;
+
+      let hasActiveMetric = false;
+
+      if (showT && Math.abs(day.turnoverT || 0) > 0) hasActiveMetric = true;
+      if (showAvgT && day.soldQty > 0 && Math.abs(day.turnoverT || 0) > 0) hasActiveMetric = true;
+      if (showP && Math.abs(day.pricePSum || 0) > 0) hasActiveMetric = true;
+      if (showW && day.sppCount > 0 && Math.abs(day.sppSum || 0) > 0) hasActiveMetric = true;
+      if (showAH && Math.abs(day.payableAH || 0) > 0) hasActiveMetric = true;
+      if (showAK && Math.abs(day.logisticsAK || 0) > 0) hasActiveMetric = true;
+      if (showSold && (day.soldQty || 0) > 0) hasActiveMetric = true;
+      if (showReturned && (day.returnedQty || 0) > 0) hasActiveMetric = true;
+
+      if (showProfit) {
+        const dayCogs = (day.soldQty || 0) * (unitCogsVal + unitFfVal);
+        const dayTax = typeof calculateTax === 'function' ? calculateTax(day.retailSumO || 0, 0) : ((day.retailSumO || 0) * (typeof getTaxRate === 'function' ? getTaxRate() : 0.07));
+        const dayNetProfit = (day.payableAH || 0) - (day.logisticsAK || 0) - dayCogs - dayTax;
+        if (Math.abs(dayNetProfit) > 0) hasActiveMetric = true;
+      }
+
+      return hasActiveMetric;
     });
   }
 
@@ -307,16 +334,7 @@ function updateSkuTimelineChart() {
 
   const datasets = [];
 
-  // Checkbox states
-  const showT = document.getElementById('chkSkuT')?.checked;
-  const showAvgT = document.getElementById('chkSkuAvgT')?.checked;
-  const showP = document.getElementById('chkSkuP')?.checked;
-  const showW = document.getElementById('chkSkuW')?.checked;
-  const showAH = document.getElementById('chkSkuAH')?.checked;
-  const showAK = document.getElementById('chkSkuAK')?.checked;
-  const showSold = document.getElementById('chkSkuSold')?.checked;
-  const showReturned = document.getElementById('chkSkuReturned')?.checked;
-  const showProfit = document.getElementById('chkSkuProfit')?.checked;
+
 
   if (showT) {
     datasets.push({
