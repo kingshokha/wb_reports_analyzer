@@ -35,7 +35,7 @@
   <!-- Top Right Version Badge -->
   <div class="fixed top-2.5 right-4 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-xs text-xs select-none">
     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-    <span class="font-bold text-purple-700">v1.8.9</span>
+    <span class="font-bold text-purple-700">v1.9.0</span>
     <span class="text-slate-300">|</span>
     <span class="font-medium text-slate-500">18.08.2026</span>
   </div>
@@ -1517,6 +1517,11 @@
             <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-rose-400 transition-colors shrink-0 whitespace-nowrap shadow-2xs">
               <input type="checkbox" id="chkSkuReturned" checked onchange="updateSkuTimelineChart()" class="rounded text-rose-500 focus:ring-rose-500 w-3.5 h-3.5" />
               <span class="text-[11px] font-semibold text-rose-800 whitespace-nowrap">Возвраты (шт)</span>
+            </label>
+
+            <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-emerald-300 transition-colors shrink-0 whitespace-nowrap shadow-2xs">
+              <input type="checkbox" id="chkSkuProfit" checked onchange="updateSkuTimelineChart()" class="rounded text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5" />
+              <span class="text-[11px] font-semibold text-emerald-900 whitespace-nowrap">Чистая прибыль</span>
             </label>
           </div>
         </div>

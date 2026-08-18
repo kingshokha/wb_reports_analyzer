@@ -61,7 +61,7 @@ function closeProductTimelineModal() {
 }
 
 function toggleAllSkuTimelineMetrics(selectAll) {
-  const chkIds = ['chkSkuT', 'chkSkuAvgT', 'chkSkuP', 'chkSkuW', 'chkSkuAH', 'chkSkuAK', 'chkSkuSold', 'chkSkuReturned'];
+  const chkIds = ['chkSkuT', 'chkSkuAvgT', 'chkSkuP', 'chkSkuW', 'chkSkuAH', 'chkSkuAK', 'chkSkuSold', 'chkSkuReturned', 'chkSkuProfit'];
   chkIds.forEach(id => {
     const chk = document.getElementById(id);
     if (chk) chk.checked = selectAll;
@@ -142,16 +142,16 @@ function renderSkuModalKpis(prod) {
   const avgLogisticsPerUnit = prod.soldQty > 0 ? ((prod.logistics || 0) / prod.soldQty) : 0;
   const avgSalesPerDay = daysCount > 0 ? (prod.soldQty / daysCount) : 0;
   const avgReturnsPerDay = daysCount > 0 ? (prod.returnedQty / daysCount) : 0;
-  const avgTurnoverPerDay = daysCount > 0 ? (prod.turnover / daysCount) : 0;
   const avgTurnoverPerUnit = prod.soldQty > 0 ? (prod.turnover / prod.soldQty) : 0;
+
+  const totalTax = typeof calculateTax === 'function' ? calculateTax(prod.salesRetailSum || 0, prod.returnsRetailSum || 0) : 0;
+  const totalNetProfit = (prod.payout || 0) - (prod.logistics || 0) - totalCogs - totalTax - adSpend;
+  const avgProfitPerUnit = prod.soldQty > 0 ? (totalNetProfit / prod.soldQty) : 0;
+  const avgProfitPerDay = daysCount > 0 ? (totalNetProfit / daysCount) : 0;
+  const profitColorClass = totalNetProfit >= 0 ? 'text-emerald-700' : 'text-rose-600';
 
   if (avgContainer) {
     avgContainer.innerHTML = `
-      <div class="bg-white p-2.5 rounded-2xl border border-purple-200/80 space-y-0.5 shadow-2xs">
-        <div class="text-[10px] text-purple-700 font-bold uppercase tracking-wider">Ср. Выкуп / день</div>
-        <div class="text-xs font-extrabold text-purple-900">${formatCurrency(avgTurnoverPerDay)}</div>
-      </div>
-
       <div class="bg-white p-2.5 rounded-2xl border border-purple-200/80 space-y-0.5 shadow-2xs">
         <div class="text-[10px] text-purple-700 font-bold uppercase tracking-wider">Ср. цена выкупа (T)</div>
         <div class="text-xs font-extrabold text-purple-900">${formatCurrency(avgTurnoverPerUnit)} / шт</div>
@@ -160,6 +160,16 @@ function renderSkuModalKpis(prod) {
       <div class="bg-white p-2.5 rounded-2xl border border-blue-200/80 space-y-0.5 shadow-2xs">
         <div class="text-[10px] text-blue-700 font-bold uppercase tracking-wider">Ср. цена (P)</div>
         <div class="text-xs font-extrabold text-blue-900">${formatCurrency(prod.soldQty > 0 ? (totalPSum / prod.soldQty) : (totalPCount > 0 ? totalPSum / totalPCount : 0))} / шт</div>
+      </div>
+
+      <div class="bg-white p-2.5 rounded-2xl border border-emerald-200/80 space-y-0.5 shadow-2xs">
+        <div class="text-[10px] text-emerald-700 font-bold uppercase tracking-wider">Ср. прибыль / шт</div>
+        <div class="text-xs font-extrabold ${profitColorClass}">${formatCurrency(avgProfitPerUnit)} / шт</div>
+      </div>
+
+      <div class="bg-white p-2.5 rounded-2xl border border-emerald-200/80 space-y-0.5 shadow-2xs">
+        <div class="text-[10px] text-emerald-700 font-bold uppercase tracking-wider">Ср. прибыль / день</div>
+        <div class="text-xs font-extrabold ${profitColorClass}">${formatCurrency(avgProfitPerDay)}</div>
       </div>
 
       <div class="bg-white p-2.5 rounded-2xl border border-emerald-200/80 space-y-0.5 shadow-2xs">
@@ -225,6 +235,7 @@ function updateSkuTimelineChart() {
   const dataAK = [];         // AK: Логистика ₽ (Right Y1)
   const dataSold = [];       // Продажи шт (Right Y1)
   const dataReturned = [];   // Возвраты шт (Right Y1)
+  const dataProfit = [];     // Чистая прибыль ₽ (Left Y)
 
   sortedDates.forEach(dKey => {
     const day = prod.dailyTimeline[dKey];
@@ -245,6 +256,13 @@ function updateSkuTimelineChart() {
     dataAK.push(day.logisticsAK || 0);
     dataSold.push(day.soldQty || 0);
     dataReturned.push(day.returnedQty || 0);
+
+    const unitCogsVal = typeof getProductUnitCogs === 'function' ? getProductUnitCogs(prod.sku, prod.supplierSku) : (skuCogsMap[prod.sku] || 0);
+    const unitFfVal = typeof getProductUnitFf === 'function' ? getProductUnitFf(prod.sku, prod.supplierSku) : (skuFfMap[prod.sku] || 0);
+    const dayCogs = (day.soldQty || 0) * (unitCogsVal + unitFfVal);
+    const dayTax = typeof calculateTax === 'function' ? calculateTax(day.retailSumO || 0, 0) : ((day.retailSumO || 0) * (typeof getTaxRate === 'function' ? getTaxRate() : 0.07));
+    const dayNetProfit = (day.payableAH || 0) - (day.logisticsAK || 0) - dayCogs - dayTax;
+    dataProfit.push(Math.round(dayNetProfit * 100) / 100);
   });
 
   const datasets = [];
@@ -258,6 +276,7 @@ function updateSkuTimelineChart() {
   const showAK = document.getElementById('chkSkuAK')?.checked;
   const showSold = document.getElementById('chkSkuSold')?.checked;
   const showReturned = document.getElementById('chkSkuReturned')?.checked;
+  const showProfit = document.getElementById('chkSkuProfit')?.checked;
 
   if (showT) {
     datasets.push({
@@ -380,6 +399,22 @@ function updateSkuTimelineChart() {
       yAxisID: 'y1',
       tension: 0.25,
       borderWidth: 2,
+      borderDash: [],
+      pointStyle: 'circle',
+      pointRadius: 4,
+      pointHoverRadius: 6
+    });
+  }
+
+  if (showProfit) {
+    datasets.push({
+      label: 'Чистая прибыль (₽)',
+      data: dataProfit,
+      borderColor: '#059669', // emerald-600
+      backgroundColor: '#059669',
+      yAxisID: 'y',
+      tension: 0.25,
+      borderWidth: 2.5,
       borderDash: [],
       pointStyle: 'circle',
       pointRadius: 4,
