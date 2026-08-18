@@ -61,7 +61,7 @@ function closeProductTimelineModal() {
 }
 
 function toggleAllSkuTimelineMetrics(selectAll) {
-  const chkIds = ['chkSkuT', 'chkSkuP', 'chkSkuW', 'chkSkuAH', 'chkSkuAK', 'chkSkuSold', 'chkSkuReturned'];
+  const chkIds = ['chkSkuT', 'chkSkuAvgT', 'chkSkuP', 'chkSkuW', 'chkSkuAH', 'chkSkuAK', 'chkSkuSold', 'chkSkuReturned'];
   chkIds.forEach(id => {
     const chk = document.getElementById(id);
     if (chk) chk.checked = selectAll;
@@ -218,6 +218,7 @@ function updateSkuTimelineChart() {
 
   // Extract metric arrays
   const dataT = [];          // T: Выкуп ₽ (Left Y)
+  const dataAvgT = [];       // Ср. цена выкупа T ₽ (Left Y)
   const dataP = [];          // P: Цена покупателя ₽ (Left Y)
   const dataW = [];          // W: СПП % (Right Y1)
   const dataAH = [];         // AH: К перечислению ₽ (Left Y)
@@ -228,6 +229,9 @@ function updateSkuTimelineChart() {
   sortedDates.forEach(dKey => {
     const day = prod.dailyTimeline[dKey];
     dataT.push(day.turnoverT || 0);
+
+    const dayAvgT = day.soldQty > 0 ? (day.turnoverT / day.soldQty) : 0;
+    dataAvgT.push(Math.round(dayAvgT * 100) / 100);
 
     // Total sum of Column P for that day
     const totalPForDay = day.pricePSum !== undefined ? day.pricePSum : 0;
@@ -247,6 +251,7 @@ function updateSkuTimelineChart() {
 
   // Checkbox states
   const showT = document.getElementById('chkSkuT')?.checked;
+  const showAvgT = document.getElementById('chkSkuAvgT')?.checked;
   const showP = document.getElementById('chkSkuP')?.checked;
   const showW = document.getElementById('chkSkuW')?.checked;
   const showAH = document.getElementById('chkSkuAH')?.checked;
@@ -260,6 +265,22 @@ function updateSkuTimelineChart() {
       data: dataT,
       borderColor: '#9333ea', // purple-600
       backgroundColor: '#9333ea',
+      yAxisID: 'y',
+      tension: 0.25,
+      borderWidth: 2.5,
+      borderDash: [],
+      pointStyle: 'circle',
+      pointRadius: 4,
+      pointHoverRadius: 6
+    });
+  }
+
+  if (showAvgT) {
+    datasets.push({
+      label: 'Ср. цена выкупа T (₽)',
+      data: dataAvgT,
+      borderColor: '#7c3aed', // violet-600
+      backgroundColor: '#7c3aed',
       yAxisID: 'y',
       tension: 0.25,
       borderWidth: 2.5,
