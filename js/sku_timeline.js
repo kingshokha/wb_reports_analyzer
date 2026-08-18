@@ -152,8 +152,8 @@ function renderSkuModalKpis(prod) {
       </div>
 
       <div class="bg-white p-2.5 rounded-2xl border border-blue-200/80 space-y-0.5 shadow-2xs">
-        <div class="text-[10px] text-blue-700 font-bold uppercase tracking-wider">Ср. сумма (P) / день</div>
-        <div class="text-xs font-extrabold text-blue-900">${formatCurrency(daysCount > 0 ? (totalPSum / daysCount) : 0)}</div>
+        <div class="text-[10px] text-blue-700 font-bold uppercase tracking-wider">Ср. цена (P) / шт</div>
+        <div class="text-xs font-extrabold text-blue-900">${formatCurrency(prod.soldQty > 0 ? (totalPSum / prod.soldQty) : (totalPCount > 0 ? totalPSum / totalPCount : 0))} / шт</div>
       </div>
 
       <div class="bg-white p-2.5 rounded-2xl border border-emerald-200/80 space-y-0.5 shadow-2xs">
