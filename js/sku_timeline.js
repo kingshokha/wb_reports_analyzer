@@ -69,7 +69,7 @@ function toggleAllSkuTimelineMetrics(selectAll) {
   updateSkuTimelineChart();
 }
 
-function renderSkuModalKpis(prod) {
+function renderSkuModalKpis(prod, customDaysCount = null) {
   const container = document.getElementById('skuModalKpiCards');
   const avgContainer = document.getElementById('skuModalAvgCards');
   if (!container && !avgContainer) return;
@@ -116,7 +116,7 @@ function renderSkuModalKpis(prod) {
 
   if (prod.dailyTimeline) {
     const dates = Object.keys(prod.dailyTimeline);
-    daysCount = dates.length;
+    daysCount = customDaysCount !== null ? customDaysCount : dates.length;
     dates.forEach(dKey => {
       const day = prod.dailyTimeline[dKey];
       if (day.sppCount > 0) {
