@@ -143,6 +143,7 @@ function renderSkuModalKpis(prod) {
   const avgSalesPerDay = daysCount > 0 ? (prod.soldQty / daysCount) : 0;
   const avgReturnsPerDay = daysCount > 0 ? (prod.returnedQty / daysCount) : 0;
   const avgTurnoverPerDay = daysCount > 0 ? (prod.turnover / daysCount) : 0;
+  const avgTurnoverPerUnit = prod.soldQty > 0 ? (prod.turnover / prod.soldQty) : 0;
 
   if (avgContainer) {
     avgContainer.innerHTML = `
@@ -151,8 +152,13 @@ function renderSkuModalKpis(prod) {
         <div class="text-xs font-extrabold text-purple-900">${formatCurrency(avgTurnoverPerDay)}</div>
       </div>
 
+      <div class="bg-white p-2.5 rounded-2xl border border-purple-200/80 space-y-0.5 shadow-2xs">
+        <div class="text-[10px] text-purple-700 font-bold uppercase tracking-wider">Ср. цена выкупа (T)</div>
+        <div class="text-xs font-extrabold text-purple-900">${formatCurrency(avgTurnoverPerUnit)} / шт</div>
+      </div>
+
       <div class="bg-white p-2.5 rounded-2xl border border-blue-200/80 space-y-0.5 shadow-2xs">
-        <div class="text-[10px] text-blue-700 font-bold uppercase tracking-wider">Ср. цена (P) / шт</div>
+        <div class="text-[10px] text-blue-700 font-bold uppercase tracking-wider">Ср. цена (P)</div>
         <div class="text-xs font-extrabold text-blue-900">${formatCurrency(prod.soldQty > 0 ? (totalPSum / prod.soldQty) : (totalPCount > 0 ? totalPSum / totalPCount : 0))} / шт</div>
       </div>
 
@@ -361,12 +367,36 @@ function updateSkuTimelineChart() {
   }
 
   const ctx = canvas.getContext('2d');
+  const verticalHoverLinePlugin = {
+    id: 'verticalHoverLine',
+    afterDraw: (chart) => {
+      if (chart.tooltip?._active && chart.tooltip._active.length) {
+        const activePoint = chart.tooltip._active[0];
+        const ctx = chart.ctx;
+        const x = activePoint.element.x;
+        const topY = chart.scales.y.top;
+        const bottomY = chart.scales.y.bottom;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([4, 4]);
+        ctx.moveTo(x, topY);
+        ctx.lineTo(x, bottomY);
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(147, 51, 234, 0.65)'; // purple dashed line
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  };
+
   skuTimelineChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,
       datasets: datasets
     },
+    plugins: [verticalHoverLinePlugin],
     options: {
       responsive: true,
       maintainAspectRatio: false,
