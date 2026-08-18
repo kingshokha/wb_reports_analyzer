@@ -100,7 +100,7 @@ function renderSkuModalKpis(prod, customDaysCount = null) {
       </div>
       <div class="bg-rose-50/70 p-2.5 rounded-2xl border border-rose-100 space-y-0.5">
         <div class="text-[10px] text-rose-700 font-semibold uppercase tracking-wider">Логистика (AK)</div>
-        <div class="text-xs sm:text-sm font-black text-rose-900">${formatCurrency(prod.logistics || 0)}</div>
+        <div class="text-xs font-black text-rose-900">${formatCurrency(prod.logistics || 0)}</div>
       </div>
       <div class="bg-emerald-50/70 p-2.5 rounded-2xl border border-emerald-100 space-y-0.5">
         <div class="text-[10px] text-emerald-700 font-semibold uppercase tracking-wider">Реклама API</div>
@@ -136,7 +136,7 @@ function renderSkuModalKpis(prod, customDaysCount = null) {
       }
     });
   }
-  const avgBuyerPriceP = totalPCount > 0 ? (totalPSum / totalPCount) : (prod.soldQty > 0 ? (prod.turnover / prod.soldQty) : 0);
+
   const avgSppPercent = sppCountTotal > 0 ? (sppSumTotal / sppCountTotal) : 0;
   const avgPayableAHPerUnit = prod.soldQty > 0 ? (prod.payout / prod.soldQty) : 0;
   const avgLogisticsPerUnit = prod.soldQty > 0 ? ((prod.logistics || 0) / prod.soldQty) : 0;
@@ -163,13 +163,13 @@ function renderSkuModalKpis(prod, customDaysCount = null) {
       </div>
 
       <div class="bg-white p-2.5 rounded-2xl border border-emerald-200/80 space-y-0.5 shadow-2xs">
-        <div class="text-[10px] text-emerald-700 font-bold uppercase tracking-wider">Ср. прибыль / шт</div>
-        <div class="text-xs font-extrabold ${profitColorClass}">${formatCurrency(avgProfitPerUnit)} / шт</div>
+        <div class="text-[10px] text-emerald-700 font-bold uppercase tracking-wider">Ср. прибыль / день</div>
+        <div class="text-xs font-extrabold ${profitColorClass}">${formatCurrency(avgProfitPerDay)}</div>
       </div>
 
       <div class="bg-white p-2.5 rounded-2xl border border-emerald-200/80 space-y-0.5 shadow-2xs">
-        <div class="text-[10px] text-emerald-700 font-bold uppercase tracking-wider">Ср. прибыль / день</div>
-        <div class="text-xs font-extrabold ${profitColorClass}">${formatCurrency(avgProfitPerDay)}</div>
+        <div class="text-[10px] text-emerald-700 font-bold uppercase tracking-wider">Ср. прибыль / шт</div>
+        <div class="text-xs font-extrabold ${profitColorClass}">${formatCurrency(avgProfitPerUnit)} / шт</div>
       </div>
 
       <div class="bg-white p-2.5 rounded-2xl border border-emerald-200/80 space-y-0.5 shadow-2xs">
@@ -217,14 +217,43 @@ function updateSkuTimelineChart() {
     skuTimelineChart = null;
   }
 
-  if (!prod || !prod.dailyTimeline) {
-    return;
+  if (!prod) return;
+
+  const allReportDates = Object.keys(globalStats.dailyTimeline || {}).sort();
+  const baseDates = allReportDates.length > 0 ? allReportDates : Object.keys(prod.dailyTimeline || {}).sort();
+
+  const hideZeros = document.getElementById('chkSkuHideZeroDays')?.checked || false;
+
+  let sortedDates = baseDates;
+  if (hideZeros) {
+    sortedDates = baseDates.filter(dKey => {
+      const day = prod.dailyTimeline ? prod.dailyTimeline[dKey] : null;
+      if (!day) return false;
+      const hasActivity = (day.soldQty > 0) || 
+                          (day.returnedQty > 0) || 
+                          (Math.abs(day.turnoverT || 0) > 0) || 
+                          (Math.abs(day.payableAH || 0) > 0) || 
+                          (Math.abs(day.logisticsAK || 0) > 0) || 
+                          ((day.pricePSum || 0) > 0);
+      return hasActivity;
+    });
   }
 
-  const sortedDates = Object.keys(prod.dailyTimeline).sort();
+  // Render KPIs using active days count
+  renderSkuModalKpis(prod, sortedDates.length);
+
   if (sortedDates.length === 0) return;
 
-  const labels = sortedDates.map(dKey => prod.dailyTimeline[dKey].dateFormatted);
+  const labels = sortedDates.map(dKey => {
+    if (prod.dailyTimeline && prod.dailyTimeline[dKey] && prod.dailyTimeline[dKey].dateFormatted) {
+      return prod.dailyTimeline[dKey].dateFormatted;
+    }
+    if (globalStats.dailyTimeline && globalStats.dailyTimeline[dKey] && globalStats.dailyTimeline[dKey].dateFormatted) {
+      return globalStats.dailyTimeline[dKey].dateFormatted;
+    }
+    const parsed = parseDate(dKey);
+    return parsed ? formatDate(parsed) : dKey;
+  });
 
   // Extract metric arrays
   const dataT = [];          // T: Выкуп ₽ (Left Y)
@@ -238,7 +267,18 @@ function updateSkuTimelineChart() {
   const dataProfit = [];     // Чистая прибыль ₽ (Left Y)
 
   sortedDates.forEach(dKey => {
-    const day = prod.dailyTimeline[dKey];
+    const day = (prod.dailyTimeline && prod.dailyTimeline[dKey]) ? prod.dailyTimeline[dKey] : {
+      turnoverT: 0,
+      soldQty: 0,
+      returnedQty: 0,
+      payableAH: 0,
+      logisticsAK: 0,
+      pricePSum: 0,
+      sppCount: 0,
+      sppSum: 0,
+      retailSumO: 0
+    };
+
     dataT.push(day.turnoverT || 0);
 
     const dayAvgT = day.soldQty > 0 ? (day.turnoverT / day.soldQty) : 0;
@@ -422,7 +462,6 @@ function updateSkuTimelineChart() {
     });
   }
 
-  const ctx = canvas.getContext('2d');
   const verticalHoverLinePlugin = {
     id: 'verticalHoverLine',
     afterDraw: (chart) => {
@@ -446,6 +485,7 @@ function updateSkuTimelineChart() {
     }
   };
 
+  const ctx = canvas.getContext('2d');
   skuTimelineChart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -504,7 +544,7 @@ function updateSkuTimelineChart() {
           position: 'left',
           title: {
             display: true,
-            text: 'Суммы (Выкуп, Цена, Выплата) ₽',
+            text: 'Суммы (Выкуп, Цена, Выплата, Прибыль) ₽',
             color: '#64748b',
             font: { size: 10, weight: 'bold' }
           },
