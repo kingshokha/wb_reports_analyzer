@@ -503,6 +503,46 @@ function updateSkuTimelineChart() {
     }
   };
 
+  // Collect all data values for left and right axes to synchronize zero lines
+  const leftValues = [];
+  const rightValues = [];
+
+  datasets.forEach(ds => {
+    if (ds.yAxisID === 'y1') {
+      ds.data.forEach(v => {
+        if (typeof v === 'number' && !isNaN(v)) rightValues.push(v);
+      });
+    } else {
+      ds.data.forEach(v => {
+        if (typeof v === 'number' && !isNaN(v)) leftValues.push(v);
+      });
+    }
+  });
+
+  const minL = leftValues.length > 0 ? Math.min(0, ...leftValues) : 0;
+  const maxL = leftValues.length > 0 ? Math.max(1, ...leftValues) : 1;
+
+  const minR = rightValues.length > 0 ? Math.min(0, ...rightValues) : 0;
+  const maxR = rightValues.length > 0 ? Math.max(1, ...rightValues) : 1;
+
+  let finalMinL = 0;
+  let finalMaxL = maxL * 1.1;
+  let finalMinR = 0;
+  let finalMaxR = maxR * 1.1;
+
+  // Zero-synchronization (Option A)
+  if (minL < 0 || minR < 0) {
+    const ratioL = Math.abs(minL) / (maxL || 1);
+    const ratioR = Math.abs(minR) / (maxR || 1);
+    const targetRatio = Math.max(ratioL, ratioR);
+
+    finalMinL = -targetRatio * maxL * 1.05;
+    finalMaxL = maxL * 1.05;
+
+    finalMinR = -targetRatio * maxR * 1.05;
+    finalMaxR = maxR * 1.05;
+  }
+
   const ctx = canvas.getContext('2d');
   skuTimelineChart = new Chart(ctx, {
     type: 'line',
@@ -560,6 +600,8 @@ function updateSkuTimelineChart() {
           type: 'linear',
           display: true,
           position: 'left',
+          min: finalMinL,
+          max: finalMaxL,
           title: {
             display: true,
             text: 'Суммы (Выкуп, Цена, Выплата, Прибыль) ₽',
@@ -578,6 +620,8 @@ function updateSkuTimelineChart() {
           type: 'linear',
           display: true,
           position: 'right',
+          min: finalMinR,
+          max: finalMaxR,
           title: {
             display: true,
             text: 'Мелкие суммы / Штуки / %',
