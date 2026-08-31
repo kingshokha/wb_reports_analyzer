@@ -492,7 +492,9 @@ function processRows(rows, skipAutoDetect) {
       }
 
       if (isSale) {
-        pDay.soldQty += 1;
+        if (!isVoluntaryCompensation) {
+          pDay.soldQty += 1;
+        }
         pDay.turnoverT += rowT;
         pDay.retailSumO += Math.abs(rowO);
         pDay.payableAH += rowAH;
@@ -506,7 +508,7 @@ function processRows(rows, skipAutoDetect) {
         pDay.retailSumO -= Math.abs(rowO);
         pDay.payableAH -= Math.abs(rowAH);
         if (rowP !== 0) {
-          pDay.pricePSum -= Math.abs(rowP);
+          pDay.pricePSum += Math.abs(rowP);
           pDay.pricePCount += 1;
         }
       }
@@ -521,7 +523,9 @@ function processRows(rows, skipAutoDetect) {
     const acquiringVal = Math.abs(rowAC);
 
     if (isSale) {
-      globalStats.salesCount++;
+      if (!isVoluntaryCompensation) {
+        globalStats.salesCount++;
+      }
       globalStats.turnover += rowT;
       globalStats.commissionSum += rowCommission;
       salesAcquiringSum += acquiringVal;
@@ -534,13 +538,15 @@ function processRows(rows, skipAutoDetect) {
         dayItem.acquiring += acquiringVal;
         dayItem.salesRetailSum += Math.abs(rowO);
         dayItem.salesPayout += rowAH;
-        if (skuVal) {
+        if (skuVal && !isVoluntaryCompensation) {
           dayItem.skuSoldQty[skuVal] = (dayItem.skuSoldQty[skuVal] || 0) + 1;
         }
       }
 
       const prod = globalStats.products[skuVal];
-      prod.soldQty++;
+      if (!isVoluntaryCompensation) {
+        prod.soldQty++;
+      }
       prod.salesTurnover += rowT;
       prod.salesPayout += rowAH;
       prod.commission += rowCommission;
