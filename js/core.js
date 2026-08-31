@@ -444,6 +444,7 @@ function unlockBodyScroll() {
   const modalRootIds = [
     'modalTurnover',
     'modalFees',
+    'modalPayout',
     'modalTotalWbPayable',
     'modalExpenses',
     'modalDeductions',

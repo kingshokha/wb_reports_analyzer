@@ -393,6 +393,94 @@ function closeFeesModal() {
   if (typeof unlockBodyScroll === "function") unlockBodyScroll();
 }
 
+function openPayoutModal() {
+  if (typeof lockBodyScroll === "function") lockBodyScroll();
+  const modal = document.getElementById('modalPayout');
+  if (!modal) return;
+
+  renderPayoutBreakdownModal();
+  modal.classList.remove('hidden');
+  if (window.lucide) lucide.createIcons();
+}
+
+function closePayoutModal() {
+  const modal = document.getElementById('modalPayout');
+  if (modal) modal.classList.add('hidden');
+  if (typeof unlockBodyScroll === "function") unlockBodyScroll();
+}
+
+function renderPayoutBreakdownModal() {
+  const tbody = document.getElementById('payoutModalTableBody');
+  const tfoot = document.getElementById('payoutModalTableFoot');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+  if (tfoot) tfoot.innerHTML = '';
+
+  const totalPayout = globalStats.payoutSum || 0;
+  const breakdown = globalStats.payoutBreakdown || {};
+  const entries = Object.values(breakdown);
+
+  let totalCount = 0;
+  entries.forEach(e => {
+    totalCount += e.count;
+  });
+
+  setText('modalPayoutTotalSum', formatCurrency(totalPayout));
+  setText('modalPayoutTotalCount', `${totalCount} шт`);
+  setText('modalPayoutSalesPayout', formatCurrency(globalStats.salesPayoutSum || 0));
+  setText('modalPayoutReturnsPayout', `- ${formatCurrency(globalStats.returnsPayoutSum || 0)}`);
+
+  if (entries.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="4" class="py-8 text-center text-slate-400">Данные по начислениям отсутствуют</td>
+      </tr>
+    `;
+    return;
+  }
+
+  // Sort by absolute value of sum descending
+  entries.sort((a, b) => Math.abs(b.sum) - Math.abs(a.sum));
+
+  const totalAbsSum = entries.reduce((acc, e) => acc + Math.abs(e.sum), 0);
+
+  entries.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.className = "hover:bg-slate-50/80 transition-colors";
+
+    const isPositive = item.sum >= 0;
+    const sumColor = isPositive ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold';
+    const badgeColor = isPositive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200';
+    const percent = totalAbsSum > 0 ? ((Math.abs(item.sum) / totalAbsSum) * 100).toFixed(1) + '%' : '0%';
+    const formattedSum = isPositive ? formatCurrency(item.sum) : `- ${formatCurrency(Math.abs(item.sum))}`;
+
+    tr.innerHTML = `
+      <td class="py-3 px-4 font-medium text-slate-800">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold ${badgeColor}">
+          ${item.reason}
+        </span>
+      </td>
+      <td class="py-3 px-4 text-center font-medium text-slate-600">${item.count} шт</td>
+      <td class="py-3 px-4 text-right font-medium text-slate-500">${percent}</td>
+      <td class="py-3 px-4 text-right ${sumColor}">${formattedSum}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  if (tfoot) {
+    const formattedTotal = totalPayout >= 0 ? formatCurrency(totalPayout) : `- ${formatCurrency(Math.abs(totalPayout))}`;
+    tfoot.innerHTML = `
+      <tr>
+        <td class="py-3 px-4 text-slate-900 font-bold uppercase text-[11px] tracking-wider">Итого (AH):</td>
+        <td class="py-3 px-4 text-center font-extrabold text-slate-900">${totalCount} шт</td>
+        <td class="py-3 px-4 text-right font-bold text-slate-700">100%</td>
+        <td class="py-3 px-4 text-right font-extrabold ${totalPayout >= 0 ? 'text-emerald-700' : 'text-rose-600'}">${formattedTotal}</td>
+      </tr>
+    `;
+  }
+}
+
 function openTotalWbPayableModal() {
   if (typeof lockBodyScroll === "function") lockBodyScroll();
   const modal = document.getElementById('modalTotalWbPayable');

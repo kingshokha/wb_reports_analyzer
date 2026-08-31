@@ -242,6 +242,7 @@ function processRows(rows, skipAutoDetect) {
     taxSum: 0,
     sppAvg: 0,
     logisticsBreakdown: {},
+    payoutBreakdown: {},
     dailyTimeline: {},
     products: {}
   };
@@ -271,7 +272,8 @@ function processRows(rows, skipAutoDetect) {
     const skuVal = String(row[COL_MAP.D] !== undefined && row[COL_MAP.D] !== null ? row[COL_MAP.D] : '').trim();
     const supplierSkuVal = String(row[COL_MAP.F] !== undefined && row[COL_MAP.F] !== null ? row[COL_MAP.F] : '').trim();
     const nameVal = String(row[COL_MAP.G] !== undefined && row[COL_MAP.G] !== null ? row[COL_MAP.G] : '').trim();
-    const reasonVal = String(row[COL_MAP.K] !== undefined && row[COL_MAP.K] !== null ? row[COL_MAP.K] : '').toLowerCase().trim();
+    const rawReasonK = String(row[COL_MAP.K] !== undefined && row[COL_MAP.K] !== null ? row[COL_MAP.K] : '').trim() || 'Не указано';
+    const reasonVal = rawReasonK.toLowerCase();
     const rowT = parseNum(row[COL_MAP.T]);
     const rowW = parseNum(row[COL_MAP.W]);
     const rowX = parseNum(row[COL_MAP.X]);
@@ -584,6 +586,19 @@ function processRows(rows, skipAutoDetect) {
     } else {
       globalStats.salesPayoutSum += rowAH;
       if (dayItem) dayItem.salesPayout += rowAH;
+    }
+
+    if (rowAH !== 0 || isSale || isReturn) {
+      const netRowAH = isReturn ? -Math.abs(rowAH) : rowAH;
+      if (!globalStats.payoutBreakdown[rawReasonK]) {
+        globalStats.payoutBreakdown[rawReasonK] = {
+          reason: rawReasonK,
+          sum: 0,
+          count: 0
+        };
+      }
+      globalStats.payoutBreakdown[rawReasonK].sum += netRowAH;
+      globalStats.payoutBreakdown[rawReasonK].count += 1;
     }
   }
 
