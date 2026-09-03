@@ -399,10 +399,15 @@ function processRows(rows, skipAutoDetect) {
             salesPayout: 0,
             returnsPayout: 0,
             commission: 0,
+            salesCommission: 0,
+            returnsCommission: 0,
             acquiring: 0,
+            salesAcquiring: 0,
+            returnsAcquiring: 0,
             logistics: 0,
             turnover: 0,
-            payout: 0
+            payout: 0,
+            salesTaxSum: 0
           };
 
         }
@@ -440,10 +445,15 @@ function processRows(rows, skipAutoDetect) {
           salesPayout: 0,
           returnsPayout: 0,
           commission: 0,
+          salesCommission: 0,
+          returnsCommission: 0,
           acquiring: 0,
+          salesAcquiring: 0,
+          returnsAcquiring: 0,
           logistics: 0,
           turnover: 0,
-          payout: 0
+          payout: 0,
+          salesTaxSum: 0
         };
       }
       if (supplierSkuVal && globalStats.products[skuVal].supplierSku === '—') {
@@ -550,7 +560,9 @@ function processRows(rows, skipAutoDetect) {
       prod.salesTurnover += rowT;
       prod.salesPayout += rowAH;
       prod.commission += rowCommission;
+      prod.salesCommission = (prod.salesCommission || 0) + rowCommission;
       prod.acquiring += acquiringVal;
+      prod.salesAcquiring = (prod.salesAcquiring || 0) + acquiringVal;
       prod.salesRetailSum += Math.abs(rowO);
 
     } else if (isReturn) {
@@ -586,7 +598,9 @@ function processRows(rows, skipAutoDetect) {
       prod.returnsTurnover += Math.abs(rowT);
       prod.returnsPayout += Math.abs(rowAH);
       prod.commission -= rowCommission;
+      prod.returnsCommission = (prod.returnsCommission || 0) + rowCommission;
       prod.acquiring -= acquiringVal;
+      prod.returnsAcquiring = (prod.returnsAcquiring || 0) + acquiringVal;
       prod.returnsRetailSum += Math.abs(rowO);
 
     } else {
@@ -642,6 +656,7 @@ function processRows(rows, skipAutoDetect) {
     prod.payout = prod.salesPayout - prod.returnsPayout;
     const prodNetRetail = (prod.salesRetailSum || 0) - (prod.returnsRetailSum || 0);
     prod.taxSum = prodNetRetail * (taxRatePercent / 100);
+    prod.salesTaxSum = (prod.salesRetailSum || 0) * (taxRatePercent / 100);
     prod.adSpend = skuAdSpendMap[String(sku).trim()] || skuAdSpendMap[sku] || 0;
   }
 

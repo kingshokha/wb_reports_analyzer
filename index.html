@@ -35,9 +35,9 @@
   <!-- Top Right Version Badge -->
   <div class="fixed top-2.5 right-4 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-xs text-xs select-none">
     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-    <span class="font-bold text-purple-700">v1.9.6</span>
+    <span class="font-bold text-purple-700">v1.9.7</span>
     <span class="text-slate-300">|</span>
-    <span class="font-medium text-slate-500">01.09.2026</span>
+    <span class="font-medium text-slate-500">03.09.2026</span>
   </div>
 
   <!-- Backdrop overlay for drawer sidebar -->
@@ -493,7 +493,12 @@
               <input type="text" id="productSearch" class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500" placeholder="Поиск по названию, WB SKU или Арт. продавца..." />
             </div>
             
-            <div class="flex gap-2 w-full sm:w-auto items-center">
+            <div class="flex gap-2 w-full sm:w-auto items-center flex-wrap sm:flex-nowrap">
+              <label class="flex items-center gap-1.5 py-2 px-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer transition-colors shadow-sm select-none" title="Учитывать возвраты при расчете прибыли и показателей с артикулов">
+                <input type="checkbox" id="chkIncludeReturns" checked onchange="toggleIncludeReturns(this.checked)" class="rounded text-purple-600 focus:ring-purple-500 w-3.5 h-3.5 cursor-pointer">
+                <span>Учитывать возвраты</span>
+              </label>
+
               <div class="relative">
                 <button id="btnCategoryFilter" onclick="toggleCategoryFilterDropdown(event)" class="py-2 px-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
                   <i data-lucide="layers" class="w-4 h-4 text-purple-600"></i>

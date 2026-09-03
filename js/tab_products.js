@@ -17,6 +17,37 @@ function getProductAdSpend(p) {
  * WB Finance Analytics - Products by SKU Tab Logic
  */
 
+let skuIncludeReturns = true;
+try {
+  const savedReturnsSetting = localStorage.getItem('wb_sku_include_returns');
+  if (savedReturnsSetting !== null) {
+    skuIncludeReturns = savedReturnsSetting === 'true';
+  }
+} catch (e) {}
+
+function toggleIncludeReturns(checked) {
+  skuIncludeReturns = !!checked;
+  try {
+    localStorage.setItem('wb_sku_include_returns', String(skuIncludeReturns));
+  } catch (e) {}
+  sortProducts(currentSortField, true);
+}
+
+function getSkuProfit(p, includeReturns = true) {
+  if (!p) return 0;
+  const turnover = includeReturns ? p.turnover : (p.salesTurnover || 0);
+  const commAcq = includeReturns 
+    ? (p.commission + p.acquiring)
+    : ((p.salesCommission || 0) + (p.salesAcquiring || 0));
+  const itemLogistics = p.logistics || 0;
+  const unitCogs = skuCogsMap[p.sku] || 0;
+  const unitFf = skuFfMap[p.sku] || 0;
+  const totalCogs = p.soldQty * (unitCogs + unitFf);
+  const itemAdSpend = getProductAdSpend(p);
+  const itemTax = includeReturns ? (p.taxSum || 0) : (p.salesTaxSum || 0);
+  return turnover - commAcq - itemLogistics - totalCogs - itemTax - itemAdSpend;
+}
+
 let skuTableColumns = {
   sku: true,
   supplierSku: true,
@@ -255,8 +286,14 @@ function sortProducts(field, preventToggle = false) {
     }
     else if (field === 'sold') { valA = a.soldQty; valB = b.soldQty; }
     else if (field === 'returned') { valA = a.returnedQty; valB = b.returnedQty; }
-    else if (field === 'turnover') { valA = a.turnover; valB = b.turnover; }
-    else if (field === 'comm_acq') { valA = a.commission + a.acquiring; valB = b.commission + b.acquiring; }
+    else if (field === 'turnover') { 
+      valA = skuIncludeReturns ? a.turnover : (a.salesTurnover || 0); 
+      valB = skuIncludeReturns ? b.turnover : (b.salesTurnover || 0); 
+    }
+    else if (field === 'comm_acq') { 
+      valA = skuIncludeReturns ? (a.commission + a.acquiring) : ((a.salesCommission || 0) + (a.salesAcquiring || 0)); 
+      valB = skuIncludeReturns ? (b.commission + b.acquiring) : ((b.salesCommission || 0) + (b.salesAcquiring || 0)); 
+    }
     else if (field === 'logistics') { valA = a.logistics || 0; valB = b.logistics || 0; }
     else if (field === 'cogs') {
       valA = a.soldQty * ((skuCogsMap[a.sku] || 0) + (skuFfMap[a.sku] || 0));
@@ -266,12 +303,13 @@ function sortProducts(field, preventToggle = false) {
       valA = getProductAdSpend(a);
       valB = getProductAdSpend(b);
     }
-    else if (field === 'tax') { valA = a.taxSum || 0; valB = b.taxSum || 0; }
+    else if (field === 'tax') { 
+      valA = skuIncludeReturns ? (a.taxSum || 0) : (a.salesTaxSum || 0); 
+      valB = skuIncludeReturns ? (b.taxSum || 0) : (b.salesTaxSum || 0); 
+    }
     else if (field === 'payout') {
-      const adA = getProductAdSpend(a);
-      const adB = getProductAdSpend(b);
-      valA = a.turnover - (a.commission + a.acquiring) - (a.logistics || 0) - (a.soldQty * ((skuCogsMap[a.sku] || 0) + (skuFfMap[a.sku] || 0))) - (a.taxSum || 0) - adA;
-      valB = b.turnover - (b.commission + b.acquiring) - (b.logistics || 0) - (b.soldQty * ((skuCogsMap[b.sku] || 0) + (skuFfMap[b.sku] || 0))) - (b.taxSum || 0) - adB;
+      valA = getSkuProfit(a, skuIncludeReturns);
+      valB = getSkuProfit(b, skuIncludeReturns);
     }
 
     return currentSortDirection === 'asc' ? valA - valB : valB - valA;
@@ -283,6 +321,11 @@ function sortProducts(field, preventToggle = false) {
 
 function renderProductTable() {
   renderProductTableHeaders();
+
+  const chkReturns = document.getElementById('chkIncludeReturns');
+  if (chkReturns && chkReturns.checked !== skuIncludeReturns) {
+    chkReturns.checked = skuIncludeReturns;
+  }
 
   const tbody = document.getElementById('productTableBody');
   if (!tbody) return;
@@ -304,8 +347,11 @@ function renderProductTable() {
     filteredProducts.forEach(p => {
       totalSoldQty += p.soldQty;
       totalReturnedQty += p.returnedQty;
-      totalTurnover += p.turnover;
-      const commAcq = (p.commission + p.acquiring);
+      const itemTurnover = skuIncludeReturns ? p.turnover : (p.salesTurnover || 0);
+      totalTurnover += itemTurnover;
+      const commAcq = skuIncludeReturns 
+        ? (p.commission + p.acquiring)
+        : ((p.salesCommission || 0) + (p.salesAcquiring || 0));
       totalCommAcq += commAcq;
       const itemLogistics = (p.logistics || 0);
       totalLogisticsSum += itemLogistics;
@@ -316,9 +362,9 @@ function renderProductTable() {
       const itemAdSpend = getProductAdSpend(p);
       p.adSpend = itemAdSpend;
       totalAdSpendSum += itemAdSpend;
-      const itemTax = (p.taxSum || 0);
+      const itemTax = skuIncludeReturns ? (p.taxSum || 0) : (p.salesTaxSum || 0);
       totalTaxSum += itemTax;
-      const itemProfit = p.turnover - commAcq - itemLogistics - itemCogs - itemTax - itemAdSpend;
+      const itemProfit = itemTurnover - commAcq - itemLogistics - itemCogs - itemTax - itemAdSpend;
       p.profit = itemProfit;
       totalProfit += itemProfit;
     });
@@ -382,15 +428,18 @@ function renderProductTable() {
   const paginatedList = filteredProducts.slice(startIndex, endIndex);
 
   paginatedList.forEach(p => {
-    const commAcqSum = p.commission + p.acquiring;
+    const itemTurnover = skuIncludeReturns ? p.turnover : (p.salesTurnover || 0);
+    const commAcqSum = skuIncludeReturns 
+      ? (p.commission + p.acquiring)
+      : ((p.salesCommission || 0) + (p.salesAcquiring || 0));
     const itemLogistics = p.logistics || 0;
     const unitCogs = skuCogsMap[p.sku] || 0;
     const unitFf = skuFfMap[p.sku] || 0;
     const totalUnit = unitCogs + unitFf;
     const totalCogs = p.soldQty * totalUnit;
     const itemAdSpend = getProductAdSpend(p);
-    const itemTax = p.taxSum || 0;
-    const itemProfit = p.profit !== undefined ? p.profit : (p.turnover - commAcqSum - itemLogistics - totalCogs - itemTax - itemAdSpend);
+    const itemTax = skuIncludeReturns ? (p.taxSum || 0) : (p.salesTaxSum || 0);
+    const itemProfit = p.profit !== undefined ? p.profit : (itemTurnover - commAcqSum - itemLogistics - totalCogs - itemTax - itemAdSpend);
     
     const cogsLabel = totalUnit > 0 
       ? `<span class="font-semibold text-slate-800">${formatCurrency(totalCogs)}</span>`
@@ -425,7 +474,7 @@ function renderProductTable() {
       rowCellsHTML += `<td class="py-3 px-5 text-right font-semibold text-rose-500">${p.returnedQty} шт</td>`;
     }
     if (skuTableColumns.turnover) {
-      rowCellsHTML += `<td class="py-3 px-5 text-right font-semibold">${formatCurrency(p.turnover)}</td>`;
+      rowCellsHTML += `<td class="py-3 px-5 text-right font-semibold">${formatCurrency(itemTurnover)}</td>`;
     }
     if (skuTableColumns.comm_acq) {
       rowCellsHTML += `<td class="py-3 px-5 text-right text-slate-600 font-medium">${formatCurrency(commAcqSum)}</td>`;
@@ -477,14 +526,17 @@ function exportSKUTableCSV() {
   csvContent += "Артикул WB (D);Артикул продавца (F);Категория (C);Название (G);Продано (шт);Возвраты (шт);Сумма выкупа (T);Комиссия и Эквайринг;Логистика (AK);Себестоимость;Реклама (₽);Налог (₽);Чистая прибыль\r\n";
   
   productsList.forEach(p => {
-    const commAcqSum = p.commission + p.acquiring;
+    const itemTurnover = skuIncludeReturns ? p.turnover : (p.salesTurnover || 0);
+    const commAcqSum = skuIncludeReturns 
+      ? (p.commission + p.acquiring)
+      : ((p.salesCommission || 0) + (p.salesAcquiring || 0));
     const itemLogistics = p.logistics || 0;
     const unitCogs = skuCogsMap[p.sku] || 0;
     const unitFf = skuFfMap[p.sku] || 0;
     const totalCogs = p.soldQty * (unitCogs + unitFf);
     const itemAdSpend = getProductAdSpend(p);
-    const taxVal = p.taxSum || 0;
-    const itemProfit = p.profit !== undefined ? p.profit : (p.turnover - commAcqSum - itemLogistics - totalCogs - taxVal - itemAdSpend);
+    const taxVal = skuIncludeReturns ? (p.taxSum || 0) : (p.salesTaxSum || 0);
+    const itemProfit = p.profit !== undefined ? p.profit : (itemTurnover - commAcqSum - itemLogistics - totalCogs - taxVal - itemAdSpend);
 
     const row = [
       `"${p.sku.replace(/"/g, '""')}"`,
@@ -493,7 +545,7 @@ function exportSKUTableCSV() {
       `"${p.name.replace(/"/g, '""')}"`,
       p.soldQty,
       p.returnedQty,
-      p.turnover.toFixed(2),
+      itemTurnover.toFixed(2),
       commAcqSum.toFixed(2),
       (p.logistics || 0).toFixed(2),
       totalCogs.toFixed(2),
