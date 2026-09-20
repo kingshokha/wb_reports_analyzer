@@ -561,12 +561,7 @@ function updateSkuTimelineChart() {
       },
       plugins: {
         legend: {
-          position: 'top',
-          labels: {
-            usePointStyle: true,
-            boxWidth: 8,
-            font: { size: 11, weight: 'bold' }
-          }
+          display: false
         },
         tooltip: {
           padding: 10,
