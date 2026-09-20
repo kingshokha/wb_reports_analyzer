@@ -208,6 +208,11 @@ function renderProductTableHeaders() {
   if (!tr) return;
   tr.innerHTML = '';
 
+  const thChart = document.createElement('th');
+  thChart.className = 'py-4 pl-5 pr-1 w-8';
+  thChart.title = 'График динамики товара';
+  tr.appendChild(thChart);
+
   const cols = [
     { id: 'sku', title: 'Артикул WB (D)', field: 'sku' },
     { id: 'supplierSku', title: 'Арт. продавца (F)', field: 'supplierSku' },
@@ -381,6 +386,8 @@ function renderProductTable() {
     if (skuTableColumns.name) labelColSpan++;
     if (labelColSpan === 0) labelColSpan = 1;
 
+    summaryCellsHTML += `<td class="py-3.5 pl-5 pr-1"></td>`;
+
     summaryCellsHTML += `
       <td class="py-3.5 px-5 uppercase tracking-wider font-extrabold text-[11px] text-purple-900" colspan="${labelColSpan}">
         <div class="flex items-center gap-1.5">
@@ -450,11 +457,18 @@ function renderProductTable() {
       : `<span class="text-slate-400 font-normal">0.00 ₽</span>`;
 
     const tr = document.createElement('tr');
-    tr.className = "hover:bg-purple-50/50 transition-colors text-slate-700 text-xs cursor-pointer group";
-    tr.setAttribute("onclick", "openProductTimelineModal('" + p.sku + "')");
-    tr.setAttribute("title", "Нажмите, чтобы посмотреть динамику цен и продаж товара");
-    
-    let rowCellsHTML = '';
+    tr.className = "hover:bg-purple-50/50 transition-colors text-slate-700 text-xs group";
+
+    let rowCellsHTML = `
+      <td class="py-3 pl-5 pr-1 align-middle">
+        <button type="button"
+                class="w-6 h-6 inline-flex items-center justify-center rounded-md border border-slate-200 text-slate-400 bg-white hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                title="Открыть график динамики цен и продаж товара"
+                onclick="event.stopPropagation(); openProductTimelineModal('${p.sku}')">
+          <i data-lucide="square-arrow-up-right" class="w-3.5 h-3.5"></i>
+        </button>
+      </td>
+    `;
     if (skuTableColumns.sku) {
       rowCellsHTML += `<td class="py-3 px-5 font-mono text-xs font-semibold text-slate-600">${p.sku}</td>`;
     }
@@ -503,7 +517,7 @@ function renderProductTable() {
   if (filteredProducts.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="${activeColCount || 8}" class="py-12 text-center text-slate-400">Товары с реальным финансовым оборотом не найдены</td>
+        <td colspan="${(activeColCount || 8) + 1}" class="py-12 text-center text-slate-400">Товары с реальным финансовым оборотом не найдены</td>
       </tr>
     `;
     setText('tablePaginationInfo', "Показано 0-0 из 0 товаров");
