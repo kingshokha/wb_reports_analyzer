@@ -31,6 +31,10 @@ function toggleIncludeReturns(checked) {
     localStorage.setItem('wb_sku_include_returns', String(skuIncludeReturns));
   } catch (e) {}
   sortProducts(currentSortField, true);
+  // Keep the open SKU timeline modal in sync with the setting
+  if (typeof currentTimelineSku !== 'undefined' && currentTimelineSku && typeof updateSkuTimelineChart === 'function') {
+    updateSkuTimelineChart();
+  }
 }
 
 function getSkuProfit(p, includeReturns = true) {

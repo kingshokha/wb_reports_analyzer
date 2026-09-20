@@ -5,6 +5,40 @@
 let skuTimelineChart = null;
 let currentTimelineSku = null;
 
+// Respects the "Учитывать возвраты" toggle from the SKU tab
+function timelineIncludesReturns() {
+  return typeof skuIncludeReturns === 'undefined' ? true : !!skuIncludeReturns;
+}
+
+function getTimelineTaxRate() {
+  const pct = globalStats && !isNaN(globalStats.taxRatePercent) ? globalStats.taxRatePercent : 6;
+  return pct / 100;
+}
+
+// Per-day metrics, either net of returns or sales-only
+function getTimelineDayValues(day) {
+  const withReturns = timelineIncludesReturns();
+  const sppSum = withReturns ? (day.sppSum || 0) : (day.salesSppSum || 0);
+  const sppCount = withReturns ? (day.sppCount || 0) : (day.salesSppCount || 0);
+  return {
+    turnoverT: withReturns ? (day.turnoverT || 0) : (day.salesTurnoverT || 0),
+    retailSumO: withReturns ? (day.retailSumO || 0) : (day.salesRetailSumO || 0),
+    pricePSum: withReturns ? (day.pricePSum || 0) : (day.salesPricePSum || 0),
+    payableAH: withReturns ? (day.payableAH || 0) : (day.salesPayableAH || 0),
+    logisticsAK: day.logisticsAK || 0,
+    soldQty: day.soldQty || 0,
+    returnedQty: day.returnedQty || 0,
+    sppPercent: sppCount > 0 ? (sppSum / sppCount) : 0
+  };
+}
+
+function getTimelineDayProfit(day, unitCogsVal, unitFfVal) {
+  const v = getTimelineDayValues(day);
+  const dayCogs = v.soldQty * (unitCogsVal + unitFfVal);
+  const dayTax = v.retailSumO * getTimelineTaxRate();
+  return v.payableAH - v.logisticsAK - dayCogs - dayTax;
+}
+
 function openProductTimelineModal(sku) {
   if (!sku) return;
   currentTimelineSku = String(sku).trim();
@@ -79,12 +113,17 @@ function renderSkuModalKpis(prod, customDaysCount = null) {
   const totalCogs = prod.soldQty * (unitCogs + unitFf);
   const adSpend = getProductAdSpend ? getProductAdSpend(prod) : (prod.adSpend || 0);
 
+  // "Учитывать возвраты": either net of returns or sales-only
+  const withReturns = timelineIncludesReturns();
+  const periodTurnover = withReturns ? (prod.turnover || 0) : (prod.salesTurnover || 0);
+  const periodPayout = withReturns ? (prod.payout || 0) : (prod.salesPayout || 0);
+
   // Period totals
   if (container) {
     container.innerHTML = `
       <div class="bg-purple-50/70 p-2.5 rounded-2xl border border-purple-100 space-y-0.5">
         <div class="text-[10px] text-purple-700 font-semibold uppercase tracking-wider">Выкупы (T)</div>
-        <div class="text-xs sm:text-sm font-black text-purple-900">${formatCurrency(prod.turnover)}</div>
+        <div class="text-xs sm:text-sm font-black text-purple-900">${formatCurrency(periodTurnover)}</div>
       </div>
       <div class="bg-indigo-50/70 p-2.5 rounded-2xl border border-indigo-100 space-y-0.5">
         <div class="text-[10px] text-indigo-700 font-semibold uppercase tracking-wider">Продано</div>
@@ -96,7 +135,7 @@ function renderSkuModalKpis(prod, customDaysCount = null) {
       </div>
       <div class="bg-amber-50/70 p-2.5 rounded-2xl border border-amber-100 space-y-0.5">
         <div class="text-[10px] text-amber-700 font-semibold uppercase tracking-wider">К перечислению (AH)</div>
-        <div class="text-xs sm:text-sm font-black text-amber-900">${formatCurrency(prod.payout)}</div>
+        <div class="text-xs sm:text-sm font-black text-amber-900">${formatCurrency(periodPayout)}</div>
       </div>
       <div class="bg-rose-50/70 p-2.5 rounded-2xl border border-rose-100 space-y-0.5">
         <div class="text-[10px] text-rose-700 font-semibold uppercase tracking-wider">Логистика (AK)</div>
@@ -119,9 +158,11 @@ function renderSkuModalKpis(prod, customDaysCount = null) {
     daysCount = customDaysCount !== null ? customDaysCount : dates.length;
     dates.forEach(dKey => {
       const day = prod.dailyTimeline[dKey];
-      if (day.sppCount > 0) {
-        sppSumTotal += day.sppSum;
-        sppCountTotal += day.sppCount;
+      const daySppSum = withReturns ? (day.sppSum || 0) : (day.salesSppSum || 0);
+      const daySppCount = withReturns ? (day.sppCount || 0) : (day.salesSppCount || 0);
+      if (daySppCount > 0) {
+        sppSumTotal += daySppSum;
+        sppCountTotal += daySppCount;
       }
     });
   }
@@ -130,22 +171,24 @@ function renderSkuModalKpis(prod, customDaysCount = null) {
   let totalPCount = 0;
   if (prod.dailyTimeline) {
     Object.values(prod.dailyTimeline).forEach(d => {
-      if (d.pricePCount > 0) {
-        totalPSum += d.pricePSum;
-        totalPCount += d.pricePCount;
+      const dayPSum = withReturns ? (d.pricePSum || 0) : (d.salesPricePSum || 0);
+      const dayPCount = withReturns ? (d.pricePCount || 0) : (d.salesPricePCount || 0);
+      if (dayPCount > 0) {
+        totalPSum += dayPSum;
+        totalPCount += dayPCount;
       }
     });
   }
 
   const avgSppPercent = sppCountTotal > 0 ? (sppSumTotal / sppCountTotal) : 0;
-  const avgPayableAHPerUnit = prod.soldQty > 0 ? (prod.payout / prod.soldQty) : 0;
+  const avgPayableAHPerUnit = prod.soldQty > 0 ? (periodPayout / prod.soldQty) : 0;
   const avgLogisticsPerUnit = prod.soldQty > 0 ? ((prod.logistics || 0) / prod.soldQty) : 0;
   const avgSalesPerDay = daysCount > 0 ? (prod.soldQty / daysCount) : 0;
   const avgReturnsPerDay = daysCount > 0 ? (prod.returnedQty / daysCount) : 0;
-  const avgTurnoverPerUnit = prod.soldQty > 0 ? (prod.turnover / prod.soldQty) : 0;
+  const avgTurnoverPerUnit = prod.soldQty > 0 ? (periodTurnover / prod.soldQty) : 0;
 
-  const totalTax = typeof calculateTax === 'function' ? calculateTax(prod.salesRetailSum || 0, prod.returnsRetailSum || 0) : 0;
-  const totalNetProfit = (prod.payout || 0) - (prod.logistics || 0) - totalCogs - totalTax - adSpend;
+  const totalTax = withReturns ? (prod.taxSum || 0) : (prod.salesTaxSum || 0);
+  const totalNetProfit = periodPayout - (prod.logistics || 0) - totalCogs - totalTax - adSpend;
   const avgProfitPerUnit = prod.soldQty > 0 ? (totalNetProfit / prod.soldQty) : 0;
   const avgProfitPerDay = daysCount > 0 ? (totalNetProfit / daysCount) : 0;
   const profitColorClass = totalNetProfit >= 0 ? 'text-emerald-700' : 'text-rose-600';
@@ -245,21 +288,19 @@ function updateSkuTimelineChart() {
       if (!day) return false;
 
       let hasActiveMetric = false;
+      const v = getTimelineDayValues(day);
 
-      if (showT && Math.abs(day.turnoverT || 0) > 0) hasActiveMetric = true;
-      if (showAvgT && day.soldQty > 0 && Math.abs(day.turnoverT || 0) > 0) hasActiveMetric = true;
-      if (showP && Math.abs(day.pricePSum || 0) > 0) hasActiveMetric = true;
-      if (showW && day.sppCount > 0 && Math.abs(day.sppSum || 0) > 0) hasActiveMetric = true;
-      if (showAH && Math.abs(day.payableAH || 0) > 0) hasActiveMetric = true;
-      if (showAK && Math.abs(day.logisticsAK || 0) > 0) hasActiveMetric = true;
-      if (showSold && (day.soldQty || 0) > 0) hasActiveMetric = true;
-      if (showReturned && (day.returnedQty || 0) > 0) hasActiveMetric = true;
+      if (showT && Math.abs(v.turnoverT) > 0) hasActiveMetric = true;
+      if (showAvgT && v.soldQty > 0 && Math.abs(v.turnoverT) > 0) hasActiveMetric = true;
+      if (showP && Math.abs(v.pricePSum) > 0) hasActiveMetric = true;
+      if (showW && Math.abs(v.sppPercent) > 0) hasActiveMetric = true;
+      if (showAH && Math.abs(v.payableAH) > 0) hasActiveMetric = true;
+      if (showAK && Math.abs(v.logisticsAK) > 0) hasActiveMetric = true;
+      if (showSold && v.soldQty > 0) hasActiveMetric = true;
+      if (showReturned && v.returnedQty > 0) hasActiveMetric = true;
 
-      if (showProfit) {
-        const dayCogs = (day.soldQty || 0) * (unitCogsVal + unitFfVal);
-        const dayTax = typeof calculateTax === 'function' ? calculateTax(day.retailSumO || 0, 0) : ((day.retailSumO || 0) * (typeof getTaxRate === 'function' ? getTaxRate() : 0.07));
-        const dayNetProfit = (day.payableAH || 0) - (day.logisticsAK || 0) - dayCogs - dayTax;
-        if (Math.abs(dayNetProfit) > 0) hasActiveMetric = true;
+      if (showProfit && Math.abs(getTimelineDayProfit(day, unitCogsVal, unitFfVal)) > 0) {
+        hasActiveMetric = true;
       }
 
       return hasActiveMetric;
@@ -294,42 +335,26 @@ function updateSkuTimelineChart() {
   const dataProfit = [];     // Чистая прибыль ₽ (Left Y)
 
   sortedDates.forEach(dKey => {
-    const day = (prod.dailyTimeline && prod.dailyTimeline[dKey]) ? prod.dailyTimeline[dKey] : {
-      turnoverT: 0,
-      soldQty: 0,
-      returnedQty: 0,
-      payableAH: 0,
-      logisticsAK: 0,
-      pricePSum: 0,
-      sppCount: 0,
-      sppSum: 0,
-      retailSumO: 0
-    };
+    const day = (prod.dailyTimeline && prod.dailyTimeline[dKey]) ? prod.dailyTimeline[dKey] : {};
+    const v = getTimelineDayValues(day);
 
-    dataT.push(day.turnoverT || 0);
+    dataT.push(v.turnoverT);
 
-    const dayAvgT = day.soldQty > 0 ? (day.turnoverT / day.soldQty) : 0;
+    const dayAvgT = v.soldQty > 0 ? (v.turnoverT / v.soldQty) : 0;
     dataAvgT.push(Math.round(dayAvgT * 100) / 100);
 
     // Total sum of Column P for that day
-    const totalPForDay = day.pricePSum !== undefined ? day.pricePSum : 0;
-    dataP.push(Math.round(totalPForDay * 100) / 100);
+    dataP.push(Math.round(v.pricePSum * 100) / 100);
 
     // Calculate SPP W
-    const sppPercent = day.sppCount > 0 ? (day.sppSum / day.sppCount) : 0;
-    dataW.push(Math.round(sppPercent * 10) / 10);
+    dataW.push(Math.round(v.sppPercent * 10) / 10);
 
-    dataAH.push(day.payableAH || 0);
-    dataAK.push(day.logisticsAK || 0);
-    dataSold.push(day.soldQty || 0);
-    dataReturned.push(day.returnedQty || 0);
+    dataAH.push(v.payableAH);
+    dataAK.push(v.logisticsAK);
+    dataSold.push(v.soldQty);
+    dataReturned.push(v.returnedQty);
 
-    const unitCogsVal = typeof getProductUnitCogs === 'function' ? getProductUnitCogs(prod.sku, prod.supplierSku) : (skuCogsMap[prod.sku] || 0);
-    const unitFfVal = typeof getProductUnitFf === 'function' ? getProductUnitFf(prod.sku, prod.supplierSku) : (skuFfMap[prod.sku] || 0);
-    const dayCogs = (day.soldQty || 0) * (unitCogsVal + unitFfVal);
-    const dayTax = typeof calculateTax === 'function' ? calculateTax(day.retailSumO || 0, 0) : ((day.retailSumO || 0) * (typeof getTaxRate === 'function' ? getTaxRate() : 0.07));
-    const dayNetProfit = (day.payableAH || 0) - (day.logisticsAK || 0) - dayCogs - dayTax;
-    dataProfit.push(Math.round(dayNetProfit * 100) / 100);
+    dataProfit.push(Math.round(getTimelineDayProfit(day, unitCogsVal, unitFfVal) * 100) / 100);
   });
 
   const datasets = [];

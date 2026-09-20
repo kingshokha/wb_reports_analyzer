@@ -485,15 +485,23 @@ function processRows(rows, skipAutoDetect) {
           payableAH: 0,
           logisticsAK: 0,
           sppSum: 0,
-          sppCount: 0
+          sppCount: 0,
+          salesTurnoverT: 0,
+          salesRetailSumO: 0,
+          salesPricePSum: 0,
+          salesPricePCount: 0,
+          salesPayableAH: 0,
+          salesSppSum: 0,
+          salesSppCount: 0
         };
       }
       const pDay = prodTimeline.dailyTimeline[dayKey];
 
+      let daySppVal = 0;
       if (rowW !== 0) {
-        let sppVal = rowW;
-        if (Math.abs(sppVal) > 0 && Math.abs(sppVal) <= 1) sppVal = sppVal * 100;
-        pDay.sppSum += Math.abs(sppVal);
+        daySppVal = rowW;
+        if (Math.abs(daySppVal) > 0 && Math.abs(daySppVal) <= 1) daySppVal = daySppVal * 100;
+        pDay.sppSum += Math.abs(daySppVal);
         pDay.sppCount += 1;
       }
 
@@ -511,6 +519,19 @@ function processRows(rows, skipAutoDetect) {
         if (rowP !== 0) {
           pDay.pricePSum += Math.abs(rowP);
           pDay.pricePCount += 1;
+        }
+
+        // Sales-only mirrors for the "Учитывать возвраты" toggle
+        pDay.salesTurnoverT += rowT;
+        pDay.salesRetailSumO += Math.abs(rowO);
+        pDay.salesPayableAH += rowAH;
+        if (rowP !== 0) {
+          pDay.salesPricePSum += Math.abs(rowP);
+          pDay.salesPricePCount += 1;
+        }
+        if (rowW !== 0) {
+          pDay.salesSppSum += Math.abs(daySppVal);
+          pDay.salesSppCount += 1;
         }
       } else if (isReturn) {
         pDay.returnedQty += 1;
