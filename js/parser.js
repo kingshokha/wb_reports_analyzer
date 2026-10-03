@@ -682,6 +682,8 @@ function processRows(rows, skipAutoDetect) {
   }
 
   productsList = Object.values(globalStats.products);
+  // Новый отчет - новый набор артикулов, выбор сбрасывается
+  if (typeof rebuildSkuFilterOptions === 'function') rebuildSkuFilterOptions();
   if (typeof updateCategoryFilterDropdown === 'function') updateCategoryFilterDropdown();
   if (typeof applyProductFilters === 'function') applyProductFilters();
 

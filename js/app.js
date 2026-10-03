@@ -198,7 +198,28 @@ function initEvents() {
         catDd.classList.add('hidden');
       }
     }
+
+    const skuDd = document.getElementById('skuFilterDropdown');
+    const btnSku = document.getElementById('btnSkuFilter');
+    if (skuDd && !skuDd.classList.contains('hidden')) {
+      if (!skuDd.contains(e.target) && (!btnSku || !btnSku.contains(e.target))) {
+        if (typeof closeSkuFilterDropdown === 'function') closeSkuFilterDropdown();
+        else skuDd.classList.add('hidden');
+      }
+    }
   });
+
+  // Esc закрывает панель фильтра артикулов - доступность с клавиатуры
+  const skuFilterPanel = document.getElementById('skuFilterDropdown');
+  if (skuFilterPanel) {
+    skuFilterPanel.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && typeof closeSkuFilterDropdown === 'function') {
+        closeSkuFilterDropdown();
+        const btn = document.getElementById('btnSkuFilter');
+        if (btn) btn.focus();
+      }
+    });
+  }
 }
 
 window.onload = function() {

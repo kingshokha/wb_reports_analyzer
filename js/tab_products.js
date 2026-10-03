@@ -71,6 +71,178 @@ let skuTableColumns = {
 let activeCategories = new Set();
 let availableCategories = [];
 
+/* ---------- Фильтр по артикулам (поиск + множественный выбор) ---------- */
+
+let activeSkus = new Set();        // пусто = показываем все артикулы
+let skuFilterOptions = [];         // варианты строятся один раз на загрузку отчета
+
+function normalizeFilterText(val) {
+  return String(val === undefined || val === null ? '' : val).trim();
+}
+
+function escapeFilterHtml(val) {
+  return String(val === undefined || val === null ? '' : val)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function escapeFilterAttr(val) {
+  return escapeFilterHtml(val).replace(/"/g, '&quot;');
+}
+
+// Варианты собираем один раз после разбора отчета, а не на каждый ввод символа
+function rebuildSkuFilterOptions() {
+  activeSkus.clear();
+
+  skuFilterOptions = (productsList || []).map(function (p) {
+    const sku = normalizeFilterText(p.sku);
+    const supplierSku = normalizeFilterText(p.supplierSku);
+    const name = normalizeFilterText(p.name);
+    const hasSupplier = supplierSku && supplierSku !== '—';
+    const hasName = name && name !== 'Без названия';
+
+    const title = hasSupplier ? supplierSku : (hasName ? name : 'Без артикула');
+
+    return {
+      sku: sku,
+      title: title,
+      // сортируем по арт. продавца, при его отсутствии - по названию, безымянные в конец
+      sortKey: hasSupplier ? supplierSku : (hasName ? name : '\uffff'),
+      // предрассчитанная строка поиска: ввод символа не пересобирает данные
+      search: [sku, hasSupplier ? supplierSku : '', hasName ? name : ''].join(' ').toLowerCase()
+    };
+  });
+
+  skuFilterOptions.sort(function (a, b) {
+    const byTitle = a.sortKey.localeCompare(b.sortKey, 'ru', { numeric: true, sensitivity: 'base' });
+    return byTitle !== 0 ? byTitle : a.sku.localeCompare(b.sku, undefined, { numeric: true });
+  });
+
+  const searchInput = document.getElementById('skuFilterSearch');
+  if (searchInput) searchInput.value = '';
+
+  renderSkuFilterList();
+  updateSkuFilterBadge();
+}
+
+function toggleSkuFilterDropdown(e) {
+  if (e) e.stopPropagation();
+  const catDd = document.getElementById('categoryFilterDropdown');
+  if (catDd) catDd.classList.add('hidden');
+  const colDd = document.getElementById('columnFilterDropdown');
+  if (colDd) colDd.classList.add('hidden');
+
+  const dd = document.getElementById('skuFilterDropdown');
+  if (!dd) return;
+  const isHidden = dd.classList.toggle('hidden');
+
+  const btn = document.getElementById('btnSkuFilter');
+  if (btn) btn.setAttribute('aria-expanded', String(!isHidden));
+
+  if (!isHidden) {
+    const searchInput = document.getElementById('skuFilterSearch');
+    if (searchInput) searchInput.focus();
+  }
+}
+
+function closeSkuFilterDropdown() {
+  const dd = document.getElementById('skuFilterDropdown');
+  if (dd) dd.classList.add('hidden');
+  const btn = document.getElementById('btnSkuFilter');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+
+function onSkuFilterSearch() {
+  renderSkuFilterList();
+}
+
+function renderSkuFilterList() {
+  const listEl = document.getElementById('skuFilterList');
+  if (!listEl) return;
+
+  if (skuFilterOptions.length === 0) {
+    listEl.innerHTML = '<div class="text-slate-400 py-3 text-center text-xs">Загрузите отчёт</div>';
+    return;
+  }
+
+  const query = (document.getElementById('skuFilterSearch')?.value || '').toLowerCase().trim();
+  // поиск только сужает видимый список, отметки при этом не снимаются
+  const visible = query ? skuFilterOptions.filter(function (o) { return o.search.includes(query); }) : skuFilterOptions;
+
+  if (visible.length === 0) {
+    listEl.innerHTML = '<div class="text-slate-400 py-3 text-center text-xs">Ничего не найдено</div>';
+    return;
+  }
+
+  listEl.innerHTML = visible.map(function (o) {
+    const isChecked = activeSkus.has(o.sku);
+    const fullTitle = escapeFilterAttr(o.title + ' · ' + o.sku);
+    const safeSku = escapeFilterAttr(o.sku);
+    return '' +
+      '<label data-sku-option="' + safeSku + '" title="' + fullTitle + '"' +
+      ' class="flex items-start gap-2 py-1.5 px-1.5 rounded-lg cursor-pointer transition-colors ' +
+      (isChecked ? 'bg-purple-50' : 'hover:bg-slate-50') + '">' +
+        '<input type="checkbox" ' + (isChecked ? 'checked' : '') + ' value="' + safeSku + '"' +
+        ' onchange="toggleSkuSelection(this.value)"' +
+        ' class="sku-filter-chk mt-0.5 rounded text-purple-600 focus:ring-purple-500 shrink-0">' +
+        '<span class="min-w-0">' +
+          '<span class="block font-bold text-slate-800 truncate">' + escapeFilterHtml(o.title) + '</span>' +
+          '<span class="block text-[10px] text-slate-400 truncate">' + escapeFilterHtml(o.sku) + '</span>' +
+        '</span>' +
+      '</label>';
+  }).join('');
+}
+
+function toggleSkuSelection(sku) {
+  const key = normalizeFilterText(sku);
+  if (activeSkus.has(key)) {
+    activeSkus.delete(key);
+  } else {
+    activeSkus.add(key);
+  }
+
+  // подсвечиваем только эту строку: перерисовка списка убрала бы элемент из DOM прямо под кликом
+  const safeKey = (window.CSS && CSS.escape) ? CSS.escape(key) : key;
+  const labelEl = document.querySelector('#skuFilterList [data-sku-option="' + safeKey + '"]');
+  if (labelEl) {
+    labelEl.classList.toggle('bg-purple-50', activeSkus.has(key));
+    labelEl.classList.toggle('hover:bg-slate-50', !activeSkus.has(key));
+  }
+
+  updateSkuFilterBadge();
+  applyProductFilters();
+}
+
+function resetSkuFilter(e) {
+  if (e) e.stopPropagation();
+  if (activeSkus.size === 0) return;
+  activeSkus.clear();
+  renderSkuFilterList();
+  updateSkuFilterBadge();
+  applyProductFilters();
+}
+
+function updateSkuFilterBadge() {
+  const count = activeSkus.size;
+
+  const label = document.getElementById('skuFilterBtnLabel');
+  if (label) label.textContent = count > 0 ? 'Артикулы (' + count + ')' : 'Артикулы';
+
+  const btn = document.getElementById('btnSkuFilter');
+  if (btn) {
+    btn.setAttribute('aria-label', count > 0 ? 'Фильтр по артикулам, выбрано: ' + count : 'Фильтр по артикулам');
+    btn.classList.toggle('border-purple-300', count > 0);
+    btn.classList.toggle('bg-purple-50/70', count > 0);
+  }
+
+  const summary = document.getElementById('skuFilterSummary');
+  if (summary) summary.textContent = count > 0 ? 'Выбрано: ' + count : 'Все артикулы';
+
+  const resetBtn = document.getElementById('btnSkuFilterReset');
+  if (resetBtn) resetBtn.disabled = count === 0;
+}
+
 function toggleCategoryFilterDropdown(e) {
   if (e) e.stopPropagation();
   const colDd = document.getElementById('columnFilterDropdown');
@@ -155,6 +327,10 @@ function updateCategoryFilterBadge() {
 function applyProductFilters() {
   const query = (document.getElementById('productSearch')?.value || '').toLowerCase().trim();
   filteredProducts = productsList.filter(p => {
+    // Фильтр по артикулам: пусто - все товары, иначе только отмеченные
+    if (activeSkus.size > 0 && !activeSkus.has(normalizeFilterText(p.sku))) {
+      return false;
+    }
     const cat = p.category || '—';
     if (activeCategories.size > 0 && !activeCategories.has(cat)) {
       return false;
@@ -168,8 +344,8 @@ function applyProductFilters() {
       (p.category && p.category.toLowerCase().includes(query)) ||
       p.name.toLowerCase().includes(query);
   });
-  currentPage = 1;
-  renderProductTable();
+  // sortProducts сохраняет текущую сортировку, сбрасывает страницу и перерисовывает таблицу с итогами
+  sortProducts(currentSortField, true);
 }
 
 function toggleColumnFilterDropdown(e) {
