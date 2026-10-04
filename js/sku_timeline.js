@@ -20,10 +20,15 @@ function getTimelineDayValues(day) {
   const withReturns = timelineIncludesReturns();
   const sppSum = withReturns ? (day.sppSum || 0) : (day.salesSppSum || 0);
   const sppCount = withReturns ? (day.sppCount || 0) : (day.salesSppCount || 0);
+  const pricePSum = withReturns ? (day.pricePSum || 0) : (day.salesPricePSum || 0);
+  const pricePCount = withReturns ? (day.pricePCount || 0) : (day.salesPricePCount || 0);
   return {
     turnoverT: withReturns ? (day.turnoverT || 0) : (day.salesTurnoverT || 0),
     retailSumO: withReturns ? (day.retailSumO || 0) : (day.salesRetailSumO || 0),
-    pricePSum: withReturns ? (day.pricePSum || 0) : (day.salesPricePSum || 0),
+    pricePSum: pricePSum,
+    pricePCount: pricePCount,
+    // средняя цена для клиента за день, а не сумма цен по строкам отчета
+    pricePAvg: pricePCount > 0 ? (pricePSum / pricePCount) : 0,
     payableAH: withReturns ? (day.payableAH || 0) : (day.salesPayableAH || 0),
     logisticsAK: day.logisticsAK || 0,
     soldQty: day.soldQty || 0,
@@ -300,7 +305,7 @@ function updateSkuTimelineChart() {
 
       if (showT && Math.abs(v.turnoverT) > 0) hasActiveMetric = true;
       if (showAvgT && v.soldQty > 0 && Math.abs(v.turnoverT) > 0) hasActiveMetric = true;
-      if (showP && Math.abs(v.pricePSum) > 0) hasActiveMetric = true;
+      if (showP && Math.abs(v.pricePAvg) > 0) hasActiveMetric = true;
       if (showW && Math.abs(v.sppPercent) > 0) hasActiveMetric = true;
       if (showAH && Math.abs(v.payableAH) > 0) hasActiveMetric = true;
       if (showAK && Math.abs(v.logisticsAK) > 0) hasActiveMetric = true;
@@ -338,7 +343,7 @@ function updateSkuTimelineChart() {
   // Extract metric arrays
   const dataT = [];          // T: Выкуп ₽ (Left Y)
   const dataAvgT = [];       // Ср. цена выкупа T ₽ (Left Y)
-  const dataP = [];          // P: Цена покупателя ₽ (Left Y)
+  const dataP = [];          // P: Ср. цена для клиента ₽ (Left Y)
   const dataW = [];          // W: СПП % (Right Y1)
   const dataAH = [];         // AH: К перечислению ₽ (Left Y)
   const dataAK = [];         // AK: Логистика ₽ (Right Y1)
@@ -356,8 +361,8 @@ function updateSkuTimelineChart() {
     const dayAvgT = v.soldQty > 0 ? (v.turnoverT / v.soldQty) : 0;
     dataAvgT.push(Math.round(dayAvgT * 100) / 100);
 
-    // Total sum of Column P for that day
-    dataP.push(Math.round(v.pricePSum * 100) / 100);
+    // Средняя цена для клиента (столбец P) за этот день
+    dataP.push(Math.round(v.pricePAvg * 100) / 100);
 
     // Calculate SPP W
     dataW.push(Math.round(v.sppPercent * 10) / 10);
@@ -409,7 +414,7 @@ function updateSkuTimelineChart() {
 
   if (showP) {
     datasets.push({
-      label: 'Цена для клиента P (₽)',
+      label: 'Ср. цена для клиента P (₽)',
       data: dataP,
       borderColor: '#2563eb', // blue-600
       backgroundColor: '#2563eb',

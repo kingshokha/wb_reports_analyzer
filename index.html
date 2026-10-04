@@ -35,7 +35,7 @@
   <!-- Top Right Version Badge -->
   <div class="fixed top-2.5 right-4 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-xs text-xs select-none">
     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-    <span class="font-bold text-purple-700">v1.11.1</span>
+    <span class="font-bold text-purple-700">v1.11.2</span>
     <span class="text-slate-300">|</span>
     <span class="font-medium text-slate-500">04.10.2026</span>
   </div>
@@ -1594,7 +1594,7 @@
               <span class="text-[11px] font-semibold text-violet-900 whitespace-nowrap">Ср. цена выкупа (T)</span>
             </label>
 
-            <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-blue-300 transition-colors shrink-0 whitespace-nowrap shadow-2xs">
+            <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-blue-300 transition-colors shrink-0 whitespace-nowrap shadow-2xs" title="Средняя цена для клиента (столбец P) за день">
               <input type="checkbox" id="chkSkuP" onchange="updateSkuTimelineChart()" class="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5" />
               <span class="text-[11px] font-semibold text-blue-900 whitespace-nowrap">Цена для клиента (P)</span>
             </label>
@@ -1670,13 +1670,6 @@
           </div>
         </div>
 
-      </div>
-
-      <!-- Footer -->
-      <div class="bg-slate-50 p-3 border-t border-slate-200/80 flex justify-end shrink-0">
-        <button type="button" onclick="closeProductTimelineModal()" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold transition-colors cursor-pointer text-xs">
-          Закрыть
-        </button>
       </div>
 
     </div>
