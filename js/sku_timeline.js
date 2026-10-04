@@ -39,6 +39,13 @@ function getTimelineDayProfit(day, unitCogsVal, unitFfVal) {
   return v.payableAH - v.logisticsAK - dayCogs - dayTax;
 }
 
+// Прибыль за день, делённая на проданные за этот день штуки
+function getTimelineDayProfitPerUnit(day, unitCogsVal, unitFfVal) {
+  const soldQty = day.soldQty || 0;
+  if (soldQty <= 0) return 0;
+  return getTimelineDayProfit(day, unitCogsVal, unitFfVal) / soldQty;
+}
+
 function openProductTimelineModal(sku) {
   if (!sku) return;
   currentTimelineSku = String(sku).trim();
@@ -95,7 +102,7 @@ function closeProductTimelineModal() {
 }
 
 function toggleAllSkuTimelineMetrics(selectAll) {
-  const chkIds = ['chkSkuT', 'chkSkuAvgT', 'chkSkuP', 'chkSkuW', 'chkSkuAH', 'chkSkuAK', 'chkSkuSold', 'chkSkuReturned', 'chkSkuProfit'];
+  const chkIds = ['chkSkuT', 'chkSkuAvgT', 'chkSkuP', 'chkSkuW', 'chkSkuAH', 'chkSkuAK', 'chkSkuSold', 'chkSkuReturned', 'chkSkuProfit', 'chkSkuAvgProfit'];
   chkIds.forEach(id => {
     const chk = document.getElementById(id);
     if (chk) chk.checked = selectAll;
@@ -275,6 +282,7 @@ function updateSkuTimelineChart() {
   const showSold = document.getElementById('chkSkuSold')?.checked || false;
   const showReturned = document.getElementById('chkSkuReturned')?.checked || false;
   const showProfit = document.getElementById('chkSkuProfit')?.checked || false;
+  const showAvgProfit = document.getElementById('chkSkuAvgProfit')?.checked || false;
 
   const unitCogsVal = typeof getProductUnitCogs === 'function' ? getProductUnitCogs(prod.sku, prod.supplierSku) : (skuCogsMap[prod.sku] || 0);
   const unitFfVal = typeof getProductUnitFf === 'function' ? getProductUnitFf(prod.sku, prod.supplierSku) : (skuFfMap[prod.sku] || 0);
@@ -300,6 +308,10 @@ function updateSkuTimelineChart() {
       if (showReturned && v.returnedQty > 0) hasActiveMetric = true;
 
       if (showProfit && Math.abs(getTimelineDayProfit(day, unitCogsVal, unitFfVal)) > 0) {
+        hasActiveMetric = true;
+      }
+
+      if (showAvgProfit && Math.abs(getTimelineDayProfitPerUnit(day, unitCogsVal, unitFfVal)) > 0) {
         hasActiveMetric = true;
       }
 
@@ -333,6 +345,7 @@ function updateSkuTimelineChart() {
   const dataSold = [];       // Продажи шт (Right Y1)
   const dataReturned = [];   // Возвраты шт (Right Y1)
   const dataProfit = [];     // Чистая прибыль ₽ (Left Y)
+  const dataAvgProfit = [];  // Ср. прибыль ₽/шт (Left Y)
 
   sortedDates.forEach(dKey => {
     const day = (prod.dailyTimeline && prod.dailyTimeline[dKey]) ? prod.dailyTimeline[dKey] : {};
@@ -355,6 +368,7 @@ function updateSkuTimelineChart() {
     dataReturned.push(v.returnedQty);
 
     dataProfit.push(Math.round(getTimelineDayProfit(day, unitCogsVal, unitFfVal) * 100) / 100);
+    dataAvgProfit.push(Math.round(getTimelineDayProfitPerUnit(day, unitCogsVal, unitFfVal) * 100) / 100);
   });
 
   const datasets = [];
@@ -495,6 +509,22 @@ function updateSkuTimelineChart() {
       data: dataProfit,
       borderColor: '#059669', // emerald-600
       backgroundColor: '#059669',
+      yAxisID: 'y',
+      tension: 0.25,
+      borderWidth: 2.5,
+      borderDash: [],
+      pointStyle: 'circle',
+      pointRadius: 4,
+      pointHoverRadius: 6
+    });
+  }
+
+  if (showAvgProfit) {
+    datasets.push({
+      label: 'Ср. прибыль / шт (₽)',
+      data: dataAvgProfit,
+      borderColor: '#0d9488', // teal-600
+      backgroundColor: '#0d9488',
       yAxisID: 'y',
       tension: 0.25,
       borderWidth: 2.5,
