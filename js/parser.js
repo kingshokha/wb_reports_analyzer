@@ -486,6 +486,8 @@ function processRows(rows, skipAutoDetect) {
           logisticsAK: 0,
           sppSum: 0,
           sppCount: 0,
+          commission: 0,
+          salesCommission: 0,
           salesTurnoverT: 0,
           salesRetailSumO: 0,
           salesPricePSum: 0,
@@ -582,6 +584,12 @@ function processRows(rows, skipAutoDetect) {
       prod.salesPayout += rowAH;
       prod.commission += rowCommission;
       prod.salesCommission = (prod.salesCommission || 0) + rowCommission;
+
+      const pDaySale = (dayKey && prod.dailyTimeline) ? prod.dailyTimeline[dayKey] : null;
+      if (pDaySale) {
+        pDaySale.commission += rowCommission;
+        pDaySale.salesCommission += rowCommission;
+      }
       prod.acquiring += acquiringVal;
       prod.salesAcquiring = (prod.salesAcquiring || 0) + acquiringVal;
       prod.salesRetailSum += Math.abs(rowO);
@@ -620,6 +628,11 @@ function processRows(rows, skipAutoDetect) {
       prod.returnsPayout += Math.abs(rowAH);
       prod.commission -= rowCommission;
       prod.returnsCommission = (prod.returnsCommission || 0) + rowCommission;
+
+      const pDayReturn = (dayKey && prod.dailyTimeline) ? prod.dailyTimeline[dayKey] : null;
+      if (pDayReturn) {
+        pDayReturn.commission -= rowCommission;
+      }
       prod.acquiring -= acquiringVal;
       prod.returnsAcquiring = (prod.returnsAcquiring || 0) + acquiringVal;
       prod.returnsRetailSum += Math.abs(rowO);

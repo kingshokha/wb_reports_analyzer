@@ -31,10 +31,18 @@ function getTimelineDayValues(day) {
     pricePAvg: pricePCount > 0 ? (pricePSum / pricePCount) : 0,
     payableAH: withReturns ? (day.payableAH || 0) : (day.salesPayableAH || 0),
     logisticsAK: day.logisticsAK || 0,
+    commission: withReturns ? (day.commission || 0) : (day.salesCommission || 0),
     soldQty: day.soldQty || 0,
     returnedQty: day.returnedQty || 0,
     sppPercent: sppCount > 0 ? (sppSum / sppCount) : 0
   };
+}
+
+// Комиссия WB за день, делённая на проданные за этот день штуки
+function getTimelineDayCommissionPerUnit(day) {
+  const v = getTimelineDayValues(day);
+  if (v.soldQty <= 0) return 0;
+  return v.commission / v.soldQty;
 }
 
 function getTimelineDayProfit(day, unitCogsVal, unitFfVal) {
@@ -107,7 +115,7 @@ function closeProductTimelineModal() {
 }
 
 function toggleAllSkuTimelineMetrics(selectAll) {
-  const chkIds = ['chkSkuT', 'chkSkuAvgT', 'chkSkuP', 'chkSkuW', 'chkSkuAH', 'chkSkuAK', 'chkSkuSold', 'chkSkuReturned', 'chkSkuProfit', 'chkSkuAvgProfit'];
+  const chkIds = ['chkSkuT', 'chkSkuAvgT', 'chkSkuP', 'chkSkuW', 'chkSkuAH', 'chkSkuAK', 'chkSkuSold', 'chkSkuReturned', 'chkSkuProfit', 'chkSkuAvgProfit', 'chkSkuAvgCommission'];
   chkIds.forEach(id => {
     const chk = document.getElementById(id);
     if (chk) chk.checked = selectAll;
@@ -199,6 +207,9 @@ function renderSkuModalKpis(prod, customDaysCount = null) {
   const avgReturnsPerDay = daysCount > 0 ? (prod.returnedQty / daysCount) : 0;
   const avgTurnoverPerUnit = prod.soldQty > 0 ? (periodTurnover / prod.soldQty) : 0;
 
+  const periodCommission = withReturns ? (prod.commission || 0) : (prod.salesCommission || 0);
+  const avgCommissionPerUnit = prod.soldQty > 0 ? (periodCommission / prod.soldQty) : 0;
+
   const totalTax = withReturns ? (prod.taxSum || 0) : (prod.salesTaxSum || 0);
   const totalNetProfit = periodPayout - (prod.logistics || 0) - totalCogs - totalTax - adSpend;
   const avgProfitPerUnit = prod.soldQty > 0 ? (totalNetProfit / prod.soldQty) : 0;
@@ -235,6 +246,11 @@ function renderSkuModalKpis(prod, customDaysCount = null) {
       <div class="bg-white p-2.5 rounded-2xl border border-amber-200/80 space-y-0.5 shadow-2xs">
         <div class="text-[10px] text-amber-700 font-bold uppercase tracking-wider">Ср. Выплата (AH)</div>
         <div class="text-xs font-extrabold text-amber-900">${formatCurrency(avgPayableAHPerUnit)} / шт</div>
+      </div>
+
+      <div class="bg-white p-2.5 rounded-2xl border border-pink-200/80 space-y-0.5 shadow-2xs" title="Комиссия WB (кВВ) за период, делённая на проданные штуки. Эквайринг не входит.">
+        <div class="text-[10px] text-pink-700 font-bold uppercase tracking-wider">Ср. комиссия</div>
+        <div class="text-xs font-extrabold text-pink-900">${formatCurrency(avgCommissionPerUnit)} / шт</div>
       </div>
 
       <div class="bg-white p-2.5 rounded-2xl border border-rose-200/80 space-y-0.5 shadow-2xs">
@@ -288,6 +304,7 @@ function updateSkuTimelineChart() {
   const showReturned = document.getElementById('chkSkuReturned')?.checked || false;
   const showProfit = document.getElementById('chkSkuProfit')?.checked || false;
   const showAvgProfit = document.getElementById('chkSkuAvgProfit')?.checked || false;
+  const showAvgCommission = document.getElementById('chkSkuAvgCommission')?.checked || false;
 
   const unitCogsVal = typeof getProductUnitCogs === 'function' ? getProductUnitCogs(prod.sku, prod.supplierSku) : (skuCogsMap[prod.sku] || 0);
   const unitFfVal = typeof getProductUnitFf === 'function' ? getProductUnitFf(prod.sku, prod.supplierSku) : (skuFfMap[prod.sku] || 0);
@@ -317,6 +334,10 @@ function updateSkuTimelineChart() {
       }
 
       if (showAvgProfit && Math.abs(getTimelineDayProfitPerUnit(day, unitCogsVal, unitFfVal)) > 0) {
+        hasActiveMetric = true;
+      }
+
+      if (showAvgCommission && Math.abs(getTimelineDayCommissionPerUnit(day)) > 0) {
         hasActiveMetric = true;
       }
 
@@ -351,6 +372,7 @@ function updateSkuTimelineChart() {
   const dataReturned = [];   // Возвраты шт (Right Y1)
   const dataProfit = [];     // Чистая прибыль ₽ (Left Y)
   const dataAvgProfit = [];  // Ср. прибыль ₽/шт (Left Y)
+  const dataAvgComm = [];    // Ср. комиссия ₽/шт (Left Y)
 
   sortedDates.forEach(dKey => {
     const day = (prod.dailyTimeline && prod.dailyTimeline[dKey]) ? prod.dailyTimeline[dKey] : {};
@@ -374,6 +396,7 @@ function updateSkuTimelineChart() {
 
     dataProfit.push(Math.round(getTimelineDayProfit(day, unitCogsVal, unitFfVal) * 100) / 100);
     dataAvgProfit.push(Math.round(getTimelineDayProfitPerUnit(day, unitCogsVal, unitFfVal) * 100) / 100);
+    dataAvgComm.push(Math.round(getTimelineDayCommissionPerUnit(day) * 100) / 100);
   });
 
   const datasets = [];
@@ -530,6 +553,22 @@ function updateSkuTimelineChart() {
       data: dataAvgProfit,
       borderColor: '#0d9488', // teal-600
       backgroundColor: '#0d9488',
+      yAxisID: 'y',
+      tension: 0.25,
+      borderWidth: 2.5,
+      borderDash: [],
+      pointStyle: 'circle',
+      pointRadius: 4,
+      pointHoverRadius: 6
+    });
+  }
+
+  if (showAvgCommission) {
+    datasets.push({
+      label: 'Ср. комиссия / шт (₽)',
+      data: dataAvgComm,
+      borderColor: '#db2777', // pink-600
+      backgroundColor: '#db2777',
       yAxisID: 'y',
       tension: 0.25,
       borderWidth: 2.5,
