@@ -35,7 +35,7 @@
   <!-- Top Right Version Badge -->
   <div class="fixed top-2.5 right-4 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-xs text-xs select-none">
     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-    <span class="font-bold text-purple-700">v1.12.0</span>
+    <span class="font-bold text-purple-700">v1.13.0</span>
     <span class="text-slate-300">|</span>
     <span class="font-medium text-slate-500">04.10.2026</span>
   </div>
@@ -533,28 +533,6 @@
               </div>
 
               <div class="relative">
-                <button id="btnCategoryFilter" onclick="toggleCategoryFilterDropdown(event)" class="py-2 px-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
-                  <i data-lucide="layers" class="w-4 h-4 text-purple-600"></i>
-                  Категории <span id="categoryFilterBadge" class="hidden px-1.5 py-0.5 text-[10px] bg-purple-100 text-purple-700 rounded-full font-bold"></span>
-                </button>
-                <div id="categoryFilterDropdown" class="hidden absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-3 space-y-1 text-xs select-none">
-                  <div class="font-bold text-slate-800 pb-1.5 border-b border-slate-100 mb-1 flex justify-between items-center">
-                    <span>Фильтр категорий</span>
-                    <button onclick="toggleCategoryFilterDropdown(event)" class="text-slate-400 hover:text-slate-600">✕</button>
-                  </div>
-                  <div class="flex items-center justify-between py-1 px-1.5 bg-purple-50/70 rounded mb-1.5 border-b border-purple-100 font-semibold text-purple-900">
-                    <label class="flex items-center gap-2 cursor-pointer w-full">
-                      <input type="checkbox" checked id="cat_chk_all" onchange="toggleAllCategories(this.checked)" class="rounded text-purple-600 focus:ring-purple-500">
-                      <span>Выбрать все категории</span>
-                    </label>
-                  </div>
-                  <div id="categoryFilterList" class="max-h-56 overflow-y-auto space-y-1 custom-scrollbar pr-1">
-                    <div class="text-slate-400 py-2 text-center text-xs">Категории не загружены</div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="relative">
                 <button id="btnColumnFilter" onclick="toggleColumnFilterDropdown(event)" class="py-2 px-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
                   <i data-lucide="sliders-horizontal" class="w-4 h-4 text-purple-600"></i>
                   Столбцы ⚙️
@@ -682,6 +660,28 @@
                 <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600"></i>
                 <span>Только без себестоимости</span>
               </label>
+
+              <div class="relative shrink-0">
+                <button id="btnCategoryFilter" onclick="toggleCategoryFilterDropdown(event)" class="py-2 px-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
+                  <i data-lucide="layers" class="w-4 h-4 text-purple-600"></i>
+                  Категории <span id="categoryFilterBadge" class="hidden px-1.5 py-0.5 text-[10px] bg-purple-100 text-purple-700 rounded-full font-bold"></span>
+                </button>
+                <div id="categoryFilterDropdown" class="hidden absolute left-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 p-3 space-y-1 text-xs select-none">
+                  <div class="font-bold text-slate-800 pb-1.5 border-b border-slate-100 mb-1 flex justify-between items-center">
+                    <span>Фильтр категорий</span>
+                    <button type="button" onclick="toggleCategoryFilterDropdown(event)" class="text-slate-400 hover:text-slate-600">✕</button>
+                  </div>
+                  <div class="flex items-center justify-between py-1 px-1.5 bg-purple-50/70 rounded mb-1.5 border-b border-purple-100 font-semibold text-purple-900">
+                    <label class="flex items-center gap-2 cursor-pointer w-full">
+                      <input type="checkbox" checked id="cat_chk_all" onchange="toggleAllCategories(this.checked)" class="rounded text-purple-600 focus:ring-purple-500">
+                      <span>Выбрать все категории</span>
+                    </label>
+                  </div>
+                  <div id="categoryFilterList" class="max-h-56 overflow-y-auto space-y-1 custom-scrollbar pr-1">
+                    <div class="text-slate-400 py-2 text-center text-xs">Категории не загружены</div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
@@ -1637,6 +1637,11 @@
             <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-pink-300 transition-colors shrink-0 whitespace-nowrap shadow-2xs" title="Комиссия WB (кВВ) за день, делённая на проданные за этот день штуки. Эквайринг не входит.">
               <input type="checkbox" id="chkSkuAvgCommission" onchange="updateSkuTimelineChart()" class="rounded text-pink-600 focus:ring-pink-500 w-3.5 h-3.5" />
               <span class="text-[11px] font-semibold text-pink-900 whitespace-nowrap">Ср. комиссия</span>
+            </label>
+
+            <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200/80 cursor-pointer hover:border-fuchsia-300 transition-colors shrink-0 whitespace-nowrap shadow-2xs" title="Средняя ставка комиссии WB (кВВ, столбец X) за день, в процентах">
+              <input type="checkbox" id="chkSkuAvgCommissionPct" onchange="updateSkuTimelineChart()" class="rounded text-fuchsia-600 focus:ring-fuchsia-500 w-3.5 h-3.5" />
+              <span class="text-[11px] font-semibold text-fuchsia-900 whitespace-nowrap">Ср. комиссия %</span>
             </label>
 
             <span class="hidden sm:inline-block w-px h-5 bg-slate-300 mx-0.5"></span>

@@ -488,6 +488,10 @@ function processRows(rows, skipAutoDetect) {
           sppCount: 0,
           commission: 0,
           salesCommission: 0,
+          commPctSum: 0,
+          commPctCount: 0,
+          salesCommPctSum: 0,
+          salesCommPctCount: 0,
           salesTurnoverT: 0,
           salesRetailSumO: 0,
           salesPricePSum: 0,
@@ -498,6 +502,17 @@ function processRows(rows, skipAutoDetect) {
         };
       }
       const pDay = prodTimeline.dailyTimeline[dayKey];
+
+      if (rowX !== 0) {
+        let dayCommPct = rowX;
+        if (Math.abs(dayCommPct) > 0 && Math.abs(dayCommPct) <= 1) dayCommPct = dayCommPct * 100;
+        pDay.commPctSum += Math.abs(dayCommPct);
+        pDay.commPctCount += 1;
+        if (isSale) {
+          pDay.salesCommPctSum += Math.abs(dayCommPct);
+          pDay.salesCommPctCount += 1;
+        }
+      }
 
       let daySppVal = 0;
       if (rowW !== 0) {
@@ -698,6 +713,7 @@ function processRows(rows, skipAutoDetect) {
   // Новый отчет - новый набор артикулов, выбор сбрасывается
   if (typeof rebuildSkuFilterOptions === 'function') rebuildSkuFilterOptions();
   if (typeof updateCategoryFilterDropdown === 'function') updateCategoryFilterDropdown();
+  if (typeof renderCogsTable === 'function') renderCogsTable();
   if (typeof applyProductFilters === 'function') applyProductFilters();
 
   if (typeof updateFinancials === 'function') updateFinancials();

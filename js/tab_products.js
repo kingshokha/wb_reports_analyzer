@@ -68,9 +68,6 @@ let skuTableColumns = {
   payout: true
 };
 
-let activeCategories = new Set();
-let availableCategories = [];
-
 /* ---------- Фильтр по артикулам (поиск + множественный выбор) ---------- */
 
 let activeSkus = new Set();        // пусто = показываем все артикулы
@@ -128,8 +125,6 @@ function rebuildSkuFilterOptions() {
 
 function toggleSkuFilterDropdown(e) {
   if (e) e.stopPropagation();
-  const catDd = document.getElementById('categoryFilterDropdown');
-  if (catDd) catDd.classList.add('hidden');
   const colDd = document.getElementById('columnFilterDropdown');
   if (colDd) colDd.classList.add('hidden');
 
@@ -243,99 +238,11 @@ function updateSkuFilterBadge() {
   if (resetBtn) resetBtn.disabled = count === 0;
 }
 
-function toggleCategoryFilterDropdown(e) {
-  if (e) e.stopPropagation();
-  const colDd = document.getElementById('columnFilterDropdown');
-  if (colDd) colDd.classList.add('hidden');
-
-  const dd = document.getElementById('categoryFilterDropdown');
-  if (dd) dd.classList.toggle('hidden');
-}
-
-function updateCategoryFilterDropdown() {
-  const listEl = document.getElementById('categoryFilterList');
-  if (!listEl) return;
-
-  const cats = Array.from(new Set(productsList.map(p => p.category || '—'))).sort();
-  availableCategories = cats;
-
-  if (activeCategories.size === 0 && cats.length > 0) {
-    activeCategories = new Set(cats);
-  } else {
-    cats.forEach(c => activeCategories.add(c));
-  }
-
-  if (cats.length === 0) {
-    listEl.innerHTML = `<div class="text-slate-400 py-2 text-center text-xs">Категории не найдены</div>`;
-    return;
-  }
-
-  listEl.innerHTML = cats.map(cat => {
-    const isChecked = activeCategories.has(cat);
-    const safeCat = cat.replace(/'/g, "\\'");
-    return `
-      <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer text-xs">
-        <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCategory('${safeCat}')" class="cat-item-chk rounded text-purple-600 focus:ring-purple-500">
-        <span class="truncate" title="${cat}">${cat}</span>
-      </label>
-    `;
-  }).join('');
-
-  updateCategoryFilterBadge();
-}
-
-function toggleCategory(catName) {
-  if (activeCategories.has(catName)) {
-    activeCategories.delete(catName);
-  } else {
-    activeCategories.add(catName);
-  }
-  updateCategoryFilterBadge();
-  applyProductFilters();
-}
-
-function toggleAllCategories(selectAll) {
-  if (selectAll) {
-    activeCategories = new Set(availableCategories);
-  } else {
-    activeCategories.clear();
-  }
-  const chks = document.querySelectorAll('.cat-item-chk');
-  chks.forEach(chk => chk.checked = selectAll);
-
-  updateCategoryFilterBadge();
-  applyProductFilters();
-}
-
-function updateCategoryFilterBadge() {
-  const chkAll = document.getElementById('cat_chk_all');
-  if (chkAll) {
-    chkAll.checked = availableCategories.length > 0 && availableCategories.every(c => activeCategories.has(c));
-  }
-
-  const badge = document.getElementById('categoryFilterBadge');
-  if (!badge) return;
-
-  if (availableCategories.length > 0 && activeCategories.size < availableCategories.length) {
-    badge.innerText = `${activeCategories.size}/${availableCategories.length}`;
-    badge.classList.remove('hidden');
-  } else {
-    badge.classList.add('hidden');
-  }
-}
-
 function applyProductFilters() {
   const query = (document.getElementById('productSearch')?.value || '').toLowerCase().trim();
   filteredProducts = productsList.filter(p => {
     // Фильтр по артикулам: пусто - все товары, иначе только отмеченные
     if (activeSkus.size > 0 && !activeSkus.has(normalizeFilterText(p.sku))) {
-      return false;
-    }
-    const cat = p.category || '—';
-    if (activeCategories.size > 0 && !activeCategories.has(cat)) {
-      return false;
-    }
-    if (activeCategories.size === 0) {
       return false;
     }
     if (!query) return true;
@@ -350,8 +257,8 @@ function applyProductFilters() {
 
 function toggleColumnFilterDropdown(e) {
   if (e) e.stopPropagation();
-  const catDd = document.getElementById('categoryFilterDropdown');
-  if (catDd) catDd.classList.add('hidden');
+  const skuDd = document.getElementById('skuFilterDropdown');
+  if (skuDd && typeof closeSkuFilterDropdown === 'function') closeSkuFilterDropdown();
 
   const dd = document.getElementById('columnFilterDropdown');
   if (dd) dd.classList.toggle('hidden');

@@ -19,6 +19,123 @@ function getProductUnitFf(sku, supplierSku) {
  * WB Finance Analytics - Cost of Goods Sold (COGS) Tab Logic
  */
 
+/* ---------- Фильтр категорий (перенесён со вкладки товаров по SKU) ---------- */
+
+let activeCategories = new Set();
+let availableCategories = [];
+
+function toggleCategoryFilterDropdown(e) {
+  if (e) e.stopPropagation();
+  const colDd = document.getElementById('columnFilterDropdown');
+  if (colDd) colDd.classList.add('hidden');
+
+  const dd = document.getElementById('categoryFilterDropdown');
+  if (dd) dd.classList.toggle('hidden');
+}
+
+function updateCategoryFilterDropdown() {
+  const listEl = document.getElementById('categoryFilterList');
+  if (!listEl) return;
+
+  const cats = Array.from(new Set(productsList.map(p => p.category || '—'))).sort();
+  availableCategories = cats;
+
+  if (activeCategories.size === 0 && cats.length > 0) {
+    activeCategories = new Set(cats);
+  } else {
+    cats.forEach(c => activeCategories.add(c));
+  }
+
+  if (cats.length === 0) {
+    listEl.innerHTML = `<div class="text-slate-400 py-2 text-center text-xs">Категории не найдены</div>`;
+    return;
+  }
+
+  listEl.innerHTML = cats.map(cat => {
+    const isChecked = activeCategories.has(cat);
+    const safeCat = cat.replace(/'/g, "\\'");
+    return `
+      <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer text-xs">
+        <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCategory('${safeCat}')" class="cat-item-chk rounded text-purple-600 focus:ring-purple-500">
+        <span class="truncate" title="${cat}">${cat}</span>
+      </label>
+    `;
+  }).join('');
+
+  updateCategoryFilterBadge();
+}
+
+function toggleCategory(catName) {
+  if (activeCategories.has(catName)) {
+    activeCategories.delete(catName);
+  } else {
+    activeCategories.add(catName);
+  }
+  updateCategoryFilterBadge();
+  rerenderCogsAfterFilter();
+}
+
+function toggleAllCategories(selectAll) {
+  if (selectAll) {
+    activeCategories = new Set(availableCategories);
+  } else {
+    activeCategories.clear();
+  }
+  const chks = document.querySelectorAll('.cat-item-chk');
+  chks.forEach(chk => chk.checked = selectAll);
+
+  updateCategoryFilterBadge();
+  rerenderCogsAfterFilter();
+}
+
+function updateCategoryFilterBadge() {
+  const chkAll = document.getElementById('cat_chk_all');
+  if (chkAll) {
+    chkAll.checked = availableCategories.length > 0 && availableCategories.every(c => activeCategories.has(c));
+  }
+
+  const badge = document.getElementById('categoryFilterBadge');
+  if (!badge) return;
+
+  if (availableCategories.length > 0 && activeCategories.size < availableCategories.length) {
+    badge.innerText = `${activeCategories.size}/${availableCategories.length}`;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+
+// Любая смена категорий перестраивает таблицу себестоимости с первой страницы
+function rerenderCogsAfterFilter() {
+  cogsCurrentPage = 1;
+  renderCogsTable();
+}
+
+// Товары, прошедшие фильтры вкладки: категории, поиск и "только без себестоимости"
+function getFilteredCogsProducts() {
+  const query = (document.getElementById('cogsSearch')?.value || '').toLowerCase().trim();
+  const onlyNoCogs = document.getElementById('chkOnlyNoCogs')?.checked || false;
+
+  return productsList.filter(p => {
+    const cat = p.category || '—';
+    if (availableCategories.length > 0 && !activeCategories.has(cat)) return false;
+
+    const matchesQuery = p.sku.toLowerCase().includes(query) ||
+      (p.supplierSku && p.supplierSku.toLowerCase().includes(query)) ||
+      (p.category && p.category.toLowerCase().includes(query)) ||
+      p.name.toLowerCase().includes(query);
+    if (!matchesQuery) return false;
+
+    if (onlyNoCogs) {
+      const unitCogs = parseNum(skuCogsMap[p.sku]);
+      const unitFf = parseNum(skuFfMap[p.sku]);
+      return (unitCogs + unitFf) === 0;
+    }
+    return true;
+  });
+}
+
 function calculateTotalCogs() {
   let total = 0;
   productsList.forEach(p => {
@@ -125,23 +242,7 @@ function prevCogsPage() {
 }
 
 function nextCogsPage() {
-  const query = (document.getElementById('cogsSearch')?.value || '').toLowerCase().trim();
-  const onlyNoCogs = document.getElementById('chkOnlyNoCogs')?.checked || false;
-
-  const filteredList = productsList.filter(p => {
-    const matchesQuery = p.sku.toLowerCase().includes(query) || 
-      (p.supplierSku && p.supplierSku.toLowerCase().includes(query)) ||
-      (p.category && p.category.toLowerCase().includes(query)) ||
-      p.name.toLowerCase().includes(query);
-    if (!matchesQuery) return false;
-
-    if (onlyNoCogs) {
-      const unitCogs = parseNum(skuCogsMap[p.sku]);
-      const unitFf = parseNum(skuFfMap[p.sku]);
-      return (unitCogs + unitFf) === 0;
-    }
-    return true;
-  });
+  const filteredList = getFilteredCogsProducts();
 
   if (cogsCurrentPage * itemsPerPage < filteredList.length) {
     cogsCurrentPage++;
@@ -153,23 +254,7 @@ function renderCogsTable() {
   const tbody = document.getElementById('cogsTableBody');
   if (!tbody) return;
   tbody.innerHTML = '';
-  const query = (document.getElementById('cogsSearch')?.value || '').toLowerCase().trim();
-  const onlyNoCogs = document.getElementById('chkOnlyNoCogs')?.checked || false;
-
-  const filteredList = productsList.filter(p => {
-    const matchesQuery = p.sku.toLowerCase().includes(query) || 
-      (p.supplierSku && p.supplierSku.toLowerCase().includes(query)) ||
-      (p.category && p.category.toLowerCase().includes(query)) ||
-      p.name.toLowerCase().includes(query);
-    if (!matchesQuery) return false;
-
-    if (onlyNoCogs) {
-      const unitCogs = parseNum(skuCogsMap[p.sku]);
-      const unitFf = parseNum(skuFfMap[p.sku]);
-      return (unitCogs + unitFf) === 0;
-    }
-    return true;
-  });
+  const filteredList = getFilteredCogsProducts();
 
   filteredList.sort((a, b) => {
     let valA = 0, valB = 0;

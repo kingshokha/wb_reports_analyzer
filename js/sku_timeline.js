@@ -22,6 +22,8 @@ function getTimelineDayValues(day) {
   const sppCount = withReturns ? (day.sppCount || 0) : (day.salesSppCount || 0);
   const pricePSum = withReturns ? (day.pricePSum || 0) : (day.salesPricePSum || 0);
   const pricePCount = withReturns ? (day.pricePCount || 0) : (day.salesPricePCount || 0);
+  const commPctSum = withReturns ? (day.commPctSum || 0) : (day.salesCommPctSum || 0);
+  const commPctCount = withReturns ? (day.commPctCount || 0) : (day.salesCommPctCount || 0);
   return {
     turnoverT: withReturns ? (day.turnoverT || 0) : (day.salesTurnoverT || 0),
     retailSumO: withReturns ? (day.retailSumO || 0) : (day.salesRetailSumO || 0),
@@ -32,6 +34,8 @@ function getTimelineDayValues(day) {
     payableAH: withReturns ? (day.payableAH || 0) : (day.salesPayableAH || 0),
     logisticsAK: day.logisticsAK || 0,
     commission: withReturns ? (day.commission || 0) : (day.salesCommission || 0),
+    // средняя ставка комиссии WB (кВВ, столбец X) за день
+    commPercent: commPctCount > 0 ? (commPctSum / commPctCount) : 0,
     soldQty: day.soldQty || 0,
     returnedQty: day.returnedQty || 0,
     sppPercent: sppCount > 0 ? (sppSum / sppCount) : 0
@@ -115,7 +119,7 @@ function closeProductTimelineModal() {
 }
 
 function toggleAllSkuTimelineMetrics(selectAll) {
-  const chkIds = ['chkSkuT', 'chkSkuAvgT', 'chkSkuP', 'chkSkuW', 'chkSkuAH', 'chkSkuAK', 'chkSkuSold', 'chkSkuReturned', 'chkSkuProfit', 'chkSkuAvgProfit', 'chkSkuAvgCommission'];
+  const chkIds = ['chkSkuT', 'chkSkuAvgT', 'chkSkuP', 'chkSkuW', 'chkSkuAH', 'chkSkuAK', 'chkSkuSold', 'chkSkuReturned', 'chkSkuProfit', 'chkSkuAvgProfit', 'chkSkuAvgCommission', 'chkSkuAvgCommissionPct'];
   chkIds.forEach(id => {
     const chk = document.getElementById(id);
     if (chk) chk.checked = selectAll;
@@ -305,6 +309,7 @@ function updateSkuTimelineChart() {
   const showProfit = document.getElementById('chkSkuProfit')?.checked || false;
   const showAvgProfit = document.getElementById('chkSkuAvgProfit')?.checked || false;
   const showAvgCommission = document.getElementById('chkSkuAvgCommission')?.checked || false;
+  const showAvgCommissionPct = document.getElementById('chkSkuAvgCommissionPct')?.checked || false;
 
   const unitCogsVal = typeof getProductUnitCogs === 'function' ? getProductUnitCogs(prod.sku, prod.supplierSku) : (skuCogsMap[prod.sku] || 0);
   const unitFfVal = typeof getProductUnitFf === 'function' ? getProductUnitFf(prod.sku, prod.supplierSku) : (skuFfMap[prod.sku] || 0);
@@ -341,6 +346,8 @@ function updateSkuTimelineChart() {
         hasActiveMetric = true;
       }
 
+      if (showAvgCommissionPct && Math.abs(v.commPercent) > 0) hasActiveMetric = true;
+
       return hasActiveMetric;
     });
   }
@@ -373,6 +380,7 @@ function updateSkuTimelineChart() {
   const dataProfit = [];     // Чистая прибыль ₽ (Left Y)
   const dataAvgProfit = [];  // Ср. прибыль ₽/шт (Left Y)
   const dataAvgComm = [];    // Ср. комиссия ₽/шт (Left Y)
+  const dataAvgCommPct = []; // Ср. комиссия % (Right Y1)
 
   sortedDates.forEach(dKey => {
     const day = (prod.dailyTimeline && prod.dailyTimeline[dKey]) ? prod.dailyTimeline[dKey] : {};
@@ -397,6 +405,7 @@ function updateSkuTimelineChart() {
     dataProfit.push(Math.round(getTimelineDayProfit(day, unitCogsVal, unitFfVal) * 100) / 100);
     dataAvgProfit.push(Math.round(getTimelineDayProfitPerUnit(day, unitCogsVal, unitFfVal) * 100) / 100);
     dataAvgComm.push(Math.round(getTimelineDayCommissionPerUnit(day) * 100) / 100);
+    dataAvgCommPct.push(Math.round(v.commPercent * 10) / 10);
   });
 
   const datasets = [];
@@ -572,6 +581,22 @@ function updateSkuTimelineChart() {
       yAxisID: 'y',
       tension: 0.25,
       borderWidth: 2.5,
+      borderDash: [],
+      pointStyle: 'circle',
+      pointRadius: 4,
+      pointHoverRadius: 6
+    });
+  }
+
+  if (showAvgCommissionPct) {
+    datasets.push({
+      label: 'Ср. комиссия (%)',
+      data: dataAvgCommPct,
+      borderColor: '#a21caf', // fuchsia-700
+      backgroundColor: '#a21caf',
+      yAxisID: 'y1',
+      tension: 0.25,
+      borderWidth: 2,
       borderDash: [],
       pointStyle: 'circle',
       pointRadius: 4,
