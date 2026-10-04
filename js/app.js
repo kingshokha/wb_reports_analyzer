@@ -199,6 +199,14 @@ function initEvents() {
       }
     }
 
+    const cogsCatDd = document.getElementById('cogsCategoryFilterDropdown');
+    const btnCogsCat = document.getElementById('btnCogsCategoryFilter');
+    if (cogsCatDd && !cogsCatDd.classList.contains('hidden')) {
+      if (!cogsCatDd.contains(e.target) && (!btnCogsCat || !btnCogsCat.contains(e.target))) {
+        cogsCatDd.classList.add('hidden');
+      }
+    }
+
     const skuDd = document.getElementById('skuFilterDropdown');
     const btnSku = document.getElementById('btnSkuFilter');
     if (skuDd && !skuDd.classList.contains('hidden')) {

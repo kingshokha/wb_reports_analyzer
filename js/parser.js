@@ -713,6 +713,7 @@ function processRows(rows, skipAutoDetect) {
   // Новый отчет - новый набор артикулов, выбор сбрасывается
   if (typeof rebuildSkuFilterOptions === 'function') rebuildSkuFilterOptions();
   if (typeof updateCategoryFilterDropdown === 'function') updateCategoryFilterDropdown();
+  if (typeof updateCogsCategoryFilterDropdown === 'function') updateCogsCategoryFilterDropdown();
   if (typeof renderCogsTable === 'function') renderCogsTable();
   if (typeof applyProductFilters === 'function') applyProductFilters();
 
