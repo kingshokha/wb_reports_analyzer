@@ -134,13 +134,6 @@ function updateFinancials() {
   }
   
   setText('storageDetailsSum', formatCurrency(globalStats.storageSum));
-  setText('storageLabel', formatCurrency(globalStats.storageSum));
-  setText('finesLabel', formatCurrency(globalStats.finesSum));
-  setText('tariffLabel', formatCurrency(globalStats.tariffDesignerSum));
-  setText('acceptanceLabel', formatCurrency(globalStats.acceptanceSum));
-  
-  setText('taxLabelTitle', `Расчетный налог ${taxRatePercent}% (O)`);
-  setText('taxLabel', formatCurrency(globalStats.taxSum));
 
   renderFinanceChart(calculatedNetProfit, adSpendInput, calculatedCOGS, otherSpendInput);
   renderDailyTimelineChart();
@@ -340,6 +333,140 @@ function renderLogisticsBreakdown() {
       cutout: '55%'
     }
   });
+}
+
+let logisticsSkuSort = { field: 'logistics', dir: 'desc' };
+
+function escapeLogisticsHtml(str) {
+  return String(str).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+function getLogisticsTypesOrdered() {
+  return Object.entries(globalStats.logisticsBreakdown || {})
+    .sort((a, b) => b[1].sum - a[1].sum)
+    .map(([type]) => type);
+}
+
+function sortLogisticsSku(field) {
+  if (logisticsSkuSort.field === field) {
+    logisticsSkuSort.dir = logisticsSkuSort.dir === 'desc' ? 'asc' : 'desc';
+  } else {
+    logisticsSkuSort.field = field;
+    logisticsSkuSort.dir = ['sku', 'supplierSku', 'name'].includes(field) ? 'asc' : 'desc';
+  }
+  renderLogisticsSkuTable();
+}
+
+function getLogisticsSkuSortValue(p, field, types) {
+  if (field === 'sku' || field === 'supplierSku' || field === 'name') return String(p[field] || '');
+  if (field === 'soldQty') return p.soldQty || 0;
+  if (field === 'perUnit') return p.soldQty > 0 ? (p.logistics || 0) / p.soldQty : -Infinity;
+  if (field.startsWith('type:')) {
+    const type = types[parseInt(field.slice(5), 10)];
+    const t = p.logisticsByType && p.logisticsByType[type];
+    return t ? t.sum : 0;
+  }
+  return p.logistics || 0;
+}
+
+function renderLogisticsSkuTable() {
+  const thead = document.getElementById('logisticsSkuTableHead');
+  const tbody = document.getElementById('logisticsSkuTableBody');
+  if (!thead || !tbody) return;
+
+  const types = getLogisticsTypesOrdered();
+  const totalLogistics = globalStats.logisticsSum || 0;
+
+  const sortIcon = (field) => {
+    if (logisticsSkuSort.field !== field) return '<span class="text-slate-300">⇅</span>';
+    return logisticsSkuSort.dir === 'desc' ? '↓' : '↑';
+  };
+  const th = (field, title, alignRight, extraClass = '') =>
+    `<th class="py-3 px-4 cursor-pointer hover:text-purple-600 transition-colors whitespace-nowrap ${alignRight ? 'text-right' : ''} ${extraClass}" onclick="sortLogisticsSku('${field}')">${title} ${sortIcon(field)}</th>`;
+
+  thead.innerHTML = `<tr>
+    ${th('sku', 'Артикул WB (D)', false)}
+    ${th('supplierSku', 'Арт. продавца (F)', false)}
+    ${th('name', 'Название (G)', false)}
+    ${th('soldQty', 'Выкуплено (шт)', true)}
+    ${th('logistics', 'Логистика всего (AK)', true)}
+    ${th('perUnit', 'На 1 выкуп', true)}
+    ${types.map((type, i) => th(`type:${i}`, escapeLogisticsHtml(type), true, 'bg-purple-50/50')).join('')}
+    ${th('share', 'Доля от логистики', true)}
+  </tr>`;
+
+  const query = (document.getElementById('logisticsSkuSearch')?.value || '').trim().toLowerCase();
+  let list = Object.values(globalStats.products || {});
+  if (query) {
+    list = list.filter(p =>
+      String(p.sku).toLowerCase().includes(query) ||
+      String(p.supplierSku || '').toLowerCase().includes(query) ||
+      String(p.name || '').toLowerCase().includes(query)
+    );
+  }
+
+  const sortField = logisticsSkuSort.field === 'share' ? 'logistics' : logisticsSkuSort.field;
+  const dirMul = logisticsSkuSort.dir === 'desc' ? -1 : 1;
+  list.sort((a, b) => {
+    const va = getLogisticsSkuSortValue(a, sortField, types);
+    const vb = getLogisticsSkuSortValue(b, sortField, types);
+    if (typeof va === 'string') return va.localeCompare(vb, 'ru', { numeric: true }) * dirMul;
+    return (va - vb) * dirMul;
+  });
+
+  setText('logisticsSkuCountBadge', list.length);
+
+  const colCount = 7 + types.length;
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${colCount}" class="py-6 text-center text-slate-400">${query ? 'Ничего не найдено' : 'Нет данных по артикулам'}</td></tr>`;
+    return;
+  }
+
+  const totals = { soldQty: 0, logistics: 0, byType: types.map(() => ({ sum: 0, count: 0 })) };
+
+  const rowsHtml = list.map(p => {
+    const logistics = p.logistics || 0;
+    const soldQty = p.soldQty || 0;
+    totals.soldQty += soldQty;
+    totals.logistics += logistics;
+
+    const typeCells = types.map((type, i) => {
+      const t = p.logisticsByType && p.logisticsByType[type];
+      if (!t) return `<td class="py-2.5 px-4 text-right text-slate-300">—</td>`;
+      totals.byType[i].sum += t.sum;
+      totals.byType[i].count += t.count;
+      return `<td class="py-2.5 px-4 text-right whitespace-nowrap">${formatCurrency(t.sum)} <span class="text-[10px] font-semibold text-purple-700 bg-purple-50 px-1 py-0.5 rounded">${t.count} шт.</span></td>`;
+    }).join('');
+
+    const perUnit = soldQty > 0 ? formatCurrency(logistics / soldQty) : '<span class="text-slate-300">—</span>';
+    const share = totalLogistics !== 0 ? (logistics / totalLogistics) * 100 : 0;
+
+    return `<tr class="hover:bg-slate-50 transition-colors cursor-pointer" onclick="openProductTimelineModal('${escapeLogisticsHtml(p.sku)}')">
+      <td class="py-2.5 px-4 font-mono font-semibold text-purple-700 whitespace-nowrap">${escapeLogisticsHtml(p.sku)}</td>
+      <td class="py-2.5 px-4 whitespace-nowrap">${escapeLogisticsHtml(p.supplierSku || '—')}</td>
+      <td class="py-2.5 px-4 max-w-[260px] truncate" title="${escapeLogisticsHtml(p.name || '')}">${escapeLogisticsHtml(p.name || '—')}</td>
+      <td class="py-2.5 px-4 text-right">${soldQty}</td>
+      <td class="py-2.5 px-4 text-right font-bold text-slate-900 whitespace-nowrap">${formatCurrency(logistics)}</td>
+      <td class="py-2.5 px-4 text-right whitespace-nowrap">${perUnit}</td>
+      ${typeCells}
+      <td class="py-2.5 px-4 text-right text-slate-400 font-medium">${share.toFixed(2)}%</td>
+    </tr>`;
+  }).join('');
+
+  const totalTypeCells = totals.byType.map(t =>
+    `<td class="py-3 px-4 text-right whitespace-nowrap">${formatCurrency(t.sum)} <span class="text-[10px] font-semibold text-purple-700 bg-purple-100 px-1 py-0.5 rounded">${t.count} шт.</span></td>`
+  ).join('');
+  const totalShare = totalLogistics !== 0 ? (totals.logistics / totalLogistics) * 100 : 0;
+  const totalPerUnit = totals.soldQty > 0 ? formatCurrency(totals.logistics / totals.soldQty) : '—';
+
+  tbody.innerHTML = rowsHtml + `<tr class="bg-slate-50 font-bold text-slate-900 border-t-2 border-slate-200">
+    <td class="py-3 px-4" colspan="3">Итого${query ? ' (по найденным)' : ''}</td>
+    <td class="py-3 px-4 text-right">${totals.soldQty}</td>
+    <td class="py-3 px-4 text-right whitespace-nowrap">${formatCurrency(totals.logistics)}</td>
+    <td class="py-3 px-4 text-right whitespace-nowrap">${totalPerUnit}</td>
+    ${totalTypeCells}
+    <td class="py-3 px-4 text-right text-slate-500">${totalShare.toFixed(2)}%</td>
+  </tr>`;
 }
 
 function openTurnoverModal() {

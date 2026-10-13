@@ -120,8 +120,6 @@ function initEvents() {
       
       if (btn.dataset.tab === 'tab-cogs') {
         renderCogsTable();
-      } else if (btn.dataset.tab === 'tab-api-tokens') {
-        if (typeof renderApiTokensTab === 'function') renderApiTokensTab();
       }
       
       if (window.lucide) lucide.createIcons();
@@ -232,9 +230,7 @@ function initEvents() {
 
 window.onload = function() {
   loadSkuCogsFromStorage();
-  if (typeof loadApiTokensFromStorage === 'function') loadApiTokensFromStorage();
   if (typeof loadSkuAdSpendFromStorage === 'function') loadSkuAdSpendFromStorage();
   initEvents();
-  if (typeof renderApiTokensTab === 'function') renderApiTokensTab();
   if (window.lucide) lucide.createIcons();
 };

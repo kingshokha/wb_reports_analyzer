@@ -411,7 +411,12 @@ function processRows(rows, skipAutoDetect) {
           };
 
         }
-        globalStats.products[skuVal].logistics += rowAK;
+        const prodLog = globalStats.products[skuVal];
+        prodLog.logistics += rowAK;
+        if (!prodLog.logisticsByType) prodLog.logisticsByType = {};
+        if (!prodLog.logisticsByType[logType]) prodLog.logisticsByType[logType] = { sum: 0, count: 0 };
+        prodLog.logisticsByType[logType].sum += rowAK;
+        prodLog.logisticsByType[logType].count += 1;
       }
     }
 
@@ -719,6 +724,7 @@ function processRows(rows, skipAutoDetect) {
 
   if (typeof updateFinancials === 'function') updateFinancials();
   if (typeof renderLogisticsBreakdown === 'function') renderLogisticsBreakdown();
+  if (typeof renderLogisticsSkuTable === 'function') renderLogisticsSkuTable();
   if (typeof sortProducts === 'function') sortProducts(currentSortField, true); 
 
   enableDrawerSidebar();
