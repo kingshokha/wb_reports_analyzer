@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Анализатор финансовых отчетов Wildberries</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -28,6 +29,50 @@
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
       background: #818cf8;
     }
+    /* Изменение ширины столбцов таблиц (js/col_resize.js) */
+    .col-resize-th {
+      position: relative;
+    }
+    .col-resize-handle {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 7px;
+      height: 100%;
+      cursor: col-resize;
+      z-index: 5;
+      user-select: none;
+    }
+    .col-resize-handle::after {
+      content: '';
+      position: absolute;
+      top: 25%;
+      bottom: 25%;
+      right: 2px;
+      width: 2px;
+      border-radius: 1px;
+      background: transparent;
+      transition: background-color 0.15s;
+    }
+    .col-resize-th:hover .col-resize-handle::after {
+      background: #cbd5e1;
+    }
+    .col-resize-handle:hover::after {
+      background: #9333ea;
+    }
+    body.col-resizing,
+    body.col-resizing * {
+      cursor: col-resize !important;
+      user-select: none !important;
+    }
+    table.col-resized th,
+    table.col-resized td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    table.col-resized td:has(.group) {
+      overflow: visible;
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col pt-2 pb-4 px-3 sm:px-4 lg:px-6">
@@ -35,7 +80,7 @@
   <!-- Top Right Version Badge -->
   <div class="fixed top-2.5 right-4 z-30 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-xs text-xs select-none">
     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-    <span class="font-bold text-purple-700">v1.14.0</span>
+    <span class="font-bold text-purple-700">v1.15.0</span>
     <span class="text-slate-300">|</span>
     <span class="font-medium text-slate-500">14.10.2026</span>
   </div>
@@ -87,13 +132,13 @@
         </div>
       </div>
 
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-3">
+      <div id="mergerSidebarDropzone" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-3 transition-colors">
         <h3 class="text-base font-semibold text-slate-900 flex items-center gap-2">
           <i data-lucide="layers" class="text-purple-600 w-5 h-5"></i>
           Объединение отчетов
         </h3>
         <p class="text-xs text-slate-500 leading-relaxed">
-          Соединяйте несколько отчетов в один файл. Первый отчет послужит основой (с шапкой), остальные прикрепятся снизу без первой строки.
+          Соединяйте несколько отчетов в один файл. Первый отчет послужит основой (с шапкой), остальные прикрепятся снизу без первой строки. Файлы или архивы можно перетащить прямо сюда.
         </p>
         <button onclick="openMergerModal()" class="w-full py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm shadow-purple-200">
           <i data-lucide="combine" class="w-4 h-4"></i> Объединитель отчетов
@@ -616,6 +661,10 @@
                     <span>Налог (₽)</span>
                   </label>
                   <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
+                    <input type="checkbox" checked id="col_chk_profit_unit" onchange="toggleSkuColumn('profit_unit')" class="rounded text-purple-600 focus:ring-purple-500">
+                    <span>Прибыль / шт</span>
+                  </label>
+                  <label class="flex items-center gap-2 py-1 px-1.5 hover:bg-purple-50 rounded cursor-pointer">
                     <input type="checkbox" checked id="col_chk_payout" onchange="toggleSkuColumn('payout')" class="rounded text-purple-600 focus:ring-purple-500">
                     <span>Чистая прибыль</span>
                   </label>
@@ -829,9 +878,9 @@
                   placeholder="Поиск по артикулу или названию" />
               </div>
             </div>
-            <div class="overflow-x-auto overflow-y-auto max-h-[calc(100vh-270px)] custom-scrollbar">
+            <div class="overflow-x-auto custom-scrollbar">
               <table class="w-full text-left border-collapse text-xs">
-                <thead id="logisticsSkuTableHead" class="sticky top-0 z-10 bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold select-none shadow-2xs">
+                <thead id="logisticsSkuTableHead" class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold select-none shadow-2xs">
                 </thead>
                 <tbody id="logisticsSkuTableBody" class="divide-y divide-slate-100 text-slate-700">
                 </tbody>
@@ -1411,6 +1460,7 @@
   <script src="js/cogs_io.js"></script>
   <script src="js/merger.js"></script>
   <script src="js/sku_timeline.js"></script>
+  <script src="js/col_resize.js"></script>
   <script src="js/app.js"></script>
 
   <!-- Modal: Product Detailed Timeline -->

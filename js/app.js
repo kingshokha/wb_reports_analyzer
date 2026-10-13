@@ -58,6 +58,32 @@ function initEvents() {
     });
   }
 
+  // Файлы можно бросить на карточку в сайдбаре: окно объединителя откроется само
+  const mergerSidebarDropzone = document.getElementById('mergerSidebarDropzone');
+  if (mergerSidebarDropzone) {
+    const highlightClasses = ['ring-2', 'ring-purple-500', 'bg-purple-50/60'];
+    let dragDepth = 0;
+    mergerSidebarDropzone.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dragDepth++;
+      mergerSidebarDropzone.classList.add(...highlightClasses);
+    });
+    mergerSidebarDropzone.addEventListener('dragover', (e) => e.preventDefault());
+    mergerSidebarDropzone.addEventListener('dragleave', () => {
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) mergerSidebarDropzone.classList.remove(...highlightClasses);
+    });
+    mergerSidebarDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dragDepth = 0;
+      mergerSidebarDropzone.classList.remove(...highlightClasses);
+      if (e.dataTransfer.files && e.dataTransfer.files.length) {
+        openMergerModal();
+        addFilesToMerger(e.dataTransfer.files);
+      }
+    });
+  }
+
   if (mergerFileInput) {
     mergerFileInput.addEventListener('change', (e) => {
       if (e.target.files && e.target.files.length) {
@@ -232,5 +258,6 @@ window.onload = function() {
   loadSkuCogsFromStorage();
   if (typeof loadSkuAdSpendFromStorage === 'function') loadSkuAdSpendFromStorage();
   initEvents();
+  if (typeof initResizableTables === 'function') initResizableTables();
   if (window.lucide) lucide.createIcons();
 };

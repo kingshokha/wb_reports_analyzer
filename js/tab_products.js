@@ -52,6 +52,19 @@ function getSkuProfit(p, includeReturns = true) {
   return turnover - commAcq - itemLogistics - totalCogs - itemTax - itemAdSpend;
 }
 
+// Товары без продаж уходят в конец при сортировке по убыванию
+function getSkuProfitPerUnit(p, includeReturns = true) {
+  if (!p || !(p.soldQty > 0)) return -Number.MAX_SAFE_INTEGER;
+  return getSkuProfit(p, includeReturns) / p.soldQty;
+}
+
+function formatProfitPerUnitCell(profit, soldQty) {
+  if (!(soldQty > 0)) return `<span class="text-slate-300 font-normal">—</span>`;
+  const perUnit = profit / soldQty;
+  const cls = perUnit >= 0 ? 'text-emerald-600' : 'text-rose-600';
+  return `<span class="${cls}">${formatCurrency(perUnit)}</span>`;
+}
+
 let skuTableColumns = {
   sku: true,
   supplierSku: true,
@@ -65,6 +78,7 @@ let skuTableColumns = {
   cogs: true,
   ad_spend: true,
   tax: true,
+  profit_unit: true,
   payout: true
 };
 
@@ -392,6 +406,7 @@ function renderProductTableHeaders() {
   const thChart = document.createElement('th');
   thChart.className = 'py-4 pl-5 pr-1 w-8';
   thChart.title = 'График динамики товара';
+  thChart.dataset.col = 'chart';
   tr.appendChild(thChart);
 
   const cols = [
@@ -407,6 +422,7 @@ function renderProductTableHeaders() {
     { id: 'cogs', title: 'Себестоимость', field: 'cogs', alignRight: true },
     { id: 'ad_spend', title: 'Реклама (₽)', field: 'ad_spend', alignRight: true },
     { id: 'tax', title: 'Налог (₽)', field: 'tax', alignRight: true },
+    { id: 'profit_unit', title: 'Прибыль / шт', field: 'profit_unit', alignRight: true, tooltip: 'Чистая прибыль, деленная на количество проданных штук' },
     { id: 'payout', title: 'Чистая прибыль', field: 'payout', alignRight: true, tooltip: 'С учетом всех расходов, себестоимости и рекламы' }
   ];
 
@@ -415,6 +431,7 @@ function renderProductTableHeaders() {
     const th = document.createElement('th');
     let alignClass = col.alignRight ? 'text-right' : '';
     th.className = `py-4 px-5 cursor-pointer hover:text-purple-600 transition-colors ${alignClass}`;
+    th.dataset.col = col.id;
     if (col.tooltip) {
       th.title = col.tooltip;
     }
@@ -496,6 +513,10 @@ function sortProducts(field, preventToggle = false) {
     else if (field === 'payout') {
       valA = getSkuProfit(a, skuIncludeReturns);
       valB = getSkuProfit(b, skuIncludeReturns);
+    }
+    else if (field === 'profit_unit') {
+      valA = getSkuProfitPerUnit(a, skuIncludeReturns);
+      valB = getSkuProfitPerUnit(b, skuIncludeReturns);
     }
 
     return currentSortDirection === 'asc' ? valA - valB : valB - valA;
@@ -602,6 +623,9 @@ function renderProductTable() {
     if (skuTableColumns.tax) {
       summaryCellsHTML += `<td class="py-3.5 px-5 text-right text-amber-800 font-extrabold">${formatCurrency(totalTaxSum)}</td>`;
     }
+    if (skuTableColumns.profit_unit) {
+      summaryCellsHTML += `<td class="py-3.5 px-5 text-right font-extrabold">${formatProfitPerUnitCell(totalProfit, totalSoldQty)}</td>`;
+    }
     if (skuTableColumns.payout) {
       const profitColorClass = totalProfit >= 0 ? 'text-emerald-700' : 'text-rose-600';
       summaryCellsHTML += `<td class="py-3.5 px-5 text-right ${profitColorClass} font-extrabold">${formatCurrency(totalProfit)}</td>`;
@@ -686,6 +710,9 @@ function renderProductTable() {
     if (skuTableColumns.tax) {
       rowCellsHTML += `<td class="py-3 px-5 text-right font-medium text-amber-800">${formatCurrency(itemTax)}</td>`;
     }
+    if (skuTableColumns.profit_unit) {
+      rowCellsHTML += `<td class="py-3 px-5 text-right font-semibold">${formatProfitPerUnitCell(itemProfit, p.soldQty)}</td>`;
+    }
     if (skuTableColumns.payout) {
       const profitCellClass = itemProfit >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold';
       rowCellsHTML += `<td class="py-3 px-5 text-right ${profitCellClass}">${formatCurrency(itemProfit)}</td>`;
@@ -718,7 +745,7 @@ function exportSKUTableCSV() {
   if (productsList.length === 0) return;
   
   let csvContent = "\uFEFF"; 
-  csvContent += "Артикул WB (D);Артикул продавца (F);Категория (C);Название (G);Продано (шт);Возвраты (шт);Сумма выкупа (T);Комиссия и Эквайринг;Логистика (AK);Себестоимость;Реклама (₽);Налог (₽);Чистая прибыль\r\n";
+  csvContent += "Артикул WB (D);Артикул продавца (F);Категория (C);Название (G);Продано (шт);Возвраты (шт);Сумма выкупа (T);Комиссия и Эквайринг;Логистика (AK);Себестоимость;Реклама (₽);Налог (₽);Прибыль / шт;Чистая прибыль\r\n";
   
   productsList.forEach(p => {
     const itemTurnover = skuIncludeReturns ? p.turnover : (p.salesTurnover || 0);
@@ -746,6 +773,7 @@ function exportSKUTableCSV() {
       totalCogs.toFixed(2),
       itemAdSpend.toFixed(2),
       taxVal.toFixed(2),
+      p.soldQty > 0 ? (itemProfit / p.soldQty).toFixed(2) : '',
       itemProfit.toFixed(2)
     ];
     csvContent += row.join(";") + "\r\n";

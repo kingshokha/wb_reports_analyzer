@@ -382,7 +382,7 @@ function renderLogisticsSkuTable() {
     return logisticsSkuSort.dir === 'desc' ? '↓' : '↑';
   };
   const th = (field, title, alignRight, extraClass = '') =>
-    `<th class="py-3 px-4 cursor-pointer hover:text-purple-600 transition-colors whitespace-nowrap ${alignRight ? 'text-right' : ''} ${extraClass}" onclick="sortLogisticsSku('${field}')">${title} ${sortIcon(field)}</th>`;
+    `<th data-col="${field}" class="py-3 px-4 cursor-pointer hover:text-purple-600 transition-colors whitespace-nowrap ${alignRight ? 'text-right' : ''} ${extraClass}" onclick="sortLogisticsSku('${field}')">${title} ${sortIcon(field)}</th>`;
 
   thead.innerHTML = `<tr>
     ${th('sku', 'Артикул WB (D)', false)}
