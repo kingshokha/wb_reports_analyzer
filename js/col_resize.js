@@ -67,7 +67,10 @@ function applyStoredColWidths(table) {
     table.style.tableLayout = '';
     table.style.width = '';
     cells.forEach(th => { th.style.width = ''; });
-    natural = cells.map(th => th.offsetWidth);
+    table.classList.remove('col-resized');
+    table.classList.add('col-measure');
+    natural = cells.map(th => Math.ceil(th.getBoundingClientRect().width));
+    table.classList.remove('col-measure');
   }
 
   let total = 0;
@@ -85,10 +88,13 @@ function applyStoredColWidths(table) {
 function snapshotColWidths(table) {
   const key = getResizeTableKey(table);
   const widths = {};
+  // Меряем ширины, при которых содержимое помещается в одну строку
+  table.classList.add('col-measure');
   getResizeHeaderCells(table).forEach((th, i) => {
     // Округляем вверх, иначе дробные пиксели обрежут содержимое многоточием
     widths[getResizeColKey(th, i)] = Math.ceil(th.getBoundingClientRect().width);
   });
+  table.classList.remove('col-measure');
   colWidthsMap[key] = Object.assign(widths, colWidthsMap[key] || {});
 }
 
@@ -181,6 +187,13 @@ function setupResizableTable(table) {
 
 function initResizableTables() {
   document.querySelectorAll('table').forEach(setupResizableTable);
+
+  // Обрезанная многоточием ячейка показывает полный текст при наведении
+  document.addEventListener('mouseover', (e) => {
+    const cell = e.target.closest && e.target.closest('table.col-resized td, table.col-resized th');
+    if (!cell || cell.hasAttribute('title')) return;
+    if (cell.scrollWidth > cell.clientWidth) cell.title = cell.innerText.trim();
+  });
 
   document.addEventListener('click', (e) => {
     if (colResizeJustEnded) {
