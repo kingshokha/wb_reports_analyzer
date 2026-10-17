@@ -33,6 +33,7 @@ function getTimelineDayValues(day) {
     pricePAvg: pricePCount > 0 ? (pricePSum / pricePCount) : 0,
     payableAH: withReturns ? (day.payableAH || 0) : (day.salesPayableAH || 0),
     logisticsAK: day.logisticsAK || 0,
+    adSpend: day.adSpend || 0,
     commission: withReturns ? (day.commission || 0) : (day.salesCommission || 0),
     // средняя ставка комиссии WB (кВВ, столбец X) за день
     commPercent: commPctCount > 0 ? (commPctSum / commPctCount) : 0,
@@ -53,7 +54,7 @@ function getTimelineDayProfit(day, unitCogsVal, unitFfVal) {
   const v = getTimelineDayValues(day);
   const dayCogs = v.soldQty * (unitCogsVal + unitFfVal);
   const dayTax = v.retailSumO * getTimelineTaxRate();
-  return v.payableAH - v.logisticsAK - dayCogs - dayTax;
+  return v.payableAH - v.logisticsAK - dayCogs - dayTax - v.adSpend;
 }
 
 // Прибыль за день, делённая на проданные за этот день штуки

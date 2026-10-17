@@ -146,6 +146,7 @@ function processRows(rows, skipAutoDetect) {
     F:  letterToIdx('F'),   // 5 - Артикул продавца
     G:  letterToIdx('G'),   // 6 - Название товара
     K:  letterToIdx('K'),   // 10 - Обоснование для оплаты
+    L:  letterToIdx('L'),   // 11 - Дата заказа покупателем
     M:  letterToIdx('M'),   // 12 - Дата операции
     O:  letterToIdx('O'),   // 14 - Розничная цена (для расчета налога)
     P:  letterToIdx('P'),   // 15 - Цена для клиента / Вайлдберриз реализовал Товар (Пр)   // 14 - Розничная цена (для расчета налога)
@@ -599,6 +600,17 @@ function processRows(rows, skipAutoDetect) {
       const prod = globalStats.products[skuVal];
       if (!isVoluntaryCompensation) {
         prod.soldQty++;
+        // Неделя заказа штуки - к ней привязывается реклама (ad_cohorts.js)
+        const orderWeekKey = typeof getOrderWeekKeyForRow === 'function' ? getOrderWeekKeyForRow(row) : '';
+        if (orderWeekKey) {
+          if (!prod.orderWeekQty) prod.orderWeekQty = {};
+          prod.orderWeekQty[orderWeekKey] = (prod.orderWeekQty[orderWeekKey] || 0) + 1;
+          const pDayOrder = (dayKey && prod.dailyTimeline) ? prod.dailyTimeline[dayKey] : null;
+          if (pDayOrder) {
+            if (!pDayOrder.orderWeekQty) pDayOrder.orderWeekQty = {};
+            pDayOrder.orderWeekQty[orderWeekKey] = (pDayOrder.orderWeekQty[orderWeekKey] || 0) + 1;
+          }
+        }
       }
       prod.salesTurnover += rowT;
       prod.salesPayout += rowAH;
@@ -711,7 +723,12 @@ function processRows(rows, skipAutoDetect) {
     const prodNetRetail = (prod.salesRetailSum || 0) - (prod.returnsRetailSum || 0);
     prod.taxSum = prodNetRetail * (taxRatePercent / 100);
     prod.salesTaxSum = (prod.salesRetailSum || 0) * (taxRatePercent / 100);
-    prod.adSpend = skuAdSpendMap[String(sku).trim()] || skuAdSpendMap[sku] || 0;
+  }
+
+  // Реклама из API: каждой выкупленной штуке - реклама недели ее заказа (по всем строкам файла)
+  if (typeof computeAdCohorts === 'function') {
+    computeAdCohorts(rows);
+    allocateAdSpendToProducts();
   }
 
   productsList = Object.values(globalStats.products);

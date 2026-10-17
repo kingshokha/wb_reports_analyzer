@@ -1,15 +1,7 @@
 
+// Реклама из API, отнесенная на выкупы артикула по неделям заказа (ad_cohorts.js)
 function getProductAdSpend(p) {
   if (!p) return 0;
-  const s = String(p.sku || '').trim();
-  const numS = String(parseInt(s, 10) || '');
-  const supp = String(p.supplierSku || '').trim();
-
-  const fromMap = (typeof skuAdSpendMap !== 'undefined' && skuAdSpendMap)
-    ? (skuAdSpendMap[s] || skuAdSpendMap[numS] || skuAdSpendMap[supp] || skuAdSpendMap[p.sku] || 0)
-    : 0;
-
-  if (fromMap > 0) return fromMap;
   return p.adSpend || 0;
 }
 

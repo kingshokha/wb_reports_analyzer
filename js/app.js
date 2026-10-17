@@ -256,7 +256,6 @@ function initEvents() {
 
 window.onload = function() {
   loadSkuCogsFromStorage();
-  if (typeof loadSkuAdSpendFromStorage === 'function') loadSkuAdSpendFromStorage();
   initEvents();
   if (typeof initResizableTables === 'function') initResizableTables();
   if (window.lucide) lucide.createIcons();

@@ -29,6 +29,7 @@ let COL_MAP = {
   F:  letterToIdx('F'),   // 5 - Артикул продавца
   G:  letterToIdx('G'),   // 6 - Название товара
   K:  letterToIdx('K'),   // 10 - Обоснование для оплаты
+  L:  letterToIdx('L'),   // 11 - Дата заказа покупателем
   M:  letterToIdx('M'),   // 12 - Дата операции
   O:  letterToIdx('O'),   // 14 - Розничная цена (для расчета налога)
   P:  letterToIdx('P'),   // 15 - Цена для клиента / Вайлдберриз реализовал Товар (Пр)   // 14 - Розничная цена (для расчета налога)
@@ -48,14 +49,12 @@ let COL_MAP = {
 
 const LOCAL_STORAGE_COGS_KEY = 'wb_reports_sku_cogs_map';
 const LOCAL_STORAGE_FF_KEY = 'wb_reports_sku_ff_map';
-const LOCAL_STORAGE_SKU_AD_SPEND_KEY = 'wb_analytics_sku_ad_spend';
 
 let lastLoadedRows = null;
 let minFileDate = null;
 let maxFileDate = null;
 let skuCogsMap = {};
 let skuFfMap = {};
-let skuAdSpendMap = {};
 let mergerFiles = [];
 
 let globalStats = {
@@ -175,26 +174,6 @@ function saveSkuCogsToStorage() {
     localStorage.setItem(LOCAL_STORAGE_FF_KEY, JSON.stringify(skuFfMap));
   } catch (e) {
     console.error("Ошибка сохранения себестоимости и ФФ в localStorage:", e);
-  }
-}
-
-function loadSkuAdSpendFromStorage() {
-  try {
-    const saved = localStorage.getItem(LOCAL_STORAGE_SKU_AD_SPEND_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && typeof parsed === 'object') skuAdSpendMap = parsed;
-    }
-  } catch (e) {
-    console.error("Ошибка чтения расходов рекламы из localStorage:", e);
-  }
-}
-
-function saveSkuAdSpendToStorage() {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_SKU_AD_SPEND_KEY, JSON.stringify(skuAdSpendMap));
-  } catch (e) {
-    console.error("Ошибка сохранения расходов рекламы в localStorage:", e);
   }
 }
 
@@ -417,6 +396,7 @@ function unlockBodyScroll() {
     'modalReturns',
     'modalSpp',
     'modalCogsImport',
+    'modalAdSettings',
     'modalProductTimeline'
   ];
   const hasOpenModal = modalRootIds.some(id => {

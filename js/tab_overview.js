@@ -4,6 +4,7 @@
 
 function updateFinancials() {
   const adSpendInput = parseNum(document.getElementById('inputAdSpend')?.value);
+  // Реклама из API в сводке не вычитается: WB уже удерживает ее в отчете (Удержания, BI)
   const otherSpendInput = parseNum(document.getElementById('inputOtherSpend')?.value);
   const taxRateInputVal = parseNum(document.getElementById('inputTaxRate')?.value);
   const taxRatePercent = isNaN(taxRateInputVal) || taxRateInputVal < 0 ? 6 : taxRateInputVal;
@@ -106,7 +107,7 @@ function updateFinancials() {
     { label: 'Удержания (BI)', val: globalStats.deductionsSum, color: 'bg-amber-700' },
     { label: 'Операции при приемке (BJ)', val: globalStats.acceptanceSum, color: 'bg-teal-600' },
     { label: `Расчетный налог ${taxRatePercent}% (O)`, val: globalStats.taxSum, color: 'bg-amber-900' },
-    { label: 'Расход на рекламу (введено)', val: adSpendInput, color: 'bg-red-400' },
+    { label: 'Реклама вне API (введено)', val: adSpendInput, color: 'bg-red-400' },
     { label: 'Себестоимость товаров (COGS)', val: calculatedCOGS, color: 'bg-purple-500' },
     { label: 'Накладные и прочие издержки', val: otherSpendInput, color: 'bg-slate-500' }
   ];
