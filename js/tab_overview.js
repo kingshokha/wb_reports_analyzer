@@ -956,6 +956,62 @@ function setTimelineChartMode(mode) {
   if (window.lucide) lucide.createIcons();
 }
 
+let currentTimelineGranularity = 'day'; // 'day' | 'week' | 'month' | 'quarter'
+
+const TIMELINE_GRANULARITY_TITLES = {
+  day: 'по дням',
+  week: 'по неделям',
+  month: 'по месяцам',
+  quarter: 'по кварталам'
+};
+
+const TIMELINE_MONTH_NAMES = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+
+function setTimelineGranularity(granularity) {
+  currentTimelineGranularity = granularity;
+
+  const activeClasses = ['bg-white', 'text-purple-700', 'shadow-xs'];
+  document.querySelectorAll('.timeline-granularity-btn').forEach(el => {
+    if (el.dataset.granularity === granularity) {
+      el.classList.add(...activeClasses);
+      el.classList.remove('text-slate-600', 'hover:text-slate-900');
+    } else {
+      el.classList.remove(...activeClasses);
+      el.classList.add('text-slate-600', 'hover:text-slate-900');
+    }
+  });
+
+  setText('dailyTimelineChartTitle', 'Динамика показателей ' + TIMELINE_GRANULARITY_TITLES[granularity]);
+  renderDailyTimelineChart();
+}
+
+// Ключ и подпись периода для дня 'YYYY-MM-DD' при текущей детализации
+function getTimelinePeriod(dateKey, dateFormatted) {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const pad = (n) => String(n).padStart(2, '0');
+
+  if (currentTimelineGranularity === 'week') {
+    // Неделя с понедельника по воскресенье
+    const start = new Date(y, m - 1, d);
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    const fmt = (dt) => pad(dt.getDate()) + '.' + pad(dt.getMonth() + 1);
+    return {
+      key: start.getFullYear() + '-' + pad(start.getMonth() + 1) + '-' + pad(start.getDate()),
+      label: fmt(start) + '–' + fmt(end) + '.' + end.getFullYear()
+    };
+  }
+  if (currentTimelineGranularity === 'month') {
+    return { key: y + '-' + pad(m), label: TIMELINE_MONTH_NAMES[m - 1] + ' ' + y };
+  }
+  if (currentTimelineGranularity === 'quarter') {
+    const q = Math.floor((m - 1) / 3) + 1;
+    return { key: y + '-Q' + q, label: ['I', 'II', 'III', 'IV'][q - 1] + ' кв. ' + y };
+  }
+  return { key: dateKey, label: dateFormatted || dateKey };
+}
+
 function renderDailyTimelineChart() {
   const canvas = document.getElementById('dailyTimelineChart');
   if (!canvas) return;
@@ -996,9 +1052,12 @@ function renderDailyTimelineChart() {
   const pctCogs = [];
   const pctTax = [];
 
+  // Периоды (день / неделя / месяц / квартал) в порядке возрастания дат
+  const buckets = [];
+  const bucketByKey = {};
+
   sortedDateKeys.forEach(dateKey => {
     const day = timeline[dateKey];
-    labels.push(day.dateFormatted || dateKey);
 
     let dayCogs = 0;
     if (day.skuSoldQty) {
@@ -1024,30 +1083,56 @@ function renderDailyTimelineChart() {
       - dayCogs;
     day.netProfit = dayNetProfit;
 
-    const t = day.turnover || 0;
+    const period = getTimelinePeriod(dateKey, day.dateFormatted);
+    let bucket = bucketByKey[period.key];
+    if (!bucket) {
+      bucket = {
+        label: period.label,
+        turnover: 0, netProfit: 0, payout: 0, fees: 0, logistics: 0,
+        returns: 0, wbExpenses: 0, deductions: 0, cogs: 0, tax: 0
+      };
+      bucketByKey[period.key] = bucket;
+      buckets.push(bucket);
+    }
+    bucket.turnover += day.turnover || 0;
+    bucket.netProfit += dayNetProfit;
+    bucket.payout += day.payout || 0;
+    bucket.fees += day.fees || 0;
+    bucket.logistics += day.logistics || 0;
+    bucket.returns += day.returnsTurnover || 0;
+    bucket.wbExpenses += day.wbExpenses || 0;
+    bucket.deductions += day.deductions || 0;
+    bucket.cogs += dayCogs;
+    bucket.tax += dayTax;
+  });
+
+  buckets.forEach(b => {
+    labels.push(b.label);
+
+    const t = b.turnover;
     const calcPct = (val) => t > 0 ? (val / t) * 100 : 0;
 
     rawTurnover.push(t);
-    rawNetProfit.push(dayNetProfit);
-    rawPayout.push(day.payout || 0);
-    rawFees.push(day.fees || 0);
-    rawLogistics.push(day.logistics || 0);
-    rawReturns.push(day.returnsTurnover || 0);
-    rawWbExpenses.push(day.wbExpenses || 0);
-    rawDeductions.push(day.deductions || 0);
-    rawCogs.push(dayCogs);
-    rawTax.push(dayTax);
+    rawNetProfit.push(b.netProfit);
+    rawPayout.push(b.payout);
+    rawFees.push(b.fees);
+    rawLogistics.push(b.logistics);
+    rawReturns.push(b.returns);
+    rawWbExpenses.push(b.wbExpenses);
+    rawDeductions.push(b.deductions);
+    rawCogs.push(b.cogs);
+    rawTax.push(b.tax);
 
     pctTurnover.push(t > 0 ? 100 : 0);
-    pctNetProfit.push(calcPct(dayNetProfit));
-    pctPayout.push(calcPct(day.payout || 0));
-    pctFees.push(calcPct(day.fees || 0));
-    pctLogistics.push(calcPct(day.logistics || 0));
-    pctReturns.push(calcPct(day.returnsTurnover || 0));
-    pctWbExpenses.push(calcPct(day.wbExpenses || 0));
-    pctDeductions.push(calcPct(day.deductions || 0));
-    pctCogs.push(calcPct(dayCogs));
-    pctTax.push(calcPct(dayTax));
+    pctNetProfit.push(calcPct(b.netProfit));
+    pctPayout.push(calcPct(b.payout));
+    pctFees.push(calcPct(b.fees));
+    pctLogistics.push(calcPct(b.logistics));
+    pctReturns.push(calcPct(b.returns));
+    pctWbExpenses.push(calcPct(b.wbExpenses));
+    pctDeductions.push(calcPct(b.deductions));
+    pctCogs.push(calcPct(b.cogs));
+    pctTax.push(calcPct(b.tax));
   });
 
   const isPercent = currentTimelineMode === 'percent';
@@ -1068,7 +1153,7 @@ function renderDailyTimelineChart() {
       borderColor: '#8b5cf6',
       backgroundColor: 'rgba(139, 92, 246, 0.05)',
       borderWidth: 2.5,
-      pointRadius: sortedDateKeys.length > 30 ? 2 : 4,
+      pointRadius: labels.length > 30 ? 2 : 4,
       pointHoverRadius: 6,
       pointBackgroundColor: '#8b5cf6',
       pointStyle: 'circle',
@@ -1084,7 +1169,7 @@ function renderDailyTimelineChart() {
       borderColor: '#10b981',
       backgroundColor: 'rgba(16, 185, 129, 0.08)',
       borderWidth: 3,
-      pointRadius: sortedDateKeys.length > 30 ? 2 : 4,
+      pointRadius: labels.length > 30 ? 2 : 4,
       pointHoverRadius: 7,
       pointBackgroundColor: '#10b981',
       pointStyle: 'circle',
@@ -1100,7 +1185,7 @@ function renderDailyTimelineChart() {
       borderColor: '#06b6d4',
       backgroundColor: 'transparent',
       borderWidth: 2,
-      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointRadius: labels.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#06b6d4',
       pointStyle: 'circle',
@@ -1116,7 +1201,7 @@ function renderDailyTimelineChart() {
       borderColor: '#6366f1',
       backgroundColor: 'transparent',
       borderWidth: 2,
-      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointRadius: labels.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#6366f1',
       pointStyle: 'circle',
@@ -1132,7 +1217,7 @@ function renderDailyTimelineChart() {
       borderColor: '#f59e0b',
       backgroundColor: 'transparent',
       borderWidth: 2,
-      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointRadius: labels.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#f59e0b',
       pointStyle: 'circle',
@@ -1148,7 +1233,7 @@ function renderDailyTimelineChart() {
       borderColor: '#3b82f6',
       backgroundColor: 'transparent',
       borderWidth: 2,
-      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointRadius: labels.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#3b82f6',
       pointStyle: 'circle',
@@ -1165,7 +1250,7 @@ function renderDailyTimelineChart() {
       backgroundColor: 'transparent',
       borderWidth: 2,
       
-      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointRadius: labels.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#f43f5e',
       pointStyle: 'circle',
@@ -1181,7 +1266,7 @@ function renderDailyTimelineChart() {
       borderColor: '#ec4899',
       backgroundColor: 'transparent',
       borderWidth: 2,
-      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointRadius: labels.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#ec4899',
       pointStyle: 'circle',
@@ -1198,7 +1283,7 @@ function renderDailyTimelineChart() {
       backgroundColor: 'transparent',
       borderWidth: 2,
       
-      pointRadius: sortedDateKeys.length > 30 ? 2 : 3.5,
+      pointRadius: labels.length > 30 ? 2 : 3.5,
       pointHoverRadius: 6,
       pointBackgroundColor: '#b45309',
       pointStyle: 'circle',
@@ -1214,7 +1299,7 @@ function renderDailyTimelineChart() {
       borderColor: '#d97706',
       backgroundColor: 'transparent',
       borderWidth: 2.5,
-      pointRadius: sortedDateKeys.length > 30 ? 2 : 4,
+      pointRadius: labels.length > 30 ? 2 : 4,
       pointHoverRadius: 7,
       pointBackgroundColor: '#d97706',
       pointStyle: 'circle',
